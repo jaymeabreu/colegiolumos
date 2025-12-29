@@ -143,7 +143,7 @@ export function LoginPage() {
           <div className="mt-6 p-4 bg-gray-50 rounded-lg">
             <p className="text-sm font-medium text-gray-700 mb-2">Contas de teste:</p>
             <div className="space-y-1 text-xs text-gray-600">
-              <p><strong>Coordenador:</strong> coordenador@demo.com / 123456</p>
+              <p><strong>Coordenador:</strong> coordenador@colegiolumos.com.br / 123456</p>
               <p><strong>Professor:</strong> prof@demo.com / 123456</p>
               <p><strong>Aluno:</strong> aluno@demo.com / 123456</p>
             </div>
