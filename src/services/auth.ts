@@ -2,7 +2,8 @@ import { safeStorage } from '@/lib/safeStorage';
 import { supabase } from '@/lib/supabaseClient';
 
 export interface User {
-  id: number;
+  id: number; // id interno da tabela public.usuarios
+  authUserId: string; // uuid do auth.users
   nome: string;
   email: string;
   papel: 'COORDENADOR' | 'PROFESSOR' | 'ALUNO';
@@ -15,198 +16,82 @@ export interface AuthState {
   isAuthenticated: boolean;
 }
 
-const USE_SUPABASE = true;
-
 class AuthService {
   private storageKey = 'gestao_escolar_auth';
   private cachedAuthState: AuthState | null = null;
 
   getAuthState(): AuthState {
-    if (this.cachedAuthState) {
-      return this.cachedAuthState;
-    }
-    
+    if (this.cachedAuthState) return this.cachedAuthState;
+
     try {
       const stored = safeStorage.getItem(this.storageKey);
       if (stored) {
         const user = JSON.parse(stored);
-        if (user && user.id && user.email && user.papel) {
+        if (user && user.id && user.email && user.papel && user.authUserId) {
           this.cachedAuthState = { user, isAuthenticated: true };
           return this.cachedAuthState;
         }
       }
-    } catch (error) {
-      console.error('Erro ao ler auth:', error);
+    } catch {
       safeStorage.removeItem(this.storageKey);
     }
-    
+
     this.cachedAuthState = { user: null, isAuthenticated: false };
     return this.cachedAuthState;
   }
 
-  private getUsuariosFromStorage() {
-    try {
-      const stored = safeStorage.getItem('gestao_escolar_data');
-      if (stored) {
-        const data = JSON.parse(stored);
-        return data.usuarios || [];
-      }
-    } catch (error) {
-      console.error('Erro ao ler usuários:', error);
-    }
-    return [];
-  }
-
-  private getSenhasFromStorage() {
-    try {
-      const stored = safeStorage.getItem('gestao_escolar_senhas');
-      if (stored) {
-        return JSON.parse(stored);
-      }
-    } catch (error) {
-      console.error('Erro ao ler senhas:', error);
-    }
-    return {};
-  }
-
   async login(email: string, senha: string): Promise<{ success: boolean; user?: User; error?: string }> {
-    console.log('🔍 USE_SUPABASE:', USE_SUPABASE);
-    console.log('📧 Email:', email);
-    
-    // MODO SUPABASE
-    if (USE_SUPABASE) {
-      console.log('✅ Tentando login no Supabase...');
-      try {
-        const { data: usuarios, error: userError } = await supabase
-          .from('usuarios')
-          .select('*')
-          .eq('email', email)
-          .single();
-
-        console.log('📊 Usuário encontrado:', usuarios);
-        console.log('❌ Erro ao buscar usuário:', userError);
-
-        if (userError || !usuarios) {
-          console.log('⚠️ Usuário não encontrado ou erro');
-          return { success: false, error: 'Email ou senha inválidos' };
-        }
-
-        const { data: senhaData, error: senhaError } = await supabase
-          .from('senhas')
-          .select('senha_hash')
-          .eq('usuario_id', usuarios.id)
-          .single();
-
-        console.log('🔐 Senha no banco:', senhaData?.senha_hash);
-        console.log('🔑 Senha digitada:', senha);
-        console.log('❌ Erro ao buscar senha:', senhaError);
-
-        if (senhaError || !senhaData || senhaData.senha_hash !== senha) {
-          console.log('⚠️ Senha incorreta');
-          return { success: false, error: 'Email ou senha inválidos' };
-        }
-
-        console.log('🎉 Login com sucesso no Supabase!');
-
-        const user: User = {
-          id: usuarios.id,
-          nome: usuarios.nome,
-          email: usuarios.email,
-          papel: usuarios.papel,
-          alunoId: usuarios.aluno_id,
-          professorId: usuarios.professor_id
-        };
-
-        safeStorage.setItem(this.storageKey, JSON.stringify(user));
-        this.cachedAuthState = { user, isAuthenticated: true };
-        return { success: true, user };
-      } catch (error) {
-        console.error('💥 Erro no login Supabase:', error);
-        return { success: false, error: 'Erro ao fazer login' };
-      }
-    }
-
-    console.log('⚠️ Usando modo MOCK');
-
-    // MODO MOCK (fallback)
-    const usuarios = this.getUsuariosFromStorage();
-    const senhas = this.getSenhasFromStorage();
-
-    const usuariosPadrao = [
-      {
-        id: 1,
-        nome: 'Coordenador Sistema',
-        email: 'coordenador@demo.com',
-        senha: '123456',
-        papel: 'COORDENADOR' as const
-      },
-      {
-        id: 2,
-        nome: 'Professor História',
-        email: 'prof@demo.com',
-        senha: '123456',
-        papel: 'PROFESSOR' as const,
-        professorId: 1
-      },
-      {
-        id: 3,
-        nome: 'Ana Clara Santos',
-        email: 'aluno@demo.com',
-        senha: '123456',
-        papel: 'ALUNO' as const,
-        alunoId: 1
-      }
-    ];
-
-    let usuario = usuariosPadrao.find(u => u.email === email && u.senha === senha);
-    
-    if (!usuario) {
-      const usuarioSistema = usuarios.find((u: any) => u.email === email);
-      if (usuarioSistema) {
-        const senhaArmazenada = senhas[usuarioSistema.id];
-        if (senhaArmazenada === senha) {
-          usuario = {
-            id: usuarioSistema.id,
-            nome: usuarioSistema.nome,
-            email: usuarioSistema.email,
-            senha: senhaArmazenada,
-            papel: usuarioSistema.papel,
-            alunoId: usuarioSistema.alunoId,
-            professorId: usuarioSistema.professorId
-          };
-        }
-      }
-    }
-    
-    if (!usuario) {
-      return { success: false, error: 'Email ou senha inválidos' };
-    }
-
-    const user: User = {
-      id: usuario.id,
-      nome: usuario.nome,
-      email: usuario.email,
-      papel: usuario.papel,
-      alunoId: usuario.alunoId,
-      professorId: usuario.professorId
-    };
-
     try {
+      // 1) Login via Supabase Auth
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password: senha,
+      });
+
+      if (error || !data.user) {
+        return { success: false, error: 'Email ou senha inválidos' };
+      }
+
+      const authUserId = data.user.id;
+
+      // 2) Busca perfil no seu domínio (public.usuarios)
+      const { data: usuario, error: perfilError } = await supabase
+        .from('usuarios')
+        .select('*')
+        .eq('auth_user_id', authUserId)
+        .single();
+
+      if (perfilError || !usuario) {
+        // Usuário autenticou, mas não tem perfil/role cadastrado
+        await supabase.auth.signOut();
+        return { success: false, error: 'Usuário sem perfil cadastrado no sistema' };
+      }
+
+      const user: User = {
+        id: usuario.id,
+        authUserId,
+        nome: usuario.nome,
+        email: usuario.email,
+        papel: usuario.papel,
+        alunoId: usuario.aluno_id ?? undefined,
+        professorId: usuario.professor_id ?? undefined,
+      };
+
       safeStorage.setItem(this.storageKey, JSON.stringify(user));
       this.cachedAuthState = { user, isAuthenticated: true };
       return { success: true, user };
-    } catch (error) {
-      console.error('Erro ao salvar auth:', error);
-      return { success: false, error: 'Erro ao salvar sessão' };
+    } catch (e) {
+      console.error('Erro no login:', e);
+      return { success: false, error: 'Erro ao fazer login' };
     }
   }
 
-  logout(): void {
+  async logout(): Promise<void> {
     try {
+      await supabase.auth.signOut();
+    } finally {
       safeStorage.removeItem(this.storageKey);
       this.cachedAuthState = null;
-    } catch (error) {
-      console.error('Erro ao limpar auth:', error);
     }
   }
 
