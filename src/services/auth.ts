@@ -49,8 +49,17 @@ class AuthService {
       });
 
       if (error || !data.user) {
-        return { success: false, error: 'Email ou senha inválidos' };
-      }
+  console.error('SUPABASE AUTH ERROR:', {
+    message: error?.message,
+    status: (error as any)?.status,
+    name: (error as any)?.name,
+    code: (error as any)?.code,
+  });
+
+  // Mantém mensagem amigável, mas com log técnico no console
+  return { success: false, error: error?.message || 'Falha ao autenticar' };
+}
+
 
       const authUserId = data.user.id;
 
