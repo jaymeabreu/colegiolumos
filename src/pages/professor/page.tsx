@@ -38,7 +38,28 @@ export function ProfessorPage() {
     try {
       const professorDiarios = await supabaseService.getDiariosByProfessor(user.id);
       setDiarios(professorDiarios);
-      
+      // Monta extras (disciplina/turma/qtd alunos) ANTES do render
+const extrasEntries = await Promise.all(
+  professorDiarios.map(async (d) => {
+    const [disciplina, turma, alunos] = await Promise.all([
+      supabaseService.getDisciplinaById(d.disciplinaId),
+      supabaseService.getTurmaById(d.turmaId),
+      supabaseService.getAlunosByDiario(d.id),
+    ]);
+
+    return [
+      d.id,
+      {
+        disciplinaNome: (disciplina as any)?.nome ?? '—',
+        turmaNome: (turma as any)?.nome ?? '—',
+        alunosCount: Array.isArray(alunos) ? alunos.length : 0,
+      },
+    ] as const;
+  })
+);
+
+setDiarioExtras(Object.fromEntries(extrasEntries));
+
       // Se só tem um diário, seleciona automaticamente
       if (professorDiarios.length === 1) {
         setSelectedDiario(professorDiarios[0].id);
@@ -219,10 +240,13 @@ export function ProfessorPage() {
 
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {diarios.map((diario) => {
-                      // Buscar dados reais do diário
-                      const disciplina = await supabaseService.getDisciplinaById(diario.disciplinaId);
-                      const turma = await supabaseService.getTurmaById(diario.turmaId);
-                      const alunos = await supabaseService.getAlunosByDiario(diario.id);
+  const extra = diarioExtras[diario.id];
+
+const [diarioExtras, setDiarioExtras] = useState<Record<number, {
+  disciplinaNome: string;
+  turmaNome: string;
+  alunosCount: number;
+}>>({});
 
                       const podeEditar = supabaseService.professorPodeEditarDiario(diario.id, user?.professorId || 0);
                       
