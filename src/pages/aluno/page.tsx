@@ -1,327 +1,564 @@
-import { useState, useEffect } from 'react';
-import { BookOpen, ClipboardList, BarChart3, Calendar, User, Bell, AlertCircle, TrendingUp, Award, GraduationCap } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
-import { Badge } from '../../components/ui/badge';
-import { Progress } from '../../components/ui/progress';
-import { ScrollArea } from '../../components/ui/scroll-area';
-import { AuthHeader } from '../../components/auth/AuthHeader';
-import { ErrorBoundary } from '../../components/ErrorBoundary';
-import { authService } from '../../services/auth';
+import { useState } from 'react';
+import { CheckCircle, RotateCcw, AlertCircle, Clock, XCircle } from 'lucide-react';
+import { Button } from '../ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
+import { Textarea } from '../ui/textarea';
+import { Label } from '../ui/label';
+import { Badge } from '../ui/badge';
 import { supabaseService } from '../../services/supabaseService';
-import type { Aluno, Diario, Nota, Presenca, Avaliacao, Ocorrencia, Disciplina } from '../../services/mockData';
-import { AvisosTab } from './components/AvisosTab';
+import type { Diario, Usuario } from '../../services/mockData';
 
-interface DisciplinaBoletim {
-  disciplina: string;
-  bimestre1: number | null;
-  bimestre2: number | null;
-  bimestre3: number | null;
-  bimestre4: number | null;
-  mediaFinal: number;
-  frequencia: number;
-  situacao: string;
-  totalAulas: number;
-  presencas: number;
-  faltas: number;
+interface DiarioStatusControlsProps {
+  diario: Diario;
+  currentUser: Usuario;
+  onStatusChange: () => void;
+  compact?: boolean;
 }
 
-export function AlunoPage() {
-  const [activeTab, setActiveTab] = useState('avisos');
-  const [aluno, setAluno] = useState<Aluno | null>(null);
-  const [diarios, setDiarios] = useState<Diario[]>([]);
-  const [notas, setNotas] = useState<Nota[]>([]);
-  const [presencas, setPresencas] = useState<Presenca[]>([]);
-  const [avaliacoes, setAvaliacoes] = useState<Avaliacao[]>([]);
-  const [ocorrencias, setOcorrencias] = useState<Ocorrencia[]>([]);
-  const [boletimCompleto, setBoletimCompleto] = useState<DisciplinaBoletim[]>([]);
-  const [loading, setLoading] = useState(true);
-  const { user } = authService.getAuthState();
+export function DiarioStatusControls({ diario, currentUser, onStatusChange, compact = false }: DiarioStatusControlsProps) {
+  const [isEntregarDialogOpen, setIsEntregarDialogOpen] = useState(false);
+  const [isPedirDevolucaoDialogOpen, setIsPedirDevolucaoDialogOpen] = useState(false);
+  const [isDevolverDialogOpen, setIsDevolverDialogOpen] = useState(false);
+  const [isFinalizarDialogOpen, setIsFinalizarDialogOpen] = useState(false);
+  const [comentarioDevolucao, setComentarioDevolucao] = useState('');
+  const [observacaoDevolucao, setObservacaoDevolucao] = useState('');
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = () => {
-    if (!user?.alunoId) {
-      setLoading(false);
-      return;
-    }
-
-    try {
-      console.log('🎓 Carregando dados completos do aluno:', user.alunoId);
-
-      const alunoData = supabaseService.getAlunos().find(a => a.id === user.alunoId);
-      setAluno(alunoData || null);
-
-      if (alunoData?.turmaId) {
-        const todosOsDiarios = supabaseService.getDiarios();
-        const todasAsDisciplinas = supabaseService.getDisciplinas();
-        const diarioAlunos = supabaseService.getData().diarioAlunos;
-
-        const diariosDoAluno = todosOsDiarios.filter(diario =>
-          diarioAlunos.some(da => da.alunoId === user.alunoId && da.diarioId === diario.id)
-        );
-
-        setDiarios(diariosDoAluno);
-
-        const notasAluno = supabaseService.getNotasByAluno(user.alunoId);
-        setNotas(notasAluno);
-
-        const presencasAluno = supabaseService.getPresencasByAluno(user.alunoId);
-        setPresencas(presencasAluno);
-
-        const todasAvaliacoes: Avaliacao[] = [];
-        diariosDoAluno.forEach(diario => {
-          const avaliacoesDiario = supabaseService.getAvaliacoesByDiario(diario.id);
-          todasAvaliacoes.push(...avaliacoesDiario);
-        });
-        setAvaliacoes(todasAvaliacoes);
-
-        const todasOcorrencias = supabaseService.getData().ocorrencias;
-        const ocorrenciasDoAluno = todasOcorrencias.filter(o => o.alunoId === user.alunoId);
-        setOcorrencias(ocorrenciasDoAluno);
-
-        const boletim: DisciplinaBoletim[] = [];
-        diariosDoAluno.forEach(diario => {
-          const disciplina = todasAsDisciplinas.find(d => d.id === diario.disciplinaId);
-          if (!disciplina) return;
-
-          const media = supabaseService.calcularMediaAluno(user.alunoId, diario.id);
-
-          const aulas = supabaseService.getAulasByDiario(diario.id);
-          const presencasDaDisciplina = presencasAluno.filter(p =>
-            aulas.some(a => a.id === p.aulaId)
-          );
-
-          const totalAulas = aulas.length;
-          const presentes = presencasDaDisciplina.filter(p => p.status === 'PRESENTE').length;
-          const faltas = presencasDaDisciplina.filter(p => p.status === 'FALTA').length;
-          const frequencia = totalAulas > 0 ? (presentes / totalAulas) * 100 : 0;
-
-          const avaliacoesDisciplina = supabaseService.getAvaliacoesByDiario(diario.id);
-          const notasPorBimestre = { bim1: null, bim2: null, bim3: null, bim4: null };
-
-          [1, 2, 3, 4].forEach(bimestre => {
-            const avaliacoesBim = avaliacoesDisciplina.filter(av => av.bimestre === bimestre);
-            if (avaliacoesBim.length > 0) {
-              const notasAlunoBim = avaliacoesBim
-                .map(av => notasAluno.find(n => n.avaliacaoId === av.id))
-                .filter(nota => nota !== undefined);
-
-              if (notasAlunoBim.length > 0) {
-                const mediaBimestre = notasAlunoBim.reduce((sum, nota) => sum + nota!.valor, 0) / notasAlunoBim.length;
-                notasPorBimestre[`bim${bimestre}` as keyof typeof notasPorBimestre] = Number(mediaBimestre.toFixed(1));
-              }
-            }
-          });
-
-          let situacao = 'Em Andamento';
-          if (media > 0) {
-            if (media >= 7 && frequencia >= 75) {
-              situacao = 'Aprovado';
-            } else if (media >= 5 && media < 7) {
-              situacao = 'Recuperação';
-            } else if (media < 5 || frequencia < 60) {
-              situacao = 'Reprovado';
-            }
-          }
-
-          boletim.push({
-            disciplina: disciplina.nome,
-            bimestre1: notasPorBimestre.bim1,
-            bimestre2: notasPorBimestre.bim2,
-            bimestre3: notasPorBimestre.bim3,
-            bimestre4: notasPorBimestre.bim4,
-            mediaFinal: media,
-            frequencia,
-            situacao,
-            totalAulas,
-            presencas: presentes,
-            faltas
-          });
-        });
-
-        setBoletimCompleto(boletim);
-
-        console.log('📊 Dados carregados:', {
-          diarios: diariosDoAluno.length,
-          notas: notasAluno.length,
-          presencas: presencasAluno.length,
-          avaliacoes: todasAvaliacoes.length,
-          ocorrencias: ocorrenciasDoAluno.length,
-          boletim: boletim.length
-        });
-      }
-    } catch (error) {
-      console.error('Erro ao carregar dados do aluno:', error);
-    } finally {
-      setLoading(false);
+  const handleEntregarDiario = () => {
+    const sucesso = supabaseService.entregarDiario(diario.id, currentUser.id);
+    if (sucesso) {
+      onStatusChange();
+      setIsEntregarDialogOpen(false);
     }
   };
 
-  const calcularMedia = (diarioId: number): number => {
-    return supabaseService.calcularMediaAluno(user?.alunoId || 0, diarioId);
-  };
-
-  const calcularFrequencia = (diarioId: number): number => {
-    const aulas = supabaseService.getAulasByDiario(diarioId);
-    const presencasDiario = presencas.filter(p => 
-      aulas.some(a => a.id === p.aulaId)
+  const handlePedirDevolucao = () => {
+    const sucesso = supabaseService.solicitarDevolucaoDiario(
+      diario.id, 
+      currentUser.id, 
+      comentarioDevolucao
     );
-
-    if (presencasDiario.length === 0) return 100;
-
-    const presentes = presencasDiario.filter(p => p.status === 'PRESENTE').length;
-    return (presentes / presencasDiario.length) * 100;
+    if (sucesso) {
+      onStatusChange();
+      setIsPedirDevolucaoDialogOpen(false);
+      setComentarioDevolucao('');
+    }
   };
 
-  const getMediaColor = (media: number) => {
-    if (media >= 7) return 'text-green-600';
-    if (media >= 5) return 'text-yellow-600';
-    return 'text-red-600';
-  };
-
-  const getFrequenciaColor = (freq: number) => {
-    if (freq >= 75) return 'text-green-600';
-    if (freq >= 60) return 'text-yellow-600';
-    return 'text-red-600';
-  };
-
-  const getSituacaoVariant = (situacao: string) => {
-    if (situacao === 'Aprovado') return 'default';
-    if (situacao === 'Recuperação') return 'secondary';
-    if (situacao === 'Reprovado') return 'destructive';
-    return 'outline';
-  };
-
-  const getOcorrenciaColor = (tipo: string) => {
-    if (tipo === 'disciplinar') return 'destructive';
-    if (tipo === 'pedagogica') return 'secondary';
-    return 'default';
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('pt-BR');
-  };
-
-  const tabsConfig = [
-    { id: 'avisos', label: 'Avisos', icon: Bell },
-    { id: 'boletim', label: 'Boletim', icon: BarChart3 },
-    { id: 'frequencia', label: 'Frequência', icon: ClipboardList },
-    { id: 'avaliacoes', label: 'Avaliações', icon: BookOpen },
-    { id: 'ocorrencias', label: 'Ocorrências', icon: AlertCircle }
-  ];
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-sm text-muted-foreground">Carregando...</p>
-        </div>
-      </div>
+  const handleDevolverDiario = () => {
+    const sucesso = supabaseService.devolverDiario(
+      diario.id, 
+      currentUser.id, 
+      observacaoDevolucao
     );
-  }
+    if (sucesso) {
+      onStatusChange();
+      setIsDevolverDialogOpen(false);
+      setObservacaoDevolucao('');
+    }
+  };
 
-  if (!aluno) {
-    return (
-      <div className="min-h-screen flex flex-col bg-background">
-        <header className="sticky top-0 z-50 border-b bg-card px-6 py-4 flex-shrink-0 h-20 flex items-center">
-          <div className="flex items-center justify-between w-full">
-            <div className="flex items-center gap-4">
-              <User className="h-8 w-8 text-primary" />
-              <div>
-                <h1 className="text-xl font-semibold text-foreground">
-                  Área do Aluno
-                </h1>
-              </div>
-            </div>
-            <AuthHeader />
-          </div>
-        </header>
-        <div className="flex-1 flex items-center justify-center">
-          <Card className="max-w-md mx-auto">
-            <CardHeader className="text-center">
-              <CardTitle className="text-xl font-semibold">Dados não encontrados</CardTitle>
-              <CardDescription className="text-sm">
-                Não foi possível carregar os dados do aluno. Entre em contato com a secretaria.
-              </CardDescription>
-            </CardHeader>
-          </Card>
-        </div>
-      </div>
-    );
-  }
+  const handleFinalizarDiario = () => {
+    const sucesso = supabaseService.finalizarDiario(diario.id, currentUser.id);
+    if (sucesso) {
+      onStatusChange();
+      setIsFinalizarDialogOpen(false);
+    }
+  };
 
-  const mediaGeral = boletimCompleto.length > 0 
-    ? boletimCompleto.reduce((sum, item) => sum + item.mediaFinal, 0) / boletimCompleto.length 
-    : 0;
-  
-  const frequenciaGeral = boletimCompleto.length > 0 
-    ? boletimCompleto.reduce((sum, item) => sum + item.frequencia, 0) / boletimCompleto.length 
-    : 0;
-
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case 'avisos':
-        return <AvisosTab />;
-      
+  const getStatusInfo = () => {
+    switch (diario.status) {
+      case 'PENDENTE':
+        return { 
+          label: 'Em Edição', 
+          icon: Clock, 
+          color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+          description: 'Diário em edição pelo professor'
+        };
+      case 'ENTREGUE':
+        return { 
+          label: 'Entregue', 
+          icon: CheckCircle, 
+          color: 'bg-blue-100 text-blue-800 border-blue-200',
+          description: 'Diário entregue para coordenação'
+        };
+      case 'DEVOLVIDO':
+        return { 
+          label: 'Devolvido', 
+          icon: RotateCcw, 
+          color: 'bg-orange-100 text-orange-800 border-orange-200',
+          description: 'Diário devolvido para ajustes'
+        };
+      case 'FINALIZADO':
+        return { 
+          label: 'Finalizado', 
+          icon: XCircle, 
+          color: 'bg-green-100 text-green-800 border-green-200',
+          description: 'Diário finalizado - não pode ser editado'
+        };
       default:
-        return <AvisosTab />;
+        return { 
+          label: 'Desconhecido', 
+          icon: AlertCircle, 
+          color: 'bg-gray-100 text-gray-800 border-gray-200',
+          description: 'Status desconhecido'
+        };
     }
   };
 
-  return (
-    <ErrorBoundary>
-      <div className="min-h-screen flex flex-col bg-background">
-        <header className="sticky top-0 z-50 border-b bg-card px-6 py-4 flex-shrink-0 h-20 flex items-center">
-          <div className="flex items-center justify-between w-full">
-            <div className="flex items-center gap-4">
-              <User className="h-8 w-8 text-primary" />
-              <div>
-                <h1 className="text-xl font-semibold text-foreground">
-                  Área do Aluno
-                </h1>
-                <p className="text-sm text-muted-foreground">
-                  Bem-vindo, {aluno.nome}
-                </p>
-              </div>
-            </div>
-            <AuthHeader />
-          </div>
-        </header>
+  const statusInfo = getStatusInfo();
+  const StatusIcon = statusInfo.icon;
+  const podeEditar = supabaseService.professorPodeEditarDiario(diario.id, currentUser.professorId || 0);
+  const permissions = supabaseService.coordenadorPodeGerenciarDiario(diario.id);
 
-        <div className="sticky top-20 z-40 border-b bg-card px-6 flex-shrink-0">
-          <nav className="flex space-x-8 py-0">
-            {tabsConfig.map(({ id, label, icon: Icon }) => (
-              <button
-                key={id}
-                onClick={() => setActiveTab(id)}
-                className={`flex items-center gap-2 py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-fast ${
-                  activeTab === id
-                    ? 'text-primary border-primary'
-                    : 'text-muted-foreground border-transparent hover:text-foreground hover:border-border'
-                }`}
-              >
-                <Icon className="h-4 w-4" />
-                {label}
-              </button>
-            ))}
-          </nav>
+  // Versão compacta para o header
+  if (compact) {
+    return (
+      <>
+        <div className="flex items-center gap-3">
+          {/* Badge de Status */}
+          <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium border ${statusInfo.color}`}>
+            <StatusIcon className="h-4 w-4" />
+            {statusInfo.label}
+          </div>
+
+          {/* Botões de Ação */}
+          <div className="flex items-center gap-2">
+            {/* Botões do Professor */}
+            {currentUser.papel === 'PROFESSOR' && (
+              <>
+                {/* Botão Entregar Diário */}
+                {podeEditar && (diario.status === 'PENDENTE' || diario.status === 'DEVOLVIDO') && (
+                  <Button
+                    onClick={() => setIsEntregarDialogOpen(true)}
+                    className="inline-flex items-center gap-2 whitespace-nowrap"
+                    size="sm"
+                  >
+                    <CheckCircle className="h-4 w-4" />
+                    Entregar
+                  </Button>
+                )}
+
+                {/* Botão Pedir Devolução */}
+                {diario.status === 'ENTREGUE' && !diario.solicitacaoDevolucao && (
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsPedirDevolucaoDialogOpen(true)}
+                    className="inline-flex items-center gap-2 whitespace-nowrap"
+                    size="sm"
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                    Pedir Devolução
+                  </Button>
+                )}
+
+                {/* Status de solicitação pendente */}
+                {diario.status === 'ENTREGUE' && diario.solicitacaoDevolucao && (
+                  <Badge variant="secondary" className="whitespace-nowrap">
+                    Devolução solicitada
+                  </Badge>
+                )}
+              </>
+            )}
+
+            {/* Botões do Coordenador */}
+            {currentUser.papel === 'COORDENADOR' && (
+              <>
+                {permissions.canDevolver && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="inline-flex items-center gap-2 whitespace-nowrap"
+                    onClick={() => setIsDevolverDialogOpen(true)}
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                    Devolver
+                  </Button>
+                )}
+                {permissions.canFinalizar && (
+                  <Button
+                    size="sm"
+                    className="inline-flex items-center gap-2 whitespace-nowrap"
+                    onClick={() => setIsFinalizarDialogOpen(true)}
+                  >
+                    <CheckCircle className="h-4 w-4" />
+                    Finalizar
+                  </Button>
+                )}
+              </>
+            )}
+          </div>
         </div>
 
-        <main className="flex-1 overflow-hidden">
-          <ScrollArea className="h-full">
-            <div className="p-6">
-              <ErrorBoundary>
-                {renderTabContent()}
-              </ErrorBoundary>
+        {/* Modais */}
+        {/* Modal de Entrega */}
+        <Dialog open={isEntregarDialogOpen} onOpenChange={setIsEntregarDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Entregar Diário</DialogTitle>
+              <DialogDescription>
+                Tem certeza de que deseja entregar este diário? Após a entrega você não poderá mais editar, apenas o coordenador poderá devolver.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setIsEntregarDialogOpen(false)}
+              >
+                Cancelar
+              </Button>
+              <Button type="button" onClick={handleEntregarDiario}>
+                Entregar Diário
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Modal de Pedido de Devolução */}
+        <Dialog open={isPedirDevolucaoDialogOpen} onOpenChange={setIsPedirDevolucaoDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Solicitar Devolução</DialogTitle>
+              <DialogDescription>
+                Explique o motivo pelo qual você gostaria que o coordenador devolvesse este diário para edição.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="comentario">Motivo da solicitação</Label>
+                <Textarea
+                  id="comentario"
+                  value={comentarioDevolucao}
+                  onChange={(e) => setComentarioDevolucao(e.target.value)}
+                  placeholder="Explique por que precisa editar o diário novamente..."
+                  rows={3}
+                  required
+                />
+              </div>
             </div>
-          </ScrollArea>
-        </main>
+            <DialogFooter>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => {
+                  setIsPedirDevolucaoDialogOpen(false);
+                  setComentarioDevolucao('');
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button 
+                type="button" 
+                onClick={handlePedirDevolucao}
+                disabled={!comentarioDevolucao.trim()}
+              >
+                Enviar Solicitação
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Modal de Devolução do Coordenador */}
+        <Dialog open={isDevolverDialogOpen} onOpenChange={setIsDevolverDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Devolver Diário</DialogTitle>
+              <DialogDescription>
+                Tem certeza que deseja devolver este diário para o professor? Adicione uma observação explicando o motivo.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="observacao">Observação (opcional)</Label>
+                <Textarea
+                  id="observacao"
+                  value={observacaoDevolucao}
+                  onChange={(e) => setObservacaoDevolucao(e.target.value)}
+                  placeholder="Explique o motivo da devolução..."
+                  rows={3}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => {
+                  setIsDevolverDialogOpen(false);
+                  setObservacaoDevolucao('');
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button type="button" variant="destructive" onClick={handleDevolverDiario}>
+                Devolver Diário
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Modal de Finalização */}
+        <Dialog open={isFinalizarDialogOpen} onOpenChange={setIsFinalizarDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Finalizar Diário</DialogTitle>
+              <DialogDescription>
+                Tem certeza que deseja finalizar este diário? Após a finalização, nem o professor nem o coordenador poderão mais editá-lo.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setIsFinalizarDialogOpen(false)}
+              >
+                Cancelar
+              </Button>
+              <Button type="button" onClick={handleFinalizarDiario}>
+                Finalizar Diário
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </>
+    );
+  }
+
+  // Versão completa para a página
+  return (
+    <>
+      <div className="bg-white border rounded-lg p-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className={`inline-flex items-center gap-2 px-3 py-2 rounded-full text-sm font-medium border ${statusInfo.color}`}>
+              <StatusIcon className="h-4 w-4" />
+              {statusInfo.label}
+            </div>
+            <span className="text-sm text-gray-600">{statusInfo.description}</span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* Botões do Professor */}
+            {currentUser.papel === 'PROFESSOR' && (
+              <>
+                {/* Botão Entregar Diário */}
+                {podeEditar && (diario.status === 'PENDENTE' || diario.status === 'DEVOLVIDO') && (
+                  <Button
+                    onClick={() => setIsEntregarDialogOpen(true)}
+                    className="inline-flex items-center gap-2 whitespace-nowrap"
+                  >
+                    <CheckCircle className="h-4 w-4" />
+                    Entregar Diário
+                  </Button>
+                )}
+
+                {/* Botão Pedir Devolução */}
+                {diario.status === 'ENTREGUE' && !diario.solicitacaoDevolucao && (
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsPedirDevolucaoDialogOpen(true)}
+                    className="inline-flex items-center gap-2 whitespace-nowrap"
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                    Pedir Devolução
+                  </Button>
+                )}
+
+                {/* Status de solicitação pendente */}
+                {diario.status === 'ENTREGUE' && diario.solicitacaoDevolucao && (
+                  <Badge variant="secondary" className="whitespace-nowrap">
+                    Devolução solicitada
+                  </Badge>
+                )}
+              </>
+            )}
+
+            {/* Botões do Coordenador */}
+            {currentUser.papel === 'COORDENADOR' && (
+              <>
+                {permissions.canDevolver && (
+                  <Button
+                    variant="outline"
+                    className="inline-flex items-center gap-2 whitespace-nowrap"
+                    onClick={() => setIsDevolverDialogOpen(true)}
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                    Devolver Diário
+                  </Button>
+                )}
+                {permissions.canFinalizar && (
+                  <Button
+                    className="inline-flex items-center gap-2 whitespace-nowrap"
+                    onClick={() => setIsFinalizarDialogOpen(true)}
+                  >
+                    <CheckCircle className="h-4 w-4" />
+                    Finalizar Diário
+                  </Button>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Mostrar solicitação de devolução se existir */}
+        {diario.solicitacaoDevolucao && (
+          <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded text-sm">
+            <div className="flex items-center gap-1 text-orange-800 font-medium mb-1">
+              <AlertCircle className="h-4 w-4" />
+              Solicitação de Devolução Pendente
+            </div>
+            <p className="text-orange-700">{diario.solicitacaoDevolucao.comentario}</p>
+            <p className="text-orange-600 text-xs mt-1">
+              Solicitado em: {new Date(diario.solicitacaoDevolucao.dataSolicitacao).toLocaleDateString('pt-BR')}
+            </p>
+          </div>
+        )}
+
+        {/* Aviso quando não pode editar */}
+        {!podeEditar && currentUser.papel === 'PROFESSOR' && (
+          <div className="mt-3 p-3 bg-gray-50 border border-gray-200 rounded text-sm">
+            <div className="flex items-center gap-1 text-gray-700">
+              <AlertCircle className="h-4 w-4" />
+              <span className="font-medium">
+                {diario.status === 'ENTREGUE' && 'Diário entregue - aguardando coordenação'}
+                {diario.status === 'FINALIZADO' && 'Diário finalizado - não pode ser editado'}
+              </span>
+            </div>
+          </div>
+        )}
       </div>
-    </ErrorBoundary>
+
+      {/* Modais */}
+      {/* Modal de Entrega */}
+      <Dialog open={isEntregarDialogOpen} onOpenChange={setIsEntregarDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Entregar Diário</DialogTitle>
+            <DialogDescription>
+              Tem certeza de que deseja entregar este diário? Após a entrega você não poderá mais editar, apenas o coordenador poderá devolver.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => setIsEntregarDialogOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button type="button" onClick={handleEntregarDiario}>
+              Entregar Diário
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Pedido de Devolução */}
+      <Dialog open={isPedirDevolucaoDialogOpen} onOpenChange={setIsPedirDevolucaoDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Solicitar Devolução</DialogTitle>
+            <DialogDescription>
+              Explique o motivo pelo qual você gostaria que o coordenador devolvesse este diário para edição.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="comentario">Motivo da solicitação</Label>
+              <Textarea
+                id="comentario"
+                value={comentarioDevolucao}
+                onChange={(e) => setComentarioDevolucao(e.target.value)}
+                placeholder="Explique por que precisa editar o diário novamente..."
+                rows={3}
+                required
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => {
+                setIsPedirDevolucaoDialogOpen(false);
+                setComentarioDevolucao('');
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              type="button" 
+              onClick={handlePedirDevolucao}
+              disabled={!comentarioDevolucao.trim()}
+            >
+              Enviar Solicitação
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Devolução do Coordenador */}
+      <Dialog open={isDevolverDialogOpen} onOpenChange={setIsDevolverDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Devolver Diário</DialogTitle>
+            <DialogDescription>
+              Tem certeza que deseja devolver este diário para o professor? Adicione uma observação explicando o motivo.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="observacao">Observação (opcional)</Label>
+              <Textarea
+                id="observacao"
+                value={observacaoDevolucao}
+                onChange={(e) => setObservacaoDevolucao(e.target.value)}
+                placeholder="Explique o motivo da devolução..."
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => {
+                setIsDevolverDialogOpen(false);
+                setObservacaoDevolucao('');
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button type="button" variant="destructive" onClick={handleDevolverDiario}>
+              Devolver Diário
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Finalização */}
+      <Dialog open={isFinalizarDialogOpen} onOpenChange={setIsFinalizarDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Finalizar Diário</DialogTitle>
+            <DialogDescription>
+              Tem certeza que deseja finalizar este diário? Após a finalização, nem o professor nem o coordenador poderão mais editá-lo.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => setIsFinalizarDialogOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button type="button" onClick={handleFinalizarDiario}>
+              Finalizar Diário
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
-
-export default AlunoPage;
