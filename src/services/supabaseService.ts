@@ -172,6 +172,44 @@ export interface Recado {
 }
 
 class SupabaseService {
+  async hydrate(): Promise<void> {
+  const [
+    usuariosRes,
+    turmasRes,
+    disciplinasRes,
+    professoresRes,
+    alunosRes,
+    diariosRes,
+  ] = await Promise.all([
+    supabase.from('usuarios').select('*'),
+    supabase.from('turmas').select('*'),
+    supabase.from('disciplinas').select('*'),
+    supabase.from('professores').select('*'),
+    supabase.from('alunos').select('*'),
+    supabase.from('diarios').select('*'),
+  ]);
+
+  const anyError =
+    usuariosRes.error || turmasRes.error || disciplinasRes.error ||
+    professoresRes.error || alunosRes.error || diariosRes.error;
+
+  if (anyError) {
+    console.error('hydrate() error:', anyError);
+    throw anyError;
+  }
+
+  const data = this.getData();
+
+  data.usuarios = (usuariosRes.data ?? []) as any;
+  data.turmas = (turmasRes.data ?? []) as any;
+  data.disciplinas = (disciplinasRes.data ?? []) as any;
+  data.professores = (professoresRes.data ?? []) as any;
+  data.alunos = (alunosRes.data ?? []) as any;
+  data.diarios = (diariosRes.data ?? []) as any;
+
+  this.saveData(data);
+}
+
   private storageKey = 'gestao_escolar_data';
   private static initialized = false;
 
@@ -322,36 +360,51 @@ class SupabaseService {
     return data.turmas.find((t: Turma) => t.id === id) || null;
   }
 
-  createTurma(turma: Omit<Turma, 'id' | 'created_at' | 'updated_at'>): Turma {
-    const data = this.getData();
-    const newTurma: Turma = {
-      ...turma,
-      id: this.getNextId(data.turmas),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
-    data.turmas.push(newTurma);
-    this.saveData(data);
-    return newTurma;
-  }
+  async createTurma(turma: Omit<Turma, 'id' | 'created_at' | 'updated_at'>): Promise<Turma> {
+  const { data: created, error } = await supabase
+    .from('turmas')
+    .insert([turma])
+    .select('*')
+    .single();
 
-  updateTurma(id: number, updates: Partial<Turma>): Turma | null {
-    const data = this.getData();
-    const index = data.turmas.findIndex((t: Turma) => t.id === id);
-    if (index === -1) return null;
-    data.turmas[index] = { ...data.turmas[index], ...updates, updated_at: new Date().toISOString() };
-    this.saveData(data);
-    return data.turmas[index];
-  }
+  if (error) throw error;
 
-  deleteTurma(id: number): void {
-    const data = this.getData();
-    const index = data.turmas.findIndex((t: Turma) => t.id === id);
-    if (index !== -1) {
-      data.turmas.splice(index, 1);
-      this.saveData(data);
-    }
-  }
+  const data = this.getData();
+  data.turmas.push(created as Turma);
+  this.saveData(data);
+
+  return created as Turma;
+}
+
+
+  async updateTurma(id: number, updates: Partial<Turma>): Promise<Turma> {
+  const { data: updated, error } = await supabase
+    .from('turmas')
+    .update(updates)
+    .eq('id', id)
+    .select('*')
+    .single();
+
+  if (error) throw error;
+
+  const data = this.getData();
+  const idx = data.turmas.findIndex((t: Turma) => t.id === id);
+  if (idx !== -1) data.turmas[idx] = updated as Turma;
+  this.saveData(data);
+
+  return updated as Turma;
+}
+
+
+  async deleteTurma(id: number): Promise<void> {
+  const { error } = await supabase.from('turmas').delete().eq('id', id);
+  if (error) throw error;
+
+  const data = this.getData();
+  data.turmas = data.turmas.filter((t: Turma) => t.id !== id);
+  this.saveData(data);
+}
+
 
   // DISCIPLINAS
   getDisciplinas(): Disciplina[] {

@@ -8,7 +8,7 @@ import { AuthHeader } from '../../components/auth/AuthHeader';
 import { ErrorBoundary } from '../../components/ErrorBoundary';
 import { authService } from '../../services/auth';
 import { supabaseService } from '../../services/supabaseService';
-import type { Aluno, Diario, Nota, Presenca, Avaliacao, Ocorrencia } from '../../services/mockData';
+import type { Aluno, Diario, Nota, Presenca, Avaliacao, Ocorrencia } from '../../services/supabaseService';
 import { AvisosTab } from './components/AvisosTab';
 
 interface DisciplinaBoletim {
