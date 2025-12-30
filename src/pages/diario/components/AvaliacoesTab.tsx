@@ -37,7 +37,8 @@ export function AvaliacoesTab({ diarioId, readOnly = false }: AvaliacoesTabProps
 
   useEffect(() => {
     void loadAvaliacoes();
-    loadAlunos();
+    void loadAlunos();
+
   }, [diarioId]);
 
   const loadAvaliacoes = async () => {
@@ -51,7 +52,8 @@ export function AvaliacoesTab({ diarioId, readOnly = false }: AvaliacoesTabProps
 };
 
 
-  const loadAlunos = () => {
+  const loadAlunos = async () => {
+
     const alunosData = await supabaseService.getAlunosByDiario(diarioId);
     setAlunos(alunosData);
   };
