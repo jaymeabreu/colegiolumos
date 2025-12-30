@@ -1,12 +1,12 @@
-
 import { useState } from 'react';
 import { CheckCircle, RotateCcw, AlertCircle, Clock, XCircle } from 'lucide-react';
-import { Button } from '../ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
-import { Textarea } from '../ui/textarea';
-import { Label } from '../ui/label';
-import { Badge } from '../ui/badge';
-import { mockDataService, Diario, Usuario } from '../../services/mockData';
+import { Button } from '../../components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../../components/ui/dialog';
+import { Textarea } from '../../components/ui/textarea';
+import { Label } from '../../components/ui/label';
+import { Badge } from '../../components/ui/badge';
+import { supabaseService } from '../../services/supabaseService';
+import type { Diario, Usuario } from '../../services/mockData';
 
 interface DiarioStatusControlsProps {
   diario: Diario;
@@ -110,23 +110,18 @@ export function DiarioStatusControls({ diario, currentUser, onStatusChange, comp
   const podeEditar = supabaseService.professorPodeEditarDiario(diario.id, currentUser.professorId || 0);
   const permissions = supabaseService.coordenadorPodeGerenciarDiario(diario.id);
 
-  // Versão compacta para o header
   if (compact) {
     return (
       <>
         <div className="flex items-center gap-3">
-          {/* Badge de Status */}
           <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium border ${statusInfo.color}`}>
             <StatusIcon className="h-4 w-4" />
             {statusInfo.label}
           </div>
 
-          {/* Botões de Ação */}
           <div className="flex items-center gap-2">
-            {/* Botões do Professor */}
             {currentUser.papel === 'PROFESSOR' && (
               <>
-                {/* Botão Entregar Diário */}
                 {podeEditar && (diario.status === 'PENDENTE' || diario.status === 'DEVOLVIDO') && (
                   <Button
                     onClick={() => setIsEntregarDialogOpen(true)}
@@ -138,7 +133,6 @@ export function DiarioStatusControls({ diario, currentUser, onStatusChange, comp
                   </Button>
                 )}
 
-                {/* Botão Pedir Devolução */}
                 {diario.status === 'ENTREGUE' && !diario.solicitacaoDevolucao && (
                   <Button
                     variant="outline"
@@ -151,7 +145,6 @@ export function DiarioStatusControls({ diario, currentUser, onStatusChange, comp
                   </Button>
                 )}
 
-                {/* Status de solicitação pendente */}
                 {diario.status === 'ENTREGUE' && diario.solicitacaoDevolucao && (
                   <Badge variant="secondary" className="whitespace-nowrap">
                     Devolução solicitada
@@ -160,7 +153,6 @@ export function DiarioStatusControls({ diario, currentUser, onStatusChange, comp
               </>
             )}
 
-            {/* Botões do Coordenador */}
             {currentUser.papel === 'COORDENADOR' && (
               <>
                 {permissions.canDevolver && (
@@ -189,8 +181,6 @@ export function DiarioStatusControls({ diario, currentUser, onStatusChange, comp
           </div>
         </div>
 
-        {/* Modais */}
-        {/* Modal de Entrega */}
         <Dialog open={isEntregarDialogOpen} onOpenChange={setIsEntregarDialogOpen}>
           <DialogContent>
             <DialogHeader>
@@ -214,7 +204,6 @@ export function DiarioStatusControls({ diario, currentUser, onStatusChange, comp
           </DialogContent>
         </Dialog>
 
-        {/* Modal de Pedido de Devolução */}
         <Dialog open={isPedirDevolucaoDialogOpen} onOpenChange={setIsPedirDevolucaoDialogOpen}>
           <DialogContent>
             <DialogHeader>
@@ -258,7 +247,6 @@ export function DiarioStatusControls({ diario, currentUser, onStatusChange, comp
           </DialogContent>
         </Dialog>
 
-        {/* Modal de Devolução do Coordenador */}
         <Dialog open={isDevolverDialogOpen} onOpenChange={setIsDevolverDialogOpen}>
           <DialogContent>
             <DialogHeader>
@@ -297,7 +285,6 @@ export function DiarioStatusControls({ diario, currentUser, onStatusChange, comp
           </DialogContent>
         </Dialog>
 
-        {/* Modal de Finalização */}
         <Dialog open={isFinalizarDialogOpen} onOpenChange={setIsFinalizarDialogOpen}>
           <DialogContent>
             <DialogHeader>
@@ -324,7 +311,6 @@ export function DiarioStatusControls({ diario, currentUser, onStatusChange, comp
     );
   }
 
-  // Versão completa para a página
   return (
     <>
       <div className="bg-white border rounded-lg p-4">
@@ -338,10 +324,8 @@ export function DiarioStatusControls({ diario, currentUser, onStatusChange, comp
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Botões do Professor */}
             {currentUser.papel === 'PROFESSOR' && (
               <>
-                {/* Botão Entregar Diário */}
                 {podeEditar && (diario.status === 'PENDENTE' || diario.status === 'DEVOLVIDO') && (
                   <Button
                     onClick={() => setIsEntregarDialogOpen(true)}
@@ -352,7 +336,6 @@ export function DiarioStatusControls({ diario, currentUser, onStatusChange, comp
                   </Button>
                 )}
 
-                {/* Botão Pedir Devolução */}
                 {diario.status === 'ENTREGUE' && !diario.solicitacaoDevolucao && (
                   <Button
                     variant="outline"
@@ -364,7 +347,6 @@ export function DiarioStatusControls({ diario, currentUser, onStatusChange, comp
                   </Button>
                 )}
 
-                {/* Status de solicitação pendente */}
                 {diario.status === 'ENTREGUE' && diario.solicitacaoDevolucao && (
                   <Badge variant="secondary" className="whitespace-nowrap">
                     Devolução solicitada
@@ -373,7 +355,6 @@ export function DiarioStatusControls({ diario, currentUser, onStatusChange, comp
               </>
             )}
 
-            {/* Botões do Coordenador */}
             {currentUser.papel === 'COORDENADOR' && (
               <>
                 {permissions.canDevolver && (
@@ -400,7 +381,6 @@ export function DiarioStatusControls({ diario, currentUser, onStatusChange, comp
           </div>
         </div>
 
-        {/* Mostrar solicitação de devolução se existir */}
         {diario.solicitacaoDevolucao && (
           <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded text-sm">
             <div className="flex items-center gap-1 text-orange-800 font-medium mb-1">
@@ -414,7 +394,6 @@ export function DiarioStatusControls({ diario, currentUser, onStatusChange, comp
           </div>
         )}
 
-        {/* Aviso quando não pode editar */}
         {!podeEditar && currentUser.papel === 'PROFESSOR' && (
           <div className="mt-3 p-3 bg-gray-50 border border-gray-200 rounded text-sm">
             <div className="flex items-center gap-1 text-gray-700">
@@ -428,8 +407,6 @@ export function DiarioStatusControls({ diario, currentUser, onStatusChange, comp
         )}
       </div>
 
-      {/* Modais */}
-      {/* Modal de Entrega */}
       <Dialog open={isEntregarDialogOpen} onOpenChange={setIsEntregarDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -453,7 +430,6 @@ export function DiarioStatusControls({ diario, currentUser, onStatusChange, comp
         </DialogContent>
       </Dialog>
 
-      {/* Modal de Pedido de Devolução */}
       <Dialog open={isPedirDevolucaoDialogOpen} onOpenChange={setIsPedirDevolucaoDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -497,7 +473,6 @@ export function DiarioStatusControls({ diario, currentUser, onStatusChange, comp
         </DialogContent>
       </Dialog>
 
-      {/* Modal de Devolução do Coordenador */}
       <Dialog open={isDevolverDialogOpen} onOpenChange={setIsDevolverDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -536,7 +511,6 @@ export function DiarioStatusControls({ diario, currentUser, onStatusChange, comp
         </DialogContent>
       </Dialog>
 
-      {/* Modal de Finalização */}
       <Dialog open={isFinalizarDialogOpen} onOpenChange={setIsFinalizarDialogOpen}>
         <DialogContent>
           <DialogHeader>
