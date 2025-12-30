@@ -7,7 +7,7 @@ import { Progress } from '../ui/progress';
 import { ScrollArea } from '../ui/scroll-area';
 import { Button } from '../ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { mockDataService, Aluno, Avaliacao, Nota, Disciplina, Diario, Aula, Presenca, Ocorrencia } from '../../services/mockData';
+import { supabaseService, Aluno, Avaliacao, Nota, Disciplina, Diario, Aula, Presenca, Ocorrencia } from '../../services/mockData';
 
 interface BoletimModalProps {
   aluno: Aluno;
