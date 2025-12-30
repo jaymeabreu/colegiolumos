@@ -58,7 +58,8 @@ export function AvaliacoesTab({ diarioId, readOnly = false }: AvaliacoesTabProps
     setAlunos(alunosData);
   };
 
-  const loadNotasAvaliacao = (avaliacaoId: number) => {
+  const loadNotasAvaliacao = async (avaliacaoId: number) => {
+
     const notasData = await supabaseService.getNotasByAvaliacao(avaliacaoId);
     const notasMap: { [alunoId: number]: string } = {};
 
@@ -127,7 +128,8 @@ export function AvaliacoesTab({ diarioId, readOnly = false }: AvaliacoesTabProps
 
   const handleEditNotas = (avaliacao: Avaliacao) => {
     setSelectedAvaliacao(avaliacao);
-    loadNotasAvaliacao(avaliacao.id);
+    void loadNotasAvaliacao(avaliacao.id);
+
     setIsNotasDialogOpen(true);
   };
 
