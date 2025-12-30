@@ -311,9 +311,9 @@ class MockDataService {
     
     // Se não há dados salvos, inicializar com dados padrão
     console.log('Inicializando com dados padrão');
-    if (!MockDataService.initialized) {
+    if (!supabaseService.initialized) {
       this.saveData(this.defaultData);
-      MockDataService.initialized = true;
+      supabaseService.initialized = true;
     }
     return this.defaultData;
   }

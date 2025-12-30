@@ -59,17 +59,17 @@ export function AvisosTab() {
       console.log('Carregando avisos para o aluno...', { userId: user?.id, alunoId: user?.alunoId });
       
       // Carregar comunicados gerais - sempre recarregar do localStorage
-      const comunicadosData = mockDataService.getComunicados();
+      const comunicadosData = supabaseService.getComunicados();
       console.log('Comunicados carregados:', comunicadosData);
       setComunicados(comunicadosData.sort((a, b) => new Date(b.dataPublicacao).getTime() - new Date(a.dataPublicacao).getTime()));
 
       // Carregar recados para o aluno
       if (user?.alunoId) {
-        const aluno = mockDataService.getAlunos().find(a => a.id === user.alunoId);
+        const aluno = supabaseService.getAlunos().find(a => a.id === user.alunoId);
         console.log('Aluno encontrado:', aluno);
         
         if (aluno?.turmaId) {
-          const recadosData = mockDataService.getRecadosForAluno(user.alunoId, aluno.turmaId);
+          const recadosData = supabaseService.getRecadosForAluno(user.alunoId, aluno.turmaId);
           console.log('Recados carregados para o aluno:', recadosData);
           setRecados(recadosData.sort((a, b) => new Date(b.dataEnvio).getTime() - new Date(a.dataEnvio).getTime()));
         } else {

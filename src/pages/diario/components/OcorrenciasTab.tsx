@@ -35,12 +35,12 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
   }, [diarioId]);
 
   const loadOcorrencias = () => {
-    const ocorrenciasData = mockDataService.getOcorrenciasByDiario(diarioId);
+    const ocorrenciasData = supabaseService.getOcorrenciasByDiario(diarioId);
     setOcorrencias(ocorrenciasData);
   };
 
   const loadAlunos = () => {
-    const alunosData = mockDataService.getAlunosByDiario(diarioId);
+    const alunosData = supabaseService.getAlunosByDiario(diarioId);
     setAlunos(alunosData);
   };
 
@@ -57,12 +57,12 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
     e.preventDefault();
     
     if (editingOcorrencia) {
-      mockDataService.updateOcorrencia(editingOcorrencia.id, {
+      supabaseService.updateOcorrencia(editingOcorrencia.id, {
         ...formData,
         alunoId: parseInt(formData.alunoId)
       });
     } else {
-      mockDataService.createOcorrencia({
+      supabaseService.createOcorrencia({
         ...formData,
         alunoId: parseInt(formData.alunoId),
         diarioId,
@@ -88,7 +88,7 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
 
   const handleDelete = (ocorrenciaId: number) => {
     if (confirm('Tem certeza que deseja excluir esta ocorrência?')) {
-      mockDataService.deleteOcorrencia(ocorrenciaId);
+      supabaseService.deleteOcorrencia(ocorrenciaId);
       loadOcorrencias();
     }
   };

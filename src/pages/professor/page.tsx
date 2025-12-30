@@ -35,7 +35,7 @@ export function ProfessorPage() {
     if (!user || loadedRef.current) return;
     
     try {
-      const professorDiarios = mockDataService.getDiariosByProfessor(user.id);
+      const professorDiarios = supabaseService.getDiariosByProfessor(user.id);
       setDiarios(professorDiarios);
       
       // Se só tem um diário, seleciona automaticamente
@@ -219,10 +219,10 @@ export function ProfessorPage() {
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {diarios.map((diario) => {
                       // Buscar dados reais do diário
-                      const disciplina = mockDataService.getDisciplinaById(diario.disciplinaId);
-                      const turma = mockDataService.getTurmaById(diario.turmaId);
-                      const alunos = mockDataService.getAlunosByDiario(diario.id);
-                      const podeEditar = mockDataService.professorPodeEditarDiario(diario.id, user?.professorId || 0);
+                      const disciplina = supabaseService.getDisciplinaById(diario.disciplinaId);
+                      const turma = supabaseService.getTurmaById(diario.turmaId);
+                      const alunos = supabaseService.getAlunosByDiario(diario.id);
+                      const podeEditar = supabaseService.professorPodeEditarDiario(diario.id, user?.professorId || 0);
                       
                       // Configuração do status
                       const getStatusInfo = () => {
@@ -259,7 +259,7 @@ export function ProfessorPage() {
 
                       const handleEntregarDiario = (e: React.MouseEvent) => {
                         e.stopPropagation();
-                        const sucesso = mockDataService.entregarDiario(diario.id, user?.id || 0);
+                        const sucesso = supabaseService.entregarDiario(diario.id, user?.id || 0);
                         if (sucesso) {
                           handleStatusChange();
                         }

@@ -49,13 +49,13 @@ export function AlunoPage() {
     try {
       console.log('🎓 Carregando dados completos do aluno:', user.alunoId);
 
-      const alunoData = mockDataService.getAlunos().find(a => a.id === user.alunoId);
+      const alunoData = supabaseService.getAlunos().find(a => a.id === user.alunoId);
       setAluno(alunoData || null);
 
       if (alunoData?.turmaId) {
-        const todosOsDiarios = mockDataService.getDiarios();
-        const todasAsDisciplinas = mockDataService.getDisciplinas();
-        const diarioAlunos = mockDataService.getData().diarioAlunos;
+        const todosOsDiarios = supabaseService.getDiarios();
+        const todasAsDisciplinas = supabaseService.getDisciplinas();
+        const diarioAlunos = supabaseService.getData().diarioAlunos;
 
         const diariosDoAluno = todosOsDiarios.filter(diario =>
           diarioAlunos.some(da => da.alunoId === user.alunoId && da.diarioId === diario.id)
@@ -63,20 +63,20 @@ export function AlunoPage() {
 
         setDiarios(diariosDoAluno);
 
-        const notasAluno = mockDataService.getNotasByAluno(user.alunoId);
+        const notasAluno = supabaseService.getNotasByAluno(user.alunoId);
         setNotas(notasAluno);
 
-        const presencasAluno = mockDataService.getPresencasByAluno(user.alunoId);
+        const presencasAluno = supabaseService.getPresencasByAluno(user.alunoId);
         setPresencas(presencasAluno);
 
         const todasAvaliacoes: Avaliacao[] = [];
         diariosDoAluno.forEach(diario => {
-          const avaliacoesDiario = mockDataService.getAvaliacoesByDiario(diario.id);
+          const avaliacoesDiario = supabaseService.getAvaliacoesByDiario(diario.id);
           todasAvaliacoes.push(...avaliacoesDiario);
         });
         setAvaliacoes(todasAvaliacoes);
 
-        const todasOcorrencias = mockDataService.getData().ocorrencias;
+        const todasOcorrencias = supabaseService.getData().ocorrencias;
         const ocorrenciasDoAluno = todasOcorrencias.filter(o => o.alunoId === user.alunoId);
         setOcorrencias(ocorrenciasDoAluno);
 
@@ -85,9 +85,9 @@ export function AlunoPage() {
           const disciplina = todasAsDisciplinas.find(d => d.id === diario.disciplinaId);
           if (!disciplina) return;
 
-          const media = mockDataService.calcularMediaAluno(user.alunoId, diario.id);
+          const media = supabaseService.calcularMediaAluno(user.alunoId, diario.id);
 
-          const aulas = mockDataService.getAulasByDiario(diario.id);
+          const aulas = supabaseService.getAulasByDiario(diario.id);
           const presencasDaDisciplina = presencasAluno.filter(p =>
             aulas.some(a => a.id === p.aulaId)
           );
@@ -97,7 +97,7 @@ export function AlunoPage() {
           const faltas = presencasDaDisciplina.filter(p => p.status === 'FALTA').length;
           const frequencia = totalAulas > 0 ? (presentes / totalAulas) * 100 : 0;
 
-          const avaliacoesDisciplina = mockDataService.getAvaliacoesByDiario(diario.id);
+          const avaliacoesDisciplina = supabaseService.getAvaliacoesByDiario(diario.id);
           const notasPorBimestre = { bim1: null, bim2: null, bim3: null, bim4: null };
 
           [1, 2, 3, 4].forEach(bimestre => {
@@ -159,11 +159,11 @@ export function AlunoPage() {
   };
 
   const calcularMedia = (diarioId: number): number => {
-    return mockDataService.calcularMediaAluno(user?.alunoId || 0, diarioId);
+    return supabaseService.calcularMediaAluno(user?.alunoId || 0, diarioId);
   };
 
   const calcularFrequencia = (diarioId: number): number => {
-    const aulas = mockDataService.getAulasByDiario(diarioId);
+    const aulas = supabaseService.getAulasByDiario(diarioId);
     const presencasDiario = presencas.filter(p => 
       aulas.some(a => a.id === p.aulaId)
     );

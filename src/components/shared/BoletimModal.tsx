@@ -61,9 +61,9 @@ export function BoletimModal({ aluno, onClose, diarioId }: BoletimModalProps) {
       console.log('🎓 Carregando dados do aluno:', aluno.nome);
 
       // Buscar todos os diários que o aluno está vinculado
-      const todosOsDiarios = mockDataService.getDiarios();
-      const todasAsDisciplinas = mockDataService.getDisciplinas();
-      const diarioAlunos = mockDataService.getData().diarioAlunos;
+      const todosOsDiarios = supabaseService.getDiarios();
+      const todasAsDisciplinas = supabaseService.getDisciplinas();
+      const diarioAlunos = supabaseService.getData().diarioAlunos;
 
       const diarios = todosOsDiarios.filter(diario =>
         diarioAlunos.some(da => da.alunoId === aluno.id && da.diarioId === diario.id)
@@ -98,11 +98,11 @@ export function BoletimModal({ aluno, onClose, diarioId }: BoletimModalProps) {
         console.log(`📖 Processando disciplina: ${disciplina.nome}`);
 
         // Calcular média da disciplina
-        const media = mockDataService.calcularMediaAluno(aluno.id, diario.id);
+        const media = supabaseService.calcularMediaAluno(aluno.id, diario.id);
 
         // Calcular frequência da disciplina
-        const aulas = mockDataService.getAulasByDiario(diario.id);
-        const presencas = mockDataService.getPresencasByAluno(aluno.id);
+        const aulas = supabaseService.getAulasByDiario(diario.id);
+        const presencas = supabaseService.getPresencasByAluno(aluno.id);
         const presencasDaDisciplina = presencas.filter(p =>
           aulas.some(a => a.id === p.aulaId)
         );
@@ -115,8 +115,8 @@ export function BoletimModal({ aluno, onClose, diarioId }: BoletimModalProps) {
         console.log(`📊 ${disciplina.nome}: Média ${media.toFixed(1)}, Frequência ${frequencia.toFixed(1)}%`);
 
         // Buscar avaliações e notas da disciplina
-        const avaliacoes = mockDataService.getAvaliacoesByDiario(diario.id);
-        const notas = mockDataService.getNotasByAluno(aluno.id);
+        const avaliacoes = supabaseService.getAvaliacoesByDiario(diario.id);
+        const notas = supabaseService.getNotasByAluno(aluno.id);
 
         // Calcular notas reais por bimestre (apenas se existirem)
         const notasPorBimestre = { bim1: null, bim2: null, bim3: null, bim4: null };
@@ -195,7 +195,7 @@ export function BoletimModal({ aluno, onClose, diarioId }: BoletimModalProps) {
       frequenciaGeral = totalDisciplinas > 0 ? frequenciaGeral / totalDisciplinas : 0;
 
       // Buscar ocorrências do aluno
-      const todasOcorrencias = mockDataService.getData().ocorrencias;
+      const todasOcorrencias = supabaseService.getData().ocorrencias;
       const ocorrenciasDoAluno = todasOcorrencias.filter(o => o.alunoId === aluno.id);
 
       console.log('📈 Dados finais:', {

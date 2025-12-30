@@ -25,7 +25,7 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
   }, [diarioId]);
 
   const loadAlunos = () => {
-    const alunosData = mockDataService.getAlunosByDiario(diarioId);
+    const alunosData = supabaseService.getAlunosByDiario(diarioId);
     setAlunos(alunosData);
   };
 

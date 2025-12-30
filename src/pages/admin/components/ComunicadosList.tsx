@@ -44,7 +44,7 @@ export function ComunicadosList() {
       console.log('Carregando comunicados...');
       setLoading(true);
 
-      const comunicadosData = mockDataService.getComunicados();
+      const comunicadosData = supabaseService.getComunicados();
       console.log('Comunicados carregados:', comunicadosData);
       setComunicados(
         comunicadosData.sort(
@@ -75,7 +75,7 @@ export function ComunicadosList() {
 
       if (editingComunicado) {
         console.log('Editando comunicado:', editingComunicado.id);
-        const updatedComunicado = mockDataService.updateComunicado(editingComunicado.id, {
+        const updatedComunicado = supabaseService.updateComunicado(editingComunicado.id, {
           titulo: formData.titulo.trim(),
           mensagem: formData.mensagem.trim(),
           autor: formData.autor.trim()
@@ -92,7 +92,7 @@ export function ComunicadosList() {
         }
       } else {
         console.log('Criando novo comunicado...');
-        const novoComunicado = mockDataService.createComunicado({
+        const novoComunicado = supabaseService.createComunicado({
           titulo: formData.titulo.trim(),
           mensagem: formData.mensagem.trim(),
           autor: formData.autor.trim(),
@@ -137,7 +137,7 @@ export function ComunicadosList() {
     if (window.confirm('Tem certeza que deseja excluir este comunicado?')) {
       try {
         console.log('Excluindo comunicado:', id);
-        const success = mockDataService.deleteComunicado(id);
+        const success = supabaseService.deleteComunicado(id);
         console.log('Resultado da exclusão:', success);
         
         if (success) {

@@ -24,7 +24,7 @@ export function DiarioStatusControls({ diario, currentUser, onStatusChange, comp
   const [observacaoDevolucao, setObservacaoDevolucao] = useState('');
 
   const handleEntregarDiario = () => {
-    const sucesso = mockDataService.entregarDiario(diario.id, currentUser.id);
+    const sucesso = supabaseService.entregarDiario(diario.id, currentUser.id);
     if (sucesso) {
       onStatusChange();
       setIsEntregarDialogOpen(false);
@@ -32,7 +32,7 @@ export function DiarioStatusControls({ diario, currentUser, onStatusChange, comp
   };
 
   const handlePedirDevolucao = () => {
-    const sucesso = mockDataService.solicitarDevolucaoDiario(
+    const sucesso = supabaseService.solicitarDevolucaoDiario(
       diario.id, 
       currentUser.id, 
       comentarioDevolucao
@@ -45,7 +45,7 @@ export function DiarioStatusControls({ diario, currentUser, onStatusChange, comp
   };
 
   const handleDevolverDiario = () => {
-    const sucesso = mockDataService.devolverDiario(
+    const sucesso = supabaseService.devolverDiario(
       diario.id, 
       currentUser.id, 
       observacaoDevolucao
@@ -58,7 +58,7 @@ export function DiarioStatusControls({ diario, currentUser, onStatusChange, comp
   };
 
   const handleFinalizarDiario = () => {
-    const sucesso = mockDataService.finalizarDiario(diario.id, currentUser.id);
+    const sucesso = supabaseService.finalizarDiario(diario.id, currentUser.id);
     if (sucesso) {
       onStatusChange();
       setIsFinalizarDialogOpen(false);
@@ -107,8 +107,8 @@ export function DiarioStatusControls({ diario, currentUser, onStatusChange, comp
 
   const statusInfo = getStatusInfo();
   const StatusIcon = statusInfo.icon;
-  const podeEditar = mockDataService.professorPodeEditarDiario(diario.id, currentUser.professorId || 0);
-  const permissions = mockDataService.coordenadorPodeGerenciarDiario(diario.id);
+  const podeEditar = supabaseService.professorPodeEditarDiario(diario.id, currentUser.professorId || 0);
+  const permissions = supabaseService.coordenadorPodeGerenciarDiario(diario.id);
 
   // Versão compacta para o header
   if (compact) {

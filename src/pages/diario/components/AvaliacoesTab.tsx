@@ -39,17 +39,17 @@ export function AvaliacoesTab({ diarioId, readOnly = false }: AvaliacoesTabProps
   }, [diarioId]);
 
   const loadAvaliacoes = () => {
-    const avaliacoesData = mockDataService.getAvaliacoesByDiario(diarioId);
+    const avaliacoesData = supabaseService.getAvaliacoesByDiario(diarioId);
     setAvaliacoes(avaliacoesData);
   };
 
   const loadAlunos = () => {
-    const alunosData = mockDataService.getAlunosByDiario(diarioId);
+    const alunosData = supabaseService.getAlunosByDiario(diarioId);
     setAlunos(alunosData);
   };
 
   const loadNotasAvaliacao = (avaliacaoId: number) => {
-    const notasData = mockDataService.getNotasByAvaliacao(avaliacaoId);
+    const notasData = supabaseService.getNotasByAvaliacao(avaliacaoId);
     const notasMap: { [alunoId: number]: string } = {};
 
     alunos.forEach(aluno => {
@@ -69,12 +69,12 @@ export function AvaliacoesTab({ diarioId, readOnly = false }: AvaliacoesTabProps
     e.preventDefault();
 
     if (editingAvaliacao) {
-      mockDataService.updateAvaliacao(editingAvaliacao.id, {
+      supabaseService.updateAvaliacao(editingAvaliacao.id, {
         ...formData,
         peso: parseFloat(formData.peso)
       });
     } else {
-      mockDataService.createAvaliacao({
+      supabaseService.createAvaliacao({
         ...formData,
         peso: parseFloat(formData.peso),
         diarioId
@@ -97,7 +97,7 @@ export function AvaliacoesTab({ diarioId, readOnly = false }: AvaliacoesTabProps
         valor: parseFloat(notas[aluno.id])
       }));
 
-    mockDataService.saveNotas(notasToSave);
+    supabaseService.saveNotas(notasToSave);
     setIsNotasDialogOpen(false);
     setSelectedAvaliacao(null);
     setNotas({});
@@ -123,7 +123,7 @@ export function AvaliacoesTab({ diarioId, readOnly = false }: AvaliacoesTabProps
 
   const handleDelete = (avaliacaoId: number) => {
     if (confirm('Tem certeza que deseja excluir esta avaliação?')) {
-      mockDataService.deleteAvaliacao(avaliacaoId);
+      supabaseService.deleteAvaliacao(avaliacaoId);
       loadAvaliacoes();
     }
   };
@@ -164,7 +164,7 @@ export function AvaliacoesTab({ diarioId, readOnly = false }: AvaliacoesTabProps
   };
 
   const getNotasCount = (avaliacaoId: number) => {
-    const notasData = mockDataService.getNotasByAvaliacao(avaliacaoId);
+    const notasData = supabaseService.getNotasByAvaliacao(avaliacaoId);
     return notasData.length;
   };
 

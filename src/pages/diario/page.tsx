@@ -18,7 +18,7 @@ export function DiarioPage() {
 
   const loadDiario = () => {
     // Por enquanto carregando o primeiro diário - em produção seria baseado na URL ou seleção
-    const diarios = mockDataService.getDiarios()
+    const diarios = supabaseService.getDiarios()
     if (diarios.length > 0) {
       setDiario(diarios[0])
     }
@@ -58,7 +58,7 @@ export function DiarioPage() {
     )
   }
 
-  const podeEditar = mockDataService.professorPodeEditarDiario(diario.id, user.professorId || 0)
+  const podeEditar = supabaseService.professorPodeEditarDiario(diario.id, user.professorId || 0)
 
   const renderTabContent = () => {
     const tabProps = { 

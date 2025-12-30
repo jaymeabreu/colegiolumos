@@ -73,7 +73,7 @@ export function RecadosTab() {
       setLoading(true);
       
       if (user?.professorId) {
-        const recadosData = mockDataService.getRecadosByProfessor(user.professorId);
+        const recadosData = supabaseService.getRecadosByProfessor(user.professorId);
         console.log('Recados carregados:', recadosData);
         setRecados(
           recadosData.sort(
@@ -84,7 +84,7 @@ export function RecadosTab() {
         );
       }
       
-      const turmasData = mockDataService.getTurmas();
+      const turmasData = supabaseService.getTurmas();
       console.log('Turmas carregadas:', turmasData);
       setTurmas(turmasData);
     } catch (error) {
@@ -96,7 +96,7 @@ export function RecadosTab() {
 
   const loadAlunosByTurma = (turmaId: string) => {
     if (turmaId) {
-      const alunosData = mockDataService.getAlunosByTurma(parseInt(turmaId));
+      const alunosData = supabaseService.getAlunosByTurma(parseInt(turmaId));
       console.log('Alunos da turma carregados:', alunosData);
       setAlunos(alunosData);
     } else {
@@ -132,7 +132,7 @@ export function RecadosTab() {
 
       if (editingRecado) {
         console.log('Editando recado:', editingRecado.id);
-        const updatedRecado = mockDataService.updateRecado(editingRecado.id, {
+        const updatedRecado = supabaseService.updateRecado(editingRecado.id, {
           titulo: formData.titulo.trim(),
           mensagem: formData.mensagem.trim(),
           turmaId: parseInt(formData.turmaId),
@@ -152,7 +152,7 @@ export function RecadosTab() {
         }
       } else {
         console.log('Criando novo recado...');
-        const novoRecado = mockDataService.createRecado({
+        const novoRecado = supabaseService.createRecado({
           titulo: formData.titulo.trim(),
           mensagem: formData.mensagem.trim(),
           professorId: user?.professorId || 1,
@@ -204,7 +204,7 @@ export function RecadosTab() {
     if (window.confirm('Tem certeza que deseja excluir este recado?')) {
       try {
         console.log('Excluindo recado:', id);
-        const success = mockDataService.deleteRecado(id);
+        const success = supabaseService.deleteRecado(id);
         console.log('Resultado da exclusão:', success);
         
         if (success) {

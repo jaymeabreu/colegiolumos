@@ -29,8 +29,8 @@ export function OverviewCoordinator() {
   const [selectedTurma, setSelectedTurma] = useState("all")
   
   // Carregar dados
-  const alunos = mockDataService.getAlunos()
-  const turmas = mockDataService.getTurmas()
+  const alunos = supabaseService.getAlunos()
+  const turmas = supabaseService.getTurmas()
   
   // Filtrar alunos
   const filteredAlunos = alunos.filter(aluno => {

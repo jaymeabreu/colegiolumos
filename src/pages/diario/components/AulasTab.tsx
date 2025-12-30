@@ -67,7 +67,7 @@ export function AulasTab({ diarioId, readOnly = false }: AulasTabProps) {
 
   const loadDiarioInfo = () => {
     try {
-      const diario = mockDataService.getDiarios().find(d => d.id === diarioId);
+      const diario = supabaseService.getDiarios().find(d => d.id === diarioId);
       if (diario) {
         const professor = mockDataService
           .getProfessores()
@@ -94,7 +94,7 @@ export function AulasTab({ diarioId, readOnly = false }: AulasTabProps) {
 
   const loadAulas = () => {
     try {
-      const aulasData = mockDataService.getAulasByDiario(diarioId);
+      const aulasData = supabaseService.getAulasByDiario(diarioId);
       setAulas(aulasData);
     } catch (error) {
       console.error('Erro ao carregar aulas:', error);
@@ -103,7 +103,7 @@ export function AulasTab({ diarioId, readOnly = false }: AulasTabProps) {
 
   const loadAlunos = () => {
     try {
-      const alunosData = mockDataService.getAlunosByDiario(diarioId);
+      const alunosData = supabaseService.getAlunosByDiario(diarioId);
       setAlunos(alunosData);
     } catch (error) {
       console.error('Erro ao carregar alunos:', error);
@@ -131,9 +131,9 @@ export function AulasTab({ diarioId, readOnly = false }: AulasTabProps) {
 
     try {
       if (editingAula) {
-        mockDataService.updateAula(editingAula.id, aulaData);
+        supabaseService.updateAula(editingAula.id, aulaData);
       } else {
-        mockDataService.createAula({
+        supabaseService.createAula({
           ...aulaData,
           diarioId,
           professorId: 1
@@ -163,7 +163,7 @@ export function AulasTab({ diarioId, readOnly = false }: AulasTabProps) {
   const handleDelete = (aulaId: number) => {
     if (confirm('Tem certeza que deseja excluir esta aula?')) {
       try {
-        mockDataService.deleteAula(aulaId);
+        supabaseService.deleteAula(aulaId);
         loadAulas();
       } catch (error) {
         console.error('Erro ao excluir aula:', error);
@@ -181,8 +181,8 @@ export function AulasTab({ diarioId, readOnly = false }: AulasTabProps) {
     setNumeroAulas(isDouble ? 2 : 1);
 
     // Carrega presenças já registradas (primeira e, se houver, segunda aula)
-    const presencasPrimeira = mockDataService.getPresencasByAula(aula.id);
-    const presencasSegunda = mockDataService.getPresencasByAula(aula.id + 10000);
+    const presencasPrimeira = supabaseService.getPresencasByAula(aula.id);
+    const presencasSegunda = supabaseService.getPresencasByAula(aula.id + 10000);
 
     const map: { [key: string]: 'PRESENTE' | 'FALTA' | 'JUSTIFICADA' } = {};
 
@@ -229,12 +229,12 @@ export function AulasTab({ diarioId, readOnly = false }: AulasTabProps) {
           status: presencas[`${aluno.id}-${aulaNum}`] ?? 'PRESENTE'
         }));
 
-        mockDataService.savePresencas(presencasParaSalvar);
+        supabaseService.savePresencas(presencasParaSalvar);
       }
 
       // Marca a aula como dupla, se necessário
       if (numeroAulas === 2) {
-        mockDataService.updateAula(selectedAula.id, {
+        supabaseService.updateAula(selectedAula.id, {
           observacoes: `${
             selectedAula.observacoes ?? ''
           }${selectedAula.observacoes ? ' | ' : ''}Aula dupla`
@@ -280,8 +280,8 @@ export function AulasTab({ diarioId, readOnly = false }: AulasTabProps) {
   /*                             Funções auxiliares                             */
   /* -------------------------------------------------------------------------- */
   const getPresencaCount = (aulaId: number) => {
-    const presencasAula = mockDataService.getPresencasByAula(aulaId);
-    const presencasSegundaAula = mockDataService.getPresencasByAula(
+    const presencasAula = supabaseService.getPresencasByAula(aulaId);
+    const presencasSegundaAula = supabaseService.getPresencasByAula(
       aulaId + 10000
     );
 
@@ -304,7 +304,7 @@ export function AulasTab({ diarioId, readOnly = false }: AulasTabProps) {
   };
 
   const isAulaDupla = (aulaId: number) => {
-    const segunda = mockDataService.getPresencasByAula(aulaId + 10000);
+    const segunda = supabaseService.getPresencasByAula(aulaId + 10000);
     return segunda.length > 0;
   };
 

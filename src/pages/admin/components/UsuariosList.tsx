@@ -64,8 +64,8 @@ export function UsuariosList() {
   });
 
   const loadData = useCallback(() => {
-    setUsuarios(mockDataService.getUsuarios());
-    setAlunos(mockDataService.getAlunos());
+    setUsuarios(supabaseService.getUsuarios());
+    setAlunos(supabaseService.getAlunos());
   }, []);
 
   useEffect(() => {
@@ -152,7 +152,7 @@ export function UsuariosList() {
       };
 
       if (editingUsuario) {
-        mockDataService.updateUsuario(
+        supabaseService.updateUsuario(
           editingUsuario.id,
           data,
           formData.senha || undefined
@@ -162,7 +162,7 @@ export function UsuariosList() {
           alert('Senha é obrigatória para novos usuários!');
           return;
         }
-        mockDataService.createUsuario(data, formData.senha);
+        supabaseService.createUsuario(data, formData.senha);
       }
 
       loadData();
@@ -189,7 +189,7 @@ export function UsuariosList() {
   const handleDelete = useCallback(
     (id: number) => {
       if (confirm('Tem certeza que deseja excluir este usuário?')) {
-        mockDataService.deleteUsuario(id);
+        supabaseService.deleteUsuario(id);
         loadData();
       }
     },
