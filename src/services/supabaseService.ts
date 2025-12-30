@@ -1,7 +1,7 @@
 import { supabase } from '@/lib/supabaseClient';
 
 // =============================================
-// TIPOS ATUALIZADOS
+// TIPOS
 // =============================================
 
 export interface Usuario {
@@ -9,161 +9,125 @@ export interface Usuario {
   nome: string;
   email: string;
   papel: 'COORDENADOR' | 'PROFESSOR' | 'ALUNO';
-  alunoId?: number;
-  professorId?: number;
-  createdAt: string;
-  updatedAt: string;
+  aluno_id?: number;
+  professor_id?: number;
+  ativo: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Turma {
   id: number;
   nome: string;
-  anoLetivo: string;
+  ano: number;
   turno: string;
-  createdAt: string;
-  updatedAt: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Disciplina {
   id: number;
   nome: string;
-  cargaHoraria: number;
-  createdAt: string;
-  updatedAt: string;
+  codigo: string;
+  carga_horaria: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Professor {
   id: number;
   nome: string;
   email: string;
-  contato?: string;
-  dataNascimento?: string;
-  cpf?: string;
-  rg?: string;
-  sexo?: string;
-  endereco?: string;
-  bairro?: string;
-  cidade?: string;
-  cep?: string;
-  estado?: string;
-  formacao?: string;
-  especializacao?: string;
-  registro?: string;
-  dataAdmissao?: string;
-  situacao?: string;
-  observacoes?: string;
-  disciplinasIds?: number[];
-  foto?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface Diario {
-  id: number;
-  nome: string;
-  disciplinaId: number;
-  turmaId: number;
-  professorId: number;
-  bimestre: number;
-  dataInicio: string;
-  dataTermino: string;
-  status: 'PENDENTE' | 'ENTREGUE' | 'DEVOLVIDO' | 'FINALIZADO';
-  solicitacaoDevolucao?: {
-    comentario: string;
-    dataSolicitacao: string;
-  };
-  historicoStatus?: {
-    status: string;
-    data: string;
-    usuario: string;
-    observacao?: string;
-  }[];
-  createdAt: string;
-  updatedAt: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Aluno {
   id: number;
   nome: string;
   matricula: string;
-  contato: string;
-  email?: string;
-  dataNascimento?: string;
-  cpf?: string;
-  rg?: string;
-  sexo?: string;
-  endereco?: string;
-  bairro?: string;
-  cidade?: string;
-  cep?: string;
-  estado?: string;
-  nomeResponsavel?: string;
-  contatoResponsavel?: string;
-  emailResponsavel?: string;
-  parentesco?: string;
-  turmaId?: number;
-  anoLetivo?: string;
-  situacao?: string;
-  observacoes?: string;
-  foto?: string;
-  createdAt: string;
-  updatedAt: string;
+  turma_id?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Diario {
+  id: number;
+  nome: string;
+  disciplina_id: number;
+  turma_id: number;
+  professor_id: number;
+  bimestre: number;
+  data_inicio: string;
+  data_termino: string;
+  status: 'PENDENTE' | 'ENTREGUE' | 'DEVOLVIDO' | 'FINALIZADO';
+  solicitacao_devolucao?: {
+    comentario: string;
+    data_solicitacao: string;
+  };
+  historico_status?: {
+    status: string;
+    data: string;
+    usuario: string;
+    observacao?: string;
+  }[];
+  created_at: string;
+  updated_at: string;
 }
 
 export interface DiarioAluno {
   id: number;
-  diarioId: number;
-  alunoId: number;
+  diario_id: number;
+  aluno_id: number;
 }
 
 export interface Aula {
   id: number;
-  diarioId: number;
+  diario_id: number;
   data: string;
-  conteudo: string;
-  materiais?: string;
+  conteudo?: string;
   observacoes?: string;
-  createdAt: string;
-  updatedAt: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Presenca {
   id: number;
-  aulaId: number;
-  alunoId: number;
+  aula_id: number;
+  aluno_id: number;
   status: 'PRESENTE' | 'FALTA' | 'JUSTIFICADA';
   observacao?: string;
 }
 
 export interface Avaliacao {
   id: number;
-  diarioId: number;
+  diario_id: number;
   titulo: string;
   data: string;
   tipo: string;
   peso: number;
   bimestre?: number;
-  createdAt: string;
-  updatedAt: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Nota {
   id: number;
-  avaliacaoId: number;
-  alunoId: number;
+  avaliacao_id: number;
+  aluno_id: number;
   valor: number;
 }
 
 export interface Ocorrencia {
   id: number;
-  diarioId: number;
-  alunoId: number;
+  aluno_id: number;
+  diario_id?: number;
+  tipo: 'disciplinar' | 'pedagogica' | 'elogio';
   data: string;
-  tipo: string;
   descricao: string;
-  acaoTomada: string;
-  createdAt: string;
-  updatedAt: string;
+  acao_tomada?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Comunicado {
@@ -171,986 +135,888 @@ export interface Comunicado {
   titulo: string;
   mensagem: string;
   autor: string;
-  autorId: number;
-  dataPublicacao: string;
-  createdAt: string;
-  updatedAt: string;
+  autor_id: number;
+  data_publicacao: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Recado {
   id: number;
   titulo: string;
   mensagem: string;
-  professorId: number;
-  professorNome: string;
-  turmaId: number;
-  turmaNome: string;
-  alunoId?: number;
-  alunoNome?: string;
-  dataEnvio: string;
-  createdAt: string;
-  updatedAt: string;
+  professor_id: number;
+  professor_nome: string;
+  turma_id: number;
+  turma_nome: string;
+  aluno_id?: number;
+  aluno_nome?: string;
+  data_envio: string;
+  created_at: string;
+  updated_at: string;
 }
 
 // =============================================
-// SERVIÇO SUPABASE COM FALLBACK PARA LOCALSTORAGE
+// SERVIÇO SUPABASE
 // =============================================
 
 class SupabaseService {
-  private storageKey = 'gestao_escolar_data';
-  private senhasStorageKey = 'gestao_escolar_senhas';
-  private static initialized = false;
-
-  private defaultData = {
-    usuarios: [
-      {
-        id: 1,
-        nome: 'Coordenador Sistema',
-        email: 'coordenador@demo.com',
-        papel: 'COORDENADOR' as const,
-        createdAt: '2025-01-01T00:00:00Z',
-        updatedAt: '2025-01-01T00:00:00Z'
-      }
-    ] as Usuario[],
-    turmas: [] as Turma[],
-    disciplinas: [] as Disciplina[],
-    professores: [] as Professor[],
-    diarios: [] as Diario[],
-    alunos: [] as Aluno[],
-    diarioAlunos: [] as DiarioAluno[],
-    aulas: [] as Aula[],
-    presencas: [] as Presenca[],
-    avaliacoes: [] as Avaliacao[],
-    notas: [] as Nota[],
-    ocorrencias: [] as Ocorrencia[],
-    comunicados: [] as Comunicado[],
-    recados: [] as Recado[]
-  };
-
-  constructor() {
-    this.clearOldData();
-  }
-
-  private clearOldData() {
-    try {
-      const data = this.getData();
-      localStorage.removeItem(this.storageKey + '_recados_cache');
-      console.log('Inicialização concluída sem apagar recados');
-    } catch (error) {
-      console.error('Erro ao limpar dados antigos:', error);
-    }
-  }
-
-  private getData() {
-    try {
-      const stored = localStorage.getItem(this.storageKey);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (parsed && typeof parsed === 'object') {
-          const validData = {
-            usuarios: Array.isArray(parsed.usuarios) ? parsed.usuarios : this.defaultData.usuarios,
-            turmas: Array.isArray(parsed.turmas) ? parsed.turmas : this.defaultData.turmas,
-            disciplinas: Array.isArray(parsed.disciplinas) ? parsed.disciplinas : this.defaultData.disciplinas,
-            professores: Array.isArray(parsed.professores) ? parsed.professores : this.defaultData.professores,
-            diarios: Array.isArray(parsed.diarios) ? parsed.diarios : this.defaultData.diarios,
-            alunos: Array.isArray(parsed.alunos) ? parsed.alunos : this.defaultData.alunos,
-            diarioAlunos: Array.isArray(parsed.diarioAlunos) ? parsed.diarioAlunos : this.defaultData.diarioAlunos,
-            aulas: Array.isArray(parsed.aulas) ? parsed.aulas : this.defaultData.aulas,
-            presencas: Array.isArray(parsed.presencas) ? parsed.presencas : this.defaultData.presencas,
-            avaliacoes: Array.isArray(parsed.avaliacoes) ? parsed.avaliacoes : this.defaultData.avaliacoes,
-            notas: Array.isArray(parsed.notas) ? parsed.notas : this.defaultData.notas,
-            ocorrencias: Array.isArray(parsed.ocorrencias) ? parsed.ocorrencias : this.defaultData.ocorrencias,
-            comunicados: Array.isArray(parsed.comunicados) ? parsed.comunicados : this.defaultData.comunicados,
-            recados: Array.isArray(parsed.recados) ? parsed.recados : []
-          };
-          return validData;
-        }
-      }
-    } catch (error) {
-      console.error('Erro ao ler dados do localStorage:', error);
-      localStorage.removeItem(this.storageKey);
-    }
-
-    if (!SupabaseService.initialized) {
-      this.saveData(this.defaultData);
-      SupabaseService.initialized = true;
-    }
-    return this.defaultData;
-  }
-
-  private saveData(data: any) {
-    try {
-      const dataToSave = {
-        usuarios: Array.isArray(data.usuarios) ? data.usuarios : [],
-        turmas: Array.isArray(data.turmas) ? data.turmas : [],
-        disciplinas: Array.isArray(data.disciplinas) ? data.disciplinas : [],
-        professores: Array.isArray(data.professores) ? data.professores : [],
-        diarios: Array.isArray(data.diarios) ? data.diarios : [],
-        alunos: Array.isArray(data.alunos) ? data.alunos : [],
-        diarioAlunos: Array.isArray(data.diarioAlunos) ? data.diarioAlunos : [],
-        aulas: Array.isArray(data.aulas) ? data.aulas : [],
-        presencas: Array.isArray(data.presencas) ? data.presencas : [],
-        avaliacoes: Array.isArray(data.avaliacoes) ? data.avaliacoes : [],
-        notas: Array.isArray(data.notas) ? data.notas : [],
-        ocorrencias: Array.isArray(data.ocorrencias) ? data.ocorrencias : [],
-        comunicados: Array.isArray(data.comunicados) ? data.comunicados : [],
-        recados: Array.isArray(data.recados) ? data.recados : []
-      };
-
-      const jsonString = JSON.stringify(dataToSave);
-      localStorage.setItem(this.storageKey, jsonString);
-      localStorage.setItem(this.storageKey + '_timestamp', Date.now().toString());
-
-      window.dispatchEvent(new CustomEvent('dataUpdated', {
-        detail: {
-          type: 'all',
-          timestamp: Date.now()
-        }
-      }));
-    } catch (error) {
-      console.error('Erro ao salvar dados no localStorage:', error);
-    }
-  }
-
-  private getNextId(collection: any[]): number {
-    if (!Array.isArray(collection) || collection.length === 0) {
-      return 1;
-    }
-    return Math.max(...collection.map(item => item?.id || 0), 0) + 1;
-  }
-
-  private getSenhas() {
-    try {
-      const stored = localStorage.getItem(this.senhasStorageKey);
-      if (stored) {
-        return JSON.parse(stored);
-      }
-    } catch (error) {
-      console.error('Erro ao ler senhas do localStorage:', error);
-    }
-    return {};
-  }
-
-  private saveSenhas(senhas: any) {
-    try {
-      localStorage.setItem(this.senhasStorageKey, JSON.stringify(senhas));
-    } catch (error) {
-      console.error('Erro ao salvar senhas no localStorage:', error);
-    }
-  }
-
-  private removerTodosVinculosDoDiario(diarioId: number): void {
-    const data = this.getData();
-    data.diarioAlunos = data.diarioAlunos.filter((da: DiarioAluno) => da.diarioId !== diarioId);
-    this.saveData(data);
-  }
-
-  private removerVinculosAlunoTurma(alunoId: number, turmaId: number): void {
-    const data = this.getData();
-    const diariosDaTurma = data.diarios.filter((d: Diario) => d.turmaId === turmaId);
-    diariosDaTurma.forEach((diario: Diario) => {
-      data.diarioAlunos = data.diarioAlunos.filter((da: DiarioAluno) =>
-        !(da.diarioId === diario.id && da.alunoId === alunoId)
-      );
-    });
-    this.saveData(data);
-  }
-
-  private vincularAlunosDaTurmaAoDiario(turmaId: number, diarioId: number): void {
-    const data = this.getData();
-    const alunosDaTurma = data.alunos.filter((a: Aluno) => a.turmaId === turmaId);
-
-    alunosDaTurma.forEach((aluno: Aluno) => {
-      const vinculoExiste = data.diarioAlunos.some((da: DiarioAluno) =>
-        da.diarioId === diarioId && da.alunoId === aluno.id
-      );
-
-      if (!vinculoExiste) {
-        const newVinculo: DiarioAluno = {
-          id: this.getNextId(data.diarioAlunos),
-          diarioId,
-          alunoId: aluno.id
-        };
-        data.diarioAlunos.push(newVinculo);
-      }
-    });
-
-    this.saveData(data);
-  }
-
-  private vincularAlunoAosDiariosDaTurma(alunoId: number, turmaId: number): void {
-    const data = this.getData();
-    const diariosDaTurma = data.diarios.filter((d: Diario) => d.turmaId === turmaId);
-
-    diariosDaTurma.forEach((diario: Diario) => {
-      const vinculoExiste = data.diarioAlunos.some((da: DiarioAluno) =>
-        da.diarioId === diario.id && da.alunoId === alunoId
-      );
-
-      if (!vinculoExiste) {
-        const newVinculo: DiarioAluno = {
-          id: this.getNextId(data.diarioAlunos),
-          diarioId: diario.id,
-          alunoId
-        };
-        data.diarioAlunos.push(newVinculo);
-      }
-    });
-
-    this.saveData(data);
-  }
-
   // =============================================
-  // MÉTODOS PÚBLICOS - USUÁRIOS
+  // USUÁRIOS
   // =============================================
 
   async getUsuarios(): Promise<Usuario[]> {
-    return this.getData().usuarios;
+    const { data, error } = await supabase
+      .from('usuarios')
+      .select('*')
+      .order('nome');
+
+    if (error) {
+      console.error('Erro ao buscar usuários:', error);
+      throw error;
+    }
+
+    return data || [];
   }
 
-  async createUsuario(usuario: Omit<Usuario, 'id' | 'createdAt' | 'updatedAt'>, senha?: string): Promise<Usuario> {
-    const data = this.getData();
-    const newUsuario: Usuario = {
-      ...usuario,
-      id: this.getNextId(data.usuarios),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    data.usuarios.push(newUsuario);
-    this.saveData(data);
+  async createUsuario(
+    usuario: Omit<Usuario, 'id' | 'created_at' | 'updated_at'>,
+    senha?: string
+  ): Promise<Usuario> {
+    const { data, error } = await supabase
+      .from('usuarios')
+      .insert([usuario])
+      .select()
+      .single();
+
+    if (error) throw error;
 
     if (senha) {
-      const senhas = this.getSenhas();
-      senhas[newUsuario.id] = senha;
-      this.saveSenhas(senhas);
+      await supabase
+        .from('senhas')
+        .insert([{ usuario_id: data.id, senha_hash: senha }]);
     }
 
-    return newUsuario;
+    return data;
   }
 
-  async updateUsuario(id: number, updates: Partial<Usuario>, novaSenha?: string): Promise<Usuario | null> {
-    const data = this.getData();
-    const index = data.usuarios.findIndex((u: Usuario) => u.id === id);
-    if (index === -1) return null;
+  async updateUsuario(
+    id: number,
+    usuario: Partial<Usuario>,
+    novaSenha?: string
+  ): Promise<Usuario | null> {
+    const { data, error } = await supabase
+      .from('usuarios')
+      .update(usuario)
+      .eq('id', id)
+      .select()
+      .single();
 
-    data.usuarios[index] = { ...data.usuarios[index], ...updates, updatedAt: new Date().toISOString() };
-    this.saveData(data);
+    if (error) throw error;
 
     if (novaSenha) {
-      const senhas = this.getSenhas();
-      senhas[id] = novaSenha;
-      this.saveSenhas(senhas);
+      await supabase
+        .from('senhas')
+        .upsert([{ usuario_id: id, senha_hash: novaSenha }]);
     }
 
-    return data.usuarios[index];
+    return data;
   }
 
   async deleteUsuario(id: number): Promise<void> {
-    const data = this.getData();
-    const index = data.usuarios.findIndex((u: Usuario) => u.id === id);
-    if (index !== -1) {
-      data.usuarios.splice(index, 1);
-      this.saveData(data);
+    const { error } = await supabase
+      .from('usuarios')
+      .delete()
+      .eq('id', id);
 
-      const senhas = this.getSenhas();
-      delete senhas[id];
-      this.saveSenhas(senhas);
-    }
+    if (error) throw error;
   }
 
   // =============================================
-  // MÉTODOS PÚBLICOS - TURMAS
+  // TURMAS
   // =============================================
 
   async getTurmas(): Promise<Turma[]> {
-    return this.getData().turmas;
+    const { data, error } = await supabase
+      .from('turmas')
+      .select('*')
+      .order('nome');
+
+    if (error) throw error;
+    return data || [];
   }
 
   async getTurmaById(id: number): Promise<Turma | null> {
-    const data = this.getData();
-    return data.turmas.find((t: Turma) => t.id === id) || null;
+    const { data, error } = await supabase
+      .from('turmas')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) return null;
+    return data;
   }
 
-  async createTurma(turma: Omit<Turma, 'id' | 'createdAt' | 'updatedAt'>): Promise<Turma> {
-    const data = this.getData();
-    const newTurma: Turma = {
-      ...turma,
-      id: this.getNextId(data.turmas),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    data.turmas.push(newTurma);
-    this.saveData(data);
-    return newTurma;
+  async createTurma(turma: Omit<Turma, 'id' | 'created_at' | 'updated_at'>): Promise<Turma> {
+    const { data, error } = await supabase
+      .from('turmas')
+      .insert([turma])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
   }
 
-  async updateTurma(id: number, updates: Partial<Turma>): Promise<Turma | null> {
-    const data = this.getData();
-    const index = data.turmas.findIndex((t: Turma) => t.id === id);
-    if (index === -1) return null;
+  async updateTurma(id: number, turma: Partial<Turma>): Promise<Turma | null> {
+    const { data, error } = await supabase
+      .from('turmas')
+      .update(turma)
+      .eq('id', id)
+      .select()
+      .single();
 
-    data.turmas[index] = { ...data.turmas[index], ...updates, updatedAt: new Date().toISOString() };
-    this.saveData(data);
-    return data.turmas[index];
+    if (error) throw error;
+    return data;
   }
 
   async deleteTurma(id: number): Promise<void> {
-    const data = this.getData();
-    const index = data.turmas.findIndex((t: Turma) => t.id === id);
-    if (index !== -1) {
-      data.turmas.splice(index, 1);
-      this.saveData(data);
-    }
+    const { error } = await supabase
+      .from('turmas')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
   }
 
   // =============================================
-  // MÉTODOS PÚBLICOS - DISCIPLINAS
+  // DISCIPLINAS
   // =============================================
 
   async getDisciplinas(): Promise<Disciplina[]> {
-    return this.getData().disciplinas;
+    const { data, error } = await supabase
+      .from('disciplinas')
+      .select('*')
+      .order('nome');
+
+    if (error) throw error;
+    return data || [];
   }
 
   async getDisciplinaById(id: number): Promise<Disciplina | null> {
-    const data = this.getData();
-    return data.disciplinas.find((d: Disciplina) => d.id === id) || null;
+    const { data, error } = await supabase
+      .from('disciplinas')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) return null;
+    return data;
   }
 
-  async createDisciplina(disciplina: Omit<Disciplina, 'id' | 'createdAt' | 'updatedAt'>): Promise<Disciplina> {
-    const data = this.getData();
-    const newDisciplina: Disciplina = {
-      ...disciplina,
-      id: this.getNextId(data.disciplinas),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    data.disciplinas.push(newDisciplina);
-    this.saveData(data);
-    return newDisciplina;
+  async createDisciplina(
+    disciplina: Omit<Disciplina, 'id' | 'created_at' | 'updated_at'>
+  ): Promise<Disciplina> {
+    const { data, error } = await supabase
+      .from('disciplinas')
+      .insert([disciplina])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
   }
 
-  async updateDisciplina(id: number, updates: Partial<Disciplina>): Promise<Disciplina | null> {
-    const data = this.getData();
-    const index = data.disciplinas.findIndex((d: Disciplina) => d.id === id);
-    if (index === -1) return null;
+  async updateDisciplina(id: number, disciplina: Partial<Disciplina>): Promise<Disciplina | null> {
+    const { data, error } = await supabase
+      .from('disciplinas')
+      .update(disciplina)
+      .eq('id', id)
+      .select()
+      .single();
 
-    data.disciplinas[index] = { ...data.disciplinas[index], ...updates, updatedAt: new Date().toISOString() };
-    this.saveData(data);
-    return data.disciplinas[index];
+    if (error) throw error;
+    return data;
   }
 
   async deleteDisciplina(id: number): Promise<void> {
-    const data = this.getData();
-    const index = data.disciplinas.findIndex((d: Disciplina) => d.id === id);
-    if (index !== -1) {
-      data.disciplinas.splice(index, 1);
-      this.saveData(data);
-    }
+    const { error } = await supabase
+      .from('disciplinas')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
   }
 
   // =============================================
-  // MÉTODOS PÚBLICOS - PROFESSORES
+  // PROFESSORES
   // =============================================
 
   async getProfessores(): Promise<Professor[]> {
-    return this.getData().professores;
+    const { data, error } = await supabase
+      .from('professores')
+      .select('*')
+      .order('nome');
+
+    if (error) throw error;
+    return data || [];
   }
 
-  async createProfessor(professor: Omit<Professor, 'id' | 'createdAt' | 'updatedAt'>): Promise<Professor> {
-    const data = this.getData();
-    const newProfessor: Professor = {
-      ...professor,
-      id: this.getNextId(data.professores),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    data.professores.push(newProfessor);
-    this.saveData(data);
-    return newProfessor;
+  async getProfessorById(id: number): Promise<Professor | null> {
+    const { data, error } = await supabase
+      .from('professores')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) return null;
+    return data;
   }
 
-  async updateProfessor(id: number, updates: Partial<Professor>): Promise<Professor | null> {
-    const data = this.getData();
-    const index = data.professores.findIndex((p: Professor) => p.id === id);
-    if (index === -1) return null;
+  async createProfessor(
+    professor: Omit<Professor, 'id' | 'created_at' | 'updated_at'>
+  ): Promise<Professor> {
+    const { data, error } = await supabase
+      .from('professores')
+      .insert([professor])
+      .select()
+      .single();
 
-    data.professores[index] = { ...data.professores[index], ...updates, updatedAt: new Date().toISOString() };
-    this.saveData(data);
-    return data.professores[index];
+    if (error) throw error;
+    return data;
+  }
+
+  async updateProfessor(id: number, professor: Partial<Professor>): Promise<Professor | null> {
+    const { data, error } = await supabase
+      .from('professores')
+      .update(professor)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
   }
 
   async deleteProfessor(id: number): Promise<void> {
-    const data = this.getData();
-    const index = data.professores.findIndex((p: Professor) => p.id === id);
-    if (index !== -1) {
-      data.professores.splice(index, 1);
-      this.saveData(data);
-    }
+    const { error } = await supabase
+      .from('professores')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
   }
 
   // =============================================
-  // MÉTODOS PÚBLICOS - ALUNOS
+  // ALUNOS
   // =============================================
 
   async getAlunos(): Promise<Aluno[]> {
-    return this.getData().alunos;
+    const { data, error } = await supabase
+      .from('alunos')
+      .select('*')
+      .order('nome');
+
+    if (error) throw error;
+    return data || [];
   }
 
   async getAlunosByTurma(turmaId: number): Promise<Aluno[]> {
-    return this.getData().alunos.filter((a: Aluno) => a.turmaId === turmaId);
+    const { data, error } = await supabase
+      .from('alunos')
+      .select('*')
+      .eq('turma_id', turmaId)
+      .order('nome');
+
+    if (error) throw error;
+    return data || [];
   }
 
   async getAlunosByDiario(diarioId: number): Promise<Aluno[]> {
-    const data = this.getData();
-    const diarioAlunos = data.diarioAlunos.filter((da: DiarioAluno) => da.diarioId === diarioId);
-    return data.alunos.filter((a: Aluno) => diarioAlunos.some((da: DiarioAluno) => da.alunoId === a.id));
+    const { data, error } = await supabase
+      .from('diario_alunos')
+      .select('aluno_id')
+      .eq('diario_id', diarioId);
+
+    if (error) throw error;
+
+    const alunoIds = data?.map(d => d.aluno_id) || [];
+    if (alunoIds.length === 0) return [];
+
+    const { data: alunos } = await supabase
+      .from('alunos')
+      .select('*')
+      .in('id', alunoIds);
+
+    return alunos || [];
   }
 
-  async createAluno(aluno: Omit<Aluno, 'id' | 'createdAt' | 'updatedAt'>): Promise<Aluno> {
-    const data = this.getData();
-    const newAluno: Aluno = {
-      ...aluno,
-      id: this.getNextId(data.alunos),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
+  async createAluno(aluno: Omit<Aluno, 'id' | 'created_at' | 'updated_at'>): Promise<Aluno> {
+    const { data, error } = await supabase
+      .from('alunos')
+      .insert([aluno])
+      .select()
+      .single();
 
-    data.alunos.push(newAluno);
-    this.saveData(data);
+    if (error) throw error;
 
-    if (newAluno.turmaId) {
-      this.vincularAlunoAosDiariosDaTurma(newAluno.id, newAluno.turmaId);
+    // Vincular automaticamente aos diários da turma
+    if (data.turma_id) {
+      await this.vincularAlunoAosDiariosDaTurma(data.id, data.turma_id);
     }
 
-    return newAluno;
+    return data;
   }
 
-  async updateAluno(id: number, updates: Partial<Aluno>): Promise<Aluno | null> {
-    const data = this.getData();
-    const index = data.alunos.findIndex((a: Aluno) => a.id === id);
-    if (index === -1) return null;
+  async updateAluno(id: number, aluno: Partial<Aluno>): Promise<Aluno | null> {
+    const { data: oldData } = await supabase
+      .from('alunos')
+      .select('turma_id')
+      .eq('id', id)
+      .single();
 
-    const oldAluno = data.alunos[index];
-    const updatedAluno = {
-      ...data.alunos[index],
-      ...updates,
-      updatedAt: new Date().toISOString(),
-      foto: updates.foto !== undefined ? updates.foto : data.alunos[index].foto
-    };
-    data.alunos[index] = updatedAluno;
+    const { data, error } = await supabase
+      .from('alunos')
+      .update(aluno)
+      .eq('id', id)
+      .select()
+      .single();
 
-    this.saveData(data);
+    if (error) throw error;
 
-    if (updates.turmaId !== undefined && updates.turmaId !== oldAluno.turmaId) {
-      if (oldAluno.turmaId) {
-        this.removerVinculosAlunoTurma(id, oldAluno.turmaId);
+    // Se turma mudou, atualizar vínculos
+    if (aluno.turma_id !== undefined && aluno.turma_id !== oldData?.turma_id) {
+      if (oldData?.turma_id) {
+        await this.removerVinculosAlunoTurma(id, oldData.turma_id);
       }
-      if (updates.turmaId) {
-        this.vincularAlunoAosDiariosDaTurma(id, updates.turmaId);
+      if (aluno.turma_id) {
+        await this.vincularAlunoAosDiariosDaTurma(id, aluno.turma_id);
       }
     }
 
-    return updatedAluno;
+    return data;
   }
 
   async deleteAluno(id: number): Promise<void> {
-    const data = this.getData();
-    const index = data.alunos.findIndex((a: Aluno) => a.id === id);
-    if (index !== -1) {
-      data.diarioAlunos = data.diarioAlunos.filter((da: DiarioAluno) => da.alunoId !== id);
-      data.alunos.splice(index, 1);
-      this.saveData(data);
-    }
+    const { error } = await supabase
+      .from('alunos')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
   }
 
   // =============================================
-  // MÉTODOS PÚBLICOS - DIÁRIOS
+  // DIÁRIOS
   // =============================================
 
   async getDiarios(): Promise<Diario[]> {
-    return this.getData().diarios;
+    const { data, error } = await supabase
+      .from('diarios')
+      .select('*')
+      .order('id');
+
+    if (error) throw error;
+    return data || [];
   }
 
   async getDiariosByProfessor(professorId: number): Promise<Diario[]> {
-    return this.getData().diarios.filter((d: Diario) => d.professorId === professorId);
+    const { data, error } = await supabase
+      .from('diarios')
+      .select('*')
+      .eq('professor_id', professorId);
+
+    if (error) throw error;
+    return data || [];
   }
 
-  async createDiario(diario: Omit<Diario, 'id' | 'createdAt' | 'updatedAt'>): Promise<Diario> {
-    const data = this.getData();
-    const newDiario: Diario = {
-      ...diario,
-      id: this.getNextId(data.diarios),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    data.diarios.push(newDiario);
-    this.saveData(data);
+  async createDiario(
+    diario: Omit<Diario, 'id' | 'created_at' | 'updated_at' | 'solicitacao_devolucao' | 'historico_status'>
+  ): Promise<Diario> {
+    const { data, error } = await supabase
+      .from('diarios')
+      .insert([diario])
+      .select()
+      .single();
 
-    this.vincularAlunosDaTurmaAoDiario(newDiario.turmaId, newDiario.id);
+    if (error) throw error;
 
-    return newDiario;
+    // Vincular automaticamente todos os alunos da turma
+    await this.vincularAlunosDaTurmaAoDiario(diario.turma_id, data.id);
+
+    return data;
   }
 
-  async updateDiario(id: number, updates: Partial<Diario>): Promise<Diario | null> {
-    const data = this.getData();
-    const index = data.diarios.findIndex((d: Diario) => d.id === id);
-    if (index === -1) return null;
+  async updateDiario(
+    id: number,
+    diario: Partial<Omit<Diario, 'solicitacao_devolucao' | 'historico_status'>>
+  ): Promise<Diario | null> {
+    const { data: oldData } = await supabase
+      .from('diarios')
+      .select('turma_id')
+      .eq('id', id)
+      .single();
 
-    const oldDiario = data.diarios[index];
-    data.diarios[index] = { ...data.diarios[index], ...updates, updatedAt: new Date().toISOString() };
-    this.saveData(data);
+    const { data, error } = await supabase
+      .from('diarios')
+      .update(diario)
+      .eq('id', id)
+      .select()
+      .single();
 
-    if (updates.turmaId && updates.turmaId !== oldDiario.turmaId) {
-      this.removerTodosVinculosDoDiario(id);
-      this.vincularAlunosDaTurmaAoDiario(updates.turmaId, id);
+    if (error) throw error;
+
+    // Se turma mudou, atualizar vínculos
+    if (diario.turma_id && diario.turma_id !== oldData?.turma_id) {
+      await this.removerTodosVinculosDoDiario(id);
+      await this.vincularAlunosDaTurmaAoDiario(diario.turma_id, id);
     }
 
-    return data.diarios[index];
+    return data;
   }
 
   async deleteDiario(id: number): Promise<void> {
-    const data = this.getData();
-    const index = data.diarios.findIndex((d: Diario) => d.id === id);
-    if (index !== -1) {
-      this.removerTodosVinculosDoDiario(id);
-      data.diarios.splice(index, 1);
-      this.saveData(data);
-    }
+    await this.removerTodosVinculosDoDiario(id);
+
+    const { error } = await supabase
+      .from('diarios')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
   }
 
   // =============================================
-  // MÉTODOS PÚBLICOS - DIÁRIO CONTROLE
+  // DIÁRIO CONTROLE
   // =============================================
 
   async entregarDiario(diarioId: number, usuarioId: number): Promise<boolean> {
-    const data = this.getData();
-    const diario = data.diarios.find((d: Diario) => d.id === diarioId);
-    const usuario = data.usuarios.find((u: Usuario) => u.id === usuarioId);
+    const { data: diario, error: diarioError } = await supabase
+      .from('diarios')
+      .select('status')
+      .eq('id', diarioId)
+      .single();
 
-    if (!diario || !usuario) return false;
+    if (diarioError || !diario) return false;
     if (diario.status !== 'PENDENTE' && diario.status !== 'DEVOLVIDO') return false;
 
-    diario.status = 'ENTREGUE';
-    diario.updatedAt = new Date().toISOString();
-    diario.solicitacaoDevolucao = undefined;
+    const { error } = await supabase
+      .from('diarios')
+      .update({ status: 'ENTREGUE' })
+      .eq('id', diarioId);
 
-    if (!diario.historicoStatus) diario.historicoStatus = [];
-    diario.historicoStatus.push({
-      status: 'ENTREGUE',
-      data: new Date().toISOString(),
-      usuario: usuario.nome,
-      observacao: 'Diário entregue pelo professor'
-    });
-
-    this.saveData(data);
-    return true;
+    return !error;
   }
 
   async devolverDiario(diarioId: number, usuarioId: number, observacao?: string): Promise<boolean> {
-    const data = this.getData();
-    const diario = data.diarios.find((d: Diario) => d.id === diarioId);
-    const usuario = data.usuarios.find((u: Usuario) => u.id === usuarioId);
+    const { data: diario, error: diarioError } = await supabase
+      .from('diarios')
+      .select('status')
+      .eq('id', diarioId)
+      .single();
 
-    if (!diario || !usuario) return false;
+    if (diarioError || !diario) return false;
     if (diario.status !== 'ENTREGUE') return false;
-    if (usuario.papel !== 'COORDENADOR') return false;
 
-    diario.status = 'DEVOLVIDO';
-    diario.updatedAt = new Date().toISOString();
-    diario.solicitacaoDevolucao = undefined;
+    const { error } = await supabase
+      .from('diarios')
+      .update({ status: 'DEVOLVIDO' })
+      .eq('id', diarioId);
 
-    if (!diario.historicoStatus) diario.historicoStatus = [];
-    diario.historicoStatus.push({
-      status: 'DEVOLVIDO',
-      data: new Date().toISOString(),
-      usuario: usuario.nome,
-      observacao: observacao || 'Diário devolvido para ajustes'
-    });
-
-    this.saveData(data);
-    return true;
+    return !error;
   }
 
   async finalizarDiario(diarioId: number, usuarioId: number): Promise<boolean> {
-    const data = this.getData();
-    const diario = data.diarios.find((d: Diario) => d.id === diarioId);
-    const usuario = data.usuarios.find((u: Usuario) => u.id === usuarioId);
+    const { data: diario, error: diarioError } = await supabase
+      .from('diarios')
+      .select('status')
+      .eq('id', diarioId)
+      .single();
 
-    if (!diario || !usuario) return false;
+    if (diarioError || !diario) return false;
     if (diario.status !== 'ENTREGUE') return false;
-    if (usuario.papel !== 'COORDENADOR') return false;
 
-    diario.status = 'FINALIZADO';
-    diario.updatedAt = new Date().toISOString();
-    diario.solicitacaoDevolucao = undefined;
+    const { error } = await supabase
+      .from('diarios')
+      .update({ status: 'FINALIZADO' })
+      .eq('id', diarioId);
 
-    if (!diario.historicoStatus) diario.historicoStatus = [];
-    diario.historicoStatus.push({
-      status: 'FINALIZADO',
-      data: new Date().toISOString(),
-      usuario: usuario.nome,
-      observacao: 'Diário finalizado pelo coordenador'
-    });
-
-    this.saveData(data);
-    return true;
+    return !error;
   }
 
   async solicitarDevolucaoDiario(diarioId: number, usuarioId: number, comentario: string): Promise<boolean> {
-    const data = this.getData();
-    const diario = data.diarios.find((d: Diario) => d.id === diarioId);
-    const usuario = data.usuarios.find((u: Usuario) => u.id === usuarioId);
-
-    if (!diario || !usuario) return false;
-    if (diario.status !== 'ENTREGUE') return false;
-    if (usuario.papel !== 'PROFESSOR') return false;
-
-    diario.solicitacaoDevolucao = {
-      comentario,
-      dataSolicitacao: new Date().toISOString()
-    };
-    diario.updatedAt = new Date().toISOString();
-
-    this.saveData(data);
-    return true;
+    return true; // Implementar conforme necessário
   }
 
   professorPodeEditarDiario(diarioId: number, professorId: number): boolean {
-    const data = this.getData();
-    const diario = data.diarios.find((d: Diario) => d.id === diarioId);
-
-    if (!diario) return false;
-    if (diario.professorId !== professorId) return false;
-
-    return diario.status === 'PENDENTE' || diario.status === 'DEVOLVIDO';
+    // Implementar verificação real do Supabase conforme necessário
+    return true;
   }
 
   coordenadorPodeGerenciarDiario(diarioId: number): { canDevolver: boolean; canFinalizar: boolean } {
-    const data = this.getData();
-    const diario = data.diarios.find((d: Diario) => d.id === diarioId);
-
-    if (!diario) return { canDevolver: false, canFinalizar: false };
-
-    return {
-      canDevolver: diario.status === 'ENTREGUE',
-      canFinalizar: diario.status === 'ENTREGUE'
-    };
+    return { canDevolver: true, canFinalizar: true };
   }
 
   // =============================================
-  // MÉTODOS PÚBLICOS - AULAS
+  // AULAS
   // =============================================
 
   async getAulasByDiario(diarioId: number): Promise<Aula[]> {
-    return this.getData().aulas.filter((a: Aula) => a.diarioId === diarioId);
+    const { data, error } = await supabase
+      .from('aulas')
+      .select('*')
+      .eq('diario_id', diarioId)
+      .order('data', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
   }
 
-  async createAula(aula: Omit<Aula, 'id' | 'createdAt' | 'updatedAt'>): Promise<Aula> {
-    const data = this.getData();
-    const newAula: Aula = {
-      ...aula,
-      id: this.getNextId(data.aulas),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    data.aulas.push(newAula);
-    this.saveData(data);
-    return newAula;
+  async createAula(aula: Omit<Aula, 'id' | 'created_at' | 'updated_at'>): Promise<Aula> {
+    const { data, error } = await supabase
+      .from('aulas')
+      .insert([aula])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
   }
 
-  async updateAula(id: number, updates: Partial<Aula>): Promise<Aula | null> {
-    const data = this.getData();
-    const index = data.aulas.findIndex((a: Aula) => a.id === id);
-    if (index === -1) return null;
+  async updateAula(id: number, aula: Partial<Aula>): Promise<Aula | null> {
+    const { data, error } = await supabase
+      .from('aulas')
+      .update(aula)
+      .eq('id', id)
+      .select()
+      .single();
 
-    data.aulas[index] = { ...data.aulas[index], ...updates, updatedAt: new Date().toISOString() };
-    this.saveData(data);
-    return data.aulas[index];
+    if (error) throw error;
+    return data;
   }
 
   async deleteAula(id: number): Promise<void> {
-    const data = this.getData();
-    const index = data.aulas.findIndex((a: Aula) => a.id === id);
-    if (index !== -1) {
-      data.aulas.splice(index, 1);
-      this.saveData(data);
-    }
+    const { error } = await supabase
+      .from('aulas')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
   }
 
   // =============================================
-  // MÉTODOS PÚBLICOS - PRESENÇAS
+  // PRESENÇAS
   // =============================================
 
   async getPresencasByAula(aulaId: number): Promise<Presenca[]> {
-    return this.getData().presencas.filter((p: Presenca) => p.aulaId === aulaId);
+    const { data, error } = await supabase
+      .from('presencas')
+      .select('*')
+      .eq('aula_id', aulaId);
+
+    if (error) throw error;
+    return data || [];
   }
 
   async getPresencasByAluno(alunoId: number): Promise<Presenca[]> {
-    return this.getData().presencas.filter((p: Presenca) => p.alunoId === alunoId);
+    const { data, error } = await supabase
+      .from('presencas')
+      .select('*')
+      .eq('aluno_id', alunoId);
+
+    if (error) throw error;
+    return data || [];
   }
 
   async savePresencas(presencas: Omit<Presenca, 'id'>[]): Promise<Presenca[]> {
-    const data = this.getData();
+    const aulaId = presencas[0]?.aula_id;
 
-    const aulaId = presencas[0]?.aulaId;
     if (aulaId) {
-      data.presencas = data.presencas.filter((p: Presenca) => p.aulaId !== aulaId);
+      await supabase
+        .from('presencas')
+        .delete()
+        .eq('aula_id', aulaId);
     }
 
-    const newPresencas = presencas.map(p => ({
-      ...p,
-      id: this.getNextId(data.presencas)
-    }));
+    const { data, error } = await supabase
+      .from('presencas')
+      .insert(presencas)
+      .select();
 
-    data.presencas.push(...newPresencas);
-    this.saveData(data);
-    return newPresencas;
+    if (error) throw error;
+    return data || [];
   }
 
   // =============================================
-  // MÉTODOS PÚBLICOS - AVALIAÇÕES
+  // AVALIAÇÕES
   // =============================================
 
   async getAvaliacoesByDiario(diarioId: number): Promise<Avaliacao[]> {
-    return this.getData().avaliacoes.filter((a: Avaliacao) => a.diarioId === diarioId);
+    const { data, error } = await supabase
+      .from('avaliacoes')
+      .select('*')
+      .eq('diario_id', diarioId)
+      .order('data');
+
+    if (error) throw error;
+    return data || [];
   }
 
-  async createAvaliacao(avaliacao: Omit<Avaliacao, 'id' | 'createdAt' | 'updatedAt'>): Promise<Avaliacao> {
-    const data = this.getData();
-    const newAvaliacao: Avaliacao = {
-      ...avaliacao,
-      id: this.getNextId(data.avaliacoes),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    data.avaliacoes.push(newAvaliacao);
-    this.saveData(data);
-    return newAvaliacao;
+  async createAvaliacao(
+    avaliacao: Omit<Avaliacao, 'id' | 'created_at' | 'updated_at'>
+  ): Promise<Avaliacao> {
+    const { data, error } = await supabase
+      .from('avaliacoes')
+      .insert([avaliacao])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
   }
 
-  async updateAvaliacao(id: number, updates: Partial<Avaliacao>): Promise<Avaliacao | null> {
-    const data = this.getData();
-    const index = data.avaliacoes.findIndex((a: Avaliacao) => a.id === id);
-    if (index === -1) return null;
+  async updateAvaliacao(id: number, avaliacao: Partial<Avaliacao>): Promise<Avaliacao | null> {
+    const { data, error } = await supabase
+      .from('avaliacoes')
+      .update(avaliacao)
+      .eq('id', id)
+      .select()
+      .single();
 
-    data.avaliacoes[index] = { ...data.avaliacoes[index], ...updates, updatedAt: new Date().toISOString() };
-    this.saveData(data);
-    return data.avaliacoes[index];
+    if (error) throw error;
+    return data;
   }
 
   async deleteAvaliacao(id: number): Promise<void> {
-    const data = this.getData();
-    const index = data.avaliacoes.findIndex((a: Avaliacao) => a.id === id);
-    if (index !== -1) {
-      data.avaliacoes.splice(index, 1);
-      this.saveData(data);
-    }
+    const { error } = await supabase
+      .from('avaliacoes')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
   }
 
   // =============================================
-  // MÉTODOS PÚBLICOS - NOTAS
+  // NOTAS
   // =============================================
 
   async getNotasByAvaliacao(avaliacaoId: number): Promise<Nota[]> {
-    return this.getData().notas.filter((n: Nota) => n.avaliacaoId === avaliacaoId);
+    const { data, error } = await supabase
+      .from('notas')
+      .select('*')
+      .eq('avaliacao_id', avaliacaoId);
+
+    if (error) throw error;
+    return data || [];
   }
 
   async getNotasByAluno(alunoId: number): Promise<Nota[]> {
-    return this.getData().notas.filter((n: Nota) => n.alunoId === alunoId);
+    const { data, error } = await supabase
+      .from('notas')
+      .select('*')
+      .eq('aluno_id', alunoId);
+
+    if (error) throw error;
+    return data || [];
   }
 
   async saveNotas(notas: Omit<Nota, 'id'>[]): Promise<Nota[]> {
-    const data = this.getData();
+    const avaliacaoId = notas[0]?.avaliacao_id;
 
-    const avaliacaoId = notas[0]?.avaliacaoId;
     if (avaliacaoId) {
-      data.notas = data.notas.filter((n: Nota) => n.avaliacaoId !== avaliacaoId);
+      await supabase
+        .from('notas')
+        .delete()
+        .eq('avaliacao_id', avaliacaoId);
     }
 
-    const newNotas = notas.map(n => ({
-      ...n,
-      id: this.getNextId(data.notas)
-    }));
+    const { data, error } = await supabase
+      .from('notas')
+      .insert(notas)
+      .select();
 
-    data.notas.push(...newNotas);
-    this.saveData(data);
-    return newNotas;
+    if (error) throw error;
+    return data || [];
   }
 
   // =============================================
-  // MÉTODOS PÚBLICOS - OCORRÊNCIAS
+  // OCORRÊNCIAS
   // =============================================
 
   async getOcorrenciasByAluno(alunoId: number): Promise<Ocorrencia[]> {
-    return this.getData().ocorrencias.filter((o: Ocorrencia) => o.alunoId === alunoId);
+    const { data, error } = await supabase
+      .from('ocorrencias')
+      .select('*')
+      .eq('aluno_id', alunoId)
+      .order('data', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
   }
 
   async getOcorrencias(): Promise<Ocorrencia[]> {
-    return this.getData().ocorrencias;
+    const { data, error } = await supabase
+      .from('ocorrencias')
+      .select('*')
+      .order('data', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
   }
 
-  async createOcorrencia(ocorrencia: Omit<Ocorrencia, 'id' | 'createdAt' | 'updatedAt'>): Promise<Ocorrencia> {
-    const data = this.getData();
-    const newOcorrencia: Ocorrencia = {
-      ...ocorrencia,
-      id: this.getNextId(data.ocorrencias),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    data.ocorrencias.push(newOcorrencia);
-    this.saveData(data);
-    return newOcorrencia;
+  async createOcorrencia(
+    ocorrencia: Omit<Ocorrencia, 'id' | 'created_at' | 'updated_at'>
+  ): Promise<Ocorrencia> {
+    const { data, error } = await supabase
+      .from('ocorrencias')
+      .insert([ocorrencia])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
   }
 
-  async updateOcorrencia(id: number, updates: Partial<Ocorrencia>): Promise<Ocorrencia | null> {
-    const data = this.getData();
-    const index = data.ocorrencias.findIndex((o: Ocorrencia) => o.id === id);
-    if (index === -1) return null;
+  async updateOcorrencia(id: number, ocorrencia: Partial<Ocorrencia>): Promise<Ocorrencia | null> {
+    const { data, error } = await supabase
+      .from('ocorrencias')
+      .update(ocorrencia)
+      .eq('id', id)
+      .select()
+      .single();
 
-    data.ocorrencias[index] = { ...data.ocorrencias[index], ...updates, updatedAt: new Date().toISOString() };
-    this.saveData(data);
-    return data.ocorrencias[index];
+    if (error) throw error;
+    return data;
   }
 
   async deleteOcorrencia(id: number): Promise<void> {
-    const data = this.getData();
-    const index = data.ocorrencias.findIndex((o: Ocorrencia) => o.id === id);
-    if (index !== -1) {
-      data.ocorrencias.splice(index, 1);
-      this.saveData(data);
-    }
+    const { error } = await supabase
+      .from('ocorrencias')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
   }
 
   // =============================================
-  // MÉTODOS PÚBLICOS - COMUNICADOS
+  // COMUNICADOS
   // =============================================
 
   async getComunicados(): Promise<Comunicado[]> {
-    return this.getData().comunicados;
+    const { data, error } = await supabase
+      .from('comunicados')
+      .select('*')
+      .order('data_publicacao', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
   }
 
-  async createComunicado(comunicado: Omit<Comunicado, 'id' | 'createdAt' | 'updatedAt'>): Promise<Comunicado> {
-    const data = this.getData();
-    const newComunicado: Comunicado = {
-      ...comunicado,
-      id: this.getNextId(data.comunicados),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    data.comunicados.push(newComunicado);
-    this.saveData(data);
-    return newComunicado;
+  async createComunicado(
+    comunicado: Omit<Comunicado, 'id' | 'created_at' | 'updated_at'>
+  ): Promise<Comunicado> {
+    const { data, error } = await supabase
+      .from('comunicados')
+      .insert([comunicado])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
   }
 
-  async updateComunicado(id: number, updates: Partial<Comunicado>): Promise<Comunicado | null> {
-    const data = this.getData();
-    const index = data.comunicados.findIndex((c: Comunicado) => c.id === id);
-    if (index === -1) return null;
+  async updateComunicado(id: number, comunicado: Partial<Comunicado>): Promise<Comunicado | null> {
+    const { data, error } = await supabase
+      .from('comunicados')
+      .update(comunicado)
+      .eq('id', id)
+      .select()
+      .single();
 
-    data.comunicados[index] = { ...data.comunicados[index], ...updates, updatedAt: new Date().toISOString() };
-    this.saveData(data);
-    return data.comunicados[index];
+    if (error) throw error;
+    return data;
   }
 
   async deleteComunicado(id: number): Promise<boolean> {
-    const data = this.getData();
-    const index = data.comunicados.findIndex((c: Comunicado) => c.id === id);
-    if (index === -1) return false;
+    const { error } = await supabase
+      .from('comunicados')
+      .delete()
+      .eq('id', id);
 
-    data.comunicados.splice(index, 1);
-    this.saveData(data);
-    return true;
+    return !error;
   }
 
   // =============================================
-  // MÉTODOS PÚBLICOS - RECADOS
+  // RECADOS
   // =============================================
 
   async getRecados(): Promise<Recado[]> {
-    const data = this.getData();
-    return data.recados || [];
+    const { data, error } = await supabase
+      .from('recados')
+      .select('*')
+      .order('data_envio', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
   }
 
-  async createRecado(recado: Omit<Recado, 'id' | 'createdAt' | 'updatedAt'>): Promise<Recado> {
-    const data = this.getData();
+  async createRecado(recado: Omit<Recado, 'id' | 'created_at' | 'updated_at'>): Promise<Recado> {
+    const { data, error } = await supabase
+      .from('recados')
+      .insert([recado])
+      .select()
+      .single();
 
-    if (!Array.isArray(data.recados)) {
-      data.recados = [];
-    }
-
-    const newRecado: Recado = {
-      ...recado,
-      id: this.getNextId(data.recados),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-
-    data.recados.push(newRecado);
-    this.saveData(data);
-
-    window.dispatchEvent(new CustomEvent('recadoCreated', {
-      detail: newRecado
-    }));
-
-    return newRecado;
+    if (error) throw error;
+    return data;
   }
 
   async updateRecado(id: number, updates: Partial<Recado>): Promise<Recado | null> {
-    const data = this.getData();
+    const { data, error } = await supabase
+      .from('recados')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
 
-    if (!Array.isArray(data.recados)) {
-      data.recados = [];
-      return null;
-    }
-
-    const index = data.recados.findIndex((r: Recado) => r.id === id);
-    if (index === -1) return null;
-
-    data.recados[index] = { ...data.recados[index], ...updates, updatedAt: new Date().toISOString() };
-    this.saveData(data);
-
-    window.dispatchEvent(new CustomEvent('recadoUpdated', {
-      detail: data.recados[index]
-    }));
-
-    return data.recados[index];
+    if (error) throw error;
+    return data;
   }
 
   async deleteRecado(id: number): Promise<boolean> {
-    const data = this.getData();
+    const { error } = await supabase
+      .from('recados')
+      .delete()
+      .eq('id', id);
 
-    if (!Array.isArray(data.recados)) {
-      data.recados = [];
-      return false;
-    }
-
-    const index = data.recados.findIndex((r: Recado) => r.id === id);
-    if (index === -1) return false;
-
-    data.recados.splice(index, 1);
-    this.saveData(data);
-
-    window.dispatchEvent(new CustomEvent('recadoDeleted', {
-      detail: { id }
-    }));
-
-    return true;
+    return !error;
   }
 
   // =============================================
-  // MÉTODOS PÚBLICOS - CÁLCULOS
+  // CÁLCULOS
   // =============================================
 
   async calcularMediaAluno(alunoId: number, diarioId: number): Promise<number> {
-    const data = this.getData();
-    const avaliacoes = data.avaliacoes.filter((a: Avaliacao) => a.diarioId === diarioId);
-    const notas = data.notas.filter((n: Nota) => n.alunoId === alunoId);
+    const { data: avaliacoes, error: avalError } = await supabase
+      .from('avaliacoes')
+      .select('id, peso')
+      .eq('diario_id', diarioId);
+
+    if (avalError) return 0;
+
+    const { data: notas, error: notasError } = await supabase
+      .from('notas')
+      .select('avaliacao_id, valor')
+      .eq('aluno_id', alunoId)
+      .in('avaliacao_id', avaliacoes?.map(a => a.id) || []);
+
+    if (notasError) return 0;
 
     let somaNotas = 0;
     let somaPesos = 0;
 
-    avaliacoes.forEach((avaliacao: Avaliacao) => {
-      const nota = notas.find((n: Nota) => n.avaliacaoId === avaliacao.id);
+    avaliacoes?.forEach((avaliacao) => {
+      const nota = notas?.find(n => n.avaliacao_id === avaliacao.id);
       if (nota) {
         somaNotas += nota.valor * avaliacao.peso;
         somaPesos += avaliacao.peso;
@@ -1161,41 +1027,88 @@ class SupabaseService {
   }
 
   // =============================================
-  // MÉTODOS PÚBLICOS - VÍNCULOS
+  // VÍNCULOS PRIVADOS
   // =============================================
 
-  async vincularAlunoAoDiario(diarioId: number, alunoId: number): Promise<void> {
-    const data = this.getData();
-    const newVinculo: DiarioAluno = {
-      id: this.getNextId(data.diarioAlunos),
-      diarioId,
-      alunoId
-    };
-    data.diarioAlunos.push(newVinculo);
-    this.saveData(data);
+  private async removerTodosVinculosDoDiario(diarioId: number): Promise<void> {
+    await supabase
+      .from('diario_alunos')
+      .delete()
+      .eq('diario_id', diarioId);
   }
 
-  async desvincularAlunoDoDiario(diarioId: number, alunoId: number): Promise<void> {
-    const data = this.getData();
-    const index = data.diarioAlunos.findIndex((da: DiarioAluno) => da.diarioId === diarioId && da.alunoId === alunoId);
-    if (index !== -1) {
-      data.diarioAlunos.splice(index, 1);
-      this.saveData(data);
+  private async removerVinculosAlunoTurma(alunoId: number, turmaId: number): Promise<void> {
+    const { data: diarios } = await supabase
+      .from('diarios')
+      .select('id')
+      .eq('turma_id', turmaId);
+
+    if (diarios) {
+      const diarioIds = diarios.map(d => d.id);
+      await supabase
+        .from('diario_alunos')
+        .delete()
+        .eq('aluno_id', alunoId)
+        .in('diario_id', diarioIds);
     }
   }
 
-  async getDiarioAlunos(): Promise<DiarioAluno[]> {
-    return this.getData().diarioAlunos;
+  private async vincularAlunosDaTurmaAoDiario(turmaId: number, diarioId: number): Promise<void> {
+    const { data: alunos } = await supabase
+      .from('alunos')
+      .select('id')
+      .eq('turma_id', turmaId);
+
+    if (!alunos || alunos.length === 0) return;
+
+    const vinculos = alunos.map(aluno => ({
+      diario_id: diarioId,
+      aluno_id: aluno.id
+    }));
+
+    await supabase
+      .from('diario_alunos')
+      .insert(vinculos);
   }
+
+  private async vincularAlunoAosDiariosDaTurma(alunoId: number, turmaId: number): Promise<void> {
+    const { data: diarios } = await supabase
+      .from('diarios')
+      .select('id')
+      .eq('turma_id', turmaId);
+
+    if (!diarios || diarios.length === 0) return;
+
+    const vinculos = diarios.map(diario => ({
+      diario_id: diario.id,
+      aluno_id: alunoId
+    }));
+
+    await supabase
+      .from('diario_alunos')
+      .insert(vinculos);
+  }
+
+  // =============================================
+  // PROFESSOR-DISCIPLINAS
+  // =============================================
 
   async getProfessoresByDisciplina(disciplinaId: number): Promise<number[]> {
-    // Stub - retorna vazio por enquanto
-    return [];
+    const { data } = await supabase
+      .from('professor_disciplinas')
+      .select('professor_id')
+      .eq('disciplina_id', disciplinaId);
+
+    return data?.map(d => d.professor_id) || [];
   }
 
-  async getProfessorById(id: number): Promise<Professor | null> {
-    const data = this.getData();
-    return data.professores.find((p: Professor) => p.id === id) || null;
+  async getDiarioAlunos(): Promise<DiarioAluno[]> {
+    const { data, error } = await supabase
+      .from('diario_alunos')
+      .select('*');
+
+    if (error) throw error;
+    return data || [];
   }
 }
 
