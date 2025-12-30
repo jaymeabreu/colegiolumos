@@ -33,9 +33,6 @@ export function LoginPage() {
     }
   }, [navigate]);
 
-  const cleanEmail = email.trim().toLowerCase();
-  const cleanSenha = senha.trim();
-  const result = await authService.login(cleanEmail, cleanSenha);
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
