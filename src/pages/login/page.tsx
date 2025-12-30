@@ -44,11 +44,10 @@ export function LoginPage() {
     try {
       const result = await authService.login(email, senha);
       
-      if (error || !data.user) {
-  console.error('SUPABASE SIGNIN ERROR', error);
-  return { success: false, error: error?.message || 'Falha no login' };
-}
- else {
+      if (result.success && result.user) {
+        const redirectPath = authService.getRedirectPath(result.user.papel);
+        navigate(redirectPath, { replace: true });
+      } else {
         setError(result.error || 'Erro ao fazer login');
       }
     } catch (err) {
