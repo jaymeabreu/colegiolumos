@@ -36,12 +36,12 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
   }, [diarioId]);
 
   const loadOcorrencias = () => {
-    const ocorrenciasData = supabaseService.getOcorrenciasByDiario(diarioId);
+    const ocorrenciasData = await supabaseService.getOcorrenciasByDiario(diarioId);
     setOcorrencias(ocorrenciasData);
   };
 
   const loadAlunos = () => {
-    const alunosData = supabaseService.getAlunosByDiario(diarioId);
+    const alunosData = await supabaseService.getAlunosByDiario(diarioId);
     setAlunos(alunosData);
   };
 

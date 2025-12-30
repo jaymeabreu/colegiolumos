@@ -41,17 +41,17 @@ export function AvaliacoesTab({ diarioId, readOnly = false }: AvaliacoesTabProps
   }, [diarioId]);
 
   const loadAvaliacoes = () => {
-    const avaliacoesData = supabaseService.getAvaliacoesByDiario(diarioId);
+    const avaliacoesData = await supabaseService.getAvaliacoesByDiario(diarioId);
     setAvaliacoes(avaliacoesData);
   };
 
   const loadAlunos = () => {
-    const alunosData = supabaseService.getAlunosByDiario(diarioId);
+    const alunosData = await supabaseService.getAlunosByDiario(diarioId);
     setAlunos(alunosData);
   };
 
   const loadNotasAvaliacao = (avaliacaoId: number) => {
-    const notasData = supabaseService.getNotasByAvaliacao(avaliacaoId);
+    const notasData = await supabaseService.getNotasByAvaliacao(avaliacaoId);
     const notasMap: { [alunoId: number]: string } = {};
 
     alunos.forEach(aluno => {

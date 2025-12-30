@@ -13,11 +13,13 @@ export interface Usuario {
   updated_at: string;
 }
 
+export type TurnoTurma = 'MANHA' | 'TARDE' | 'NOITE' | 'INTEGRAL';
+
 export interface Turma {
   id: number;
   nome: string;
   ano: number;
-  turno: string;
+  turno: TurnoTurma;
   anoLetivo?: string;
   created_at: string;
   updated_at: string;
@@ -44,10 +46,9 @@ export interface Professor {
 export interface Aluno {
   id: number;
   nome: string;
-  matricula: string;
-  turma_id?: number;
+  email?: string;
+  turma_id: number;
   turmaId?: number;
-  contato?: string;
   created_at: string;
   updated_at: string;
 }
@@ -76,7 +77,11 @@ export interface Diario {
 export interface DiarioAluno {
   id: number;
   diario_id: number;
+  diarioId?: number;
   aluno_id: number;
+  alunoId?: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Aula {
@@ -98,7 +103,8 @@ export interface Presenca {
   aluno_id: number;
   alunoId?: number;
   status: 'PRESENTE' | 'FALTA' | 'JUSTIFICADA';
-  observacao?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Avaliacao {
@@ -121,17 +127,19 @@ export interface Nota {
   aluno_id: number;
   alunoId?: number;
   valor: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Ocorrencia {
   id: number;
   aluno_id: number;
   alunoId?: number;
-  diario_id?: number;
-  tipo: 'disciplinar' | 'pedagogica' | 'elogio';
+  professor_id?: number;
+  professorId?: number;
   data: string;
+  tipo: string;
   descricao: string;
-  acao_tomada?: string;
   created_at: string;
   updated_at: string;
 }
@@ -140,11 +148,8 @@ export interface Comunicado {
   id: number;
   titulo: string;
   mensagem: string;
-  autor: string;
-  autor_id: number;
-  autorId?: number;
-  data_publicacao: string;
-  dataPublicacao?: string;
+  data_envio: string;
+  dataEnvio?: string;
   created_at: string;
   updated_at: string;
 }
@@ -171,820 +176,1131 @@ export interface Recado {
   updated_at: string;
 }
 
-class SupabaseService {
-  async hydrate(): Promise<void> {
-  const [
-    usuariosRes,
-    turmasRes,
-    disciplinasRes,
-    professoresRes,
-    alunosRes,
-    diariosRes,
-  ] = await Promise.all([
-    supabase.from('usuarios').select('*'),
-    supabase.from('turmas').select('*'),
-    supabase.from('disciplinas').select('*'),
-    supabase.from('professores').select('*'),
-    supabase.from('alunos').select('*'),
-    supabase.from('diarios').select('*'),
-  ]);
+const nowIso = () => new Date().toISOString();
 
-  const anyError =
-    usuariosRes.error || turmasRes.error || disciplinasRes.error ||
-    professoresRes.error || alunosRes.error || diariosRes.error;
+function withCamel<T extends Record<string, any>>(row: T): T {
+  const r: any = { ...row };
 
-  if (anyError) {
-    console.error('hydrate() error:', anyError);
-    throw anyError;
-  }
+  if (r.turma_id !== undefined) r.turmaId = r.turma_id;
+  if (r.disciplina_id !== undefined) r.disciplinaId = r.disciplina_id;
+  if (r.professor_id !== undefined) r.professorId = r.professor_id;
+  if (r.aluno_id !== undefined) r.alunoId = r.aluno_id;
+  if (r.diario_id !== undefined) r.diarioId = r.diario_id;
+  if (r.avaliacao_id !== undefined) r.avaliacaoId = r.avaliacao_id;
+  if (r.aula_id !== undefined) r.aulaId = r.aula_id;
 
-  const data = this.getData();
+  if (r.data_inicio !== undefined) r.dataInicio = r.data_inicio;
+  if (r.data_termino !== undefined) r.dataTermino = r.data_termino;
 
-  data.usuarios = (usuariosRes.data ?? []) as any;
-  data.turmas = (turmasRes.data ?? []) as any;
-  data.disciplinas = (disciplinasRes.data ?? []) as any;
-  data.professores = (professoresRes.data ?? []) as any;
-  data.alunos = (alunosRes.data ?? []) as any;
-  data.diarios = (diariosRes.data ?? []) as any;
+  if (r.data_envio !== undefined) r.dataEnvio = r.data_envio;
 
-  this.saveData(data);
+  if (r.professor_nome !== undefined) r.professorNome = r.professor_nome;
+  if (r.turma_nome !== undefined) r.turmaNome = r.turma_nome;
+  if (r.aluno_nome !== undefined) r.alunoNome = r.aluno_nome;
+
+  if (r.carga_horaria !== undefined) r.cargaHoraria = r.carga_horaria;
+
+  return r;
 }
 
-  private storageKey = 'gestao_escolar_data';
-  private static initialized = false;
-
-  private defaultData = {
-    usuarios: [] as Usuario[],
-    turmas: [] as Turma[],
-    disciplinas: [] as Disciplina[],
-    professores: [] as Professor[],
-    diarios: [] as Diario[],
-    alunos: [] as Aluno[],
-    diario_alunos: [] as DiarioAluno[],
-    aulas: [] as Aula[],
-    presencas: [] as Presenca[],
-    avaliacoes: [] as Avaliacao[],
-    notas: [] as Nota[],
-    ocorrencias: [] as Ocorrencia[],
-    comunicados: [] as Comunicado[],
-    recados: [] as Recado[]
-  };
-
-  constructor() {
-    this.clearOldData();
-  }
-
-  private clearOldData() {
-    try {
-      const data = this.getData();
-      localStorage.removeItem(this.storageKey + '_recados_cache');
-    } catch (error) {
-      console.error('Erro ao limpar dados antigos:', error);
-    }
-  }
-
-  private getData() {
-    try {
-      const stored = localStorage.getItem(this.storageKey);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (parsed && typeof parsed === 'object') {
-          return {
-            usuarios: Array.isArray(parsed.usuarios) ? parsed.usuarios : [],
-            turmas: Array.isArray(parsed.turmas) ? parsed.turmas : [],
-            disciplinas: Array.isArray(parsed.disciplinas) ? parsed.disciplinas : [],
-            professores: Array.isArray(parsed.professores) ? parsed.professores : [],
-            diarios: Array.isArray(parsed.diarios) ? parsed.diarios : [],
-            alunos: Array.isArray(parsed.alunos) ? parsed.alunos : [],
-            diario_alunos: Array.isArray(parsed.diario_alunos) ? parsed.diario_alunos : [],
-            aulas: Array.isArray(parsed.aulas) ? parsed.aulas : [],
-            presencas: Array.isArray(parsed.presencas) ? parsed.presencas : [],
-            avaliacoes: Array.isArray(parsed.avaliacoes) ? parsed.avaliacoes : [],
-            notas: Array.isArray(parsed.notas) ? parsed.notas : [],
-            ocorrencias: Array.isArray(parsed.ocorrencias) ? parsed.ocorrencias : [],
-            comunicados: Array.isArray(parsed.comunicados) ? parsed.comunicados : [],
-            recados: Array.isArray(parsed.recados) ? parsed.recados : []
-          };
-        }
-      }
-    } catch (error) {
-      console.error('Erro ao ler dados do localStorage:', error);
-      localStorage.removeItem(this.storageKey);
-    }
-
-    if (!SupabaseService.initialized) {
-      this.saveData(this.defaultData);
-      SupabaseService.initialized = true;
-    }
-    return this.defaultData;
-  }
-
-  private saveData(data: any) {
-    try {
-      const dataToSave = {
-        usuarios: Array.isArray(data.usuarios) ? data.usuarios : [],
-        turmas: Array.isArray(data.turmas) ? data.turmas : [],
-        disciplinas: Array.isArray(data.disciplinas) ? data.disciplinas : [],
-        professores: Array.isArray(data.professores) ? data.professores : [],
-        diarios: Array.isArray(data.diarios) ? data.diarios : [],
-        alunos: Array.isArray(data.alunos) ? data.alunos : [],
-        diario_alunos: Array.isArray(data.diario_alunos) ? data.diario_alunos : [],
-        aulas: Array.isArray(data.aulas) ? data.aulas : [],
-        presencas: Array.isArray(data.presencas) ? data.presencas : [],
-        avaliacoes: Array.isArray(data.avaliacoes) ? data.avaliacoes : [],
-        notas: Array.isArray(data.notas) ? data.notas : [],
-        ocorrencias: Array.isArray(data.ocorrencias) ? data.ocorrencias : [],
-        comunicados: Array.isArray(data.comunicados) ? data.comunicados : [],
-        recados: Array.isArray(data.recados) ? data.recados : []
-      };
-
-      localStorage.setItem(this.storageKey, JSON.stringify(dataToSave));
-      localStorage.setItem(this.storageKey + '_timestamp', Date.now().toString());
-
-      window.dispatchEvent(new CustomEvent('dataUpdated', {
-        detail: { type: 'all', timestamp: Date.now() }
-      }));
-    } catch (error) {
-      console.error('Erro ao salvar dados no localStorage:', error);
-    }
-  }
-
-  private getNextId(collection: any[]): number {
-    if (!Array.isArray(collection) || collection.length === 0) return 1;
-    return Math.max(...collection.map((item: any) => item?.id || 0), 0) + 1;
+class SupabaseService {
+  private dispatchDataUpdated(type: string) {
+    window.dispatchEvent(
+      new CustomEvent('dataUpdated', { detail: { type, timestamp: Date.now() } })
+    );
   }
 
   // USUÁRIOS
-  getUsuarios(): Usuario[] {
-    return this.getData().usuarios;
+  async getUsuarios(): Promise<Usuario[]> {
+    const { data, error } = await supabase
+      .from('usuarios')
+      .select('*')
+      .order('id', { ascending: true });
+
+    if (error) throw error;
+    return (data ?? []) as Usuario[];
   }
 
-  createUsuario(usuario: Omit<Usuario, 'id' | 'created_at' | 'updated_at'>): Usuario {
-    const data = this.getData();
-    const newUsuario: Usuario = {
-      ...usuario,
-      id: this.getNextId(data.usuarios),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+  async createUsuario(
+    usuario: Omit<Usuario, 'id' | 'created_at' | 'updated_at'>
+  ): Promise<Usuario> {
+    const payload: any = {
+      nome: usuario.nome,
+      email: usuario.email,
+      papel: usuario.papel,
+      aluno_id: usuario.aluno_id ?? undefined,
+      professor_id: usuario.professor_id ?? undefined,
+      ativo: usuario.ativo ?? true
     };
-    data.usuarios.push(newUsuario);
-    this.saveData(data);
-    return newUsuario;
+
+    const { data, error } = await supabase
+      .from('usuarios')
+      .insert(payload)
+      .select('*')
+      .single();
+
+    if (error) throw error;
+
+    this.dispatchDataUpdated('usuarios');
+    return data as Usuario;
   }
 
-  updateUsuario(id: number, updates: Partial<Usuario>): Usuario | null {
-    const data = this.getData();
-    const index = data.usuarios.findIndex((u: Usuario) => u.id === id);
-    if (index === -1) return null;
-    data.usuarios[index] = { ...data.usuarios[index], ...updates, updated_at: new Date().toISOString() };
-    this.saveData(data);
-    return data.usuarios[index];
+  async updateUsuario(id: number, updates: Partial<Usuario>): Promise<Usuario | null> {
+    const payload: any = {};
+    if (updates.nome !== undefined) payload.nome = updates.nome;
+    if (updates.email !== undefined) payload.email = updates.email;
+    if (updates.papel !== undefined) payload.papel = updates.papel;
+    if (updates.aluno_id !== undefined) payload.aluno_id = updates.aluno_id;
+    if (updates.professor_id !== undefined) payload.professor_id = updates.professor_id;
+    if (updates.ativo !== undefined) payload.ativo = updates.ativo;
+
+    payload.updated_at = nowIso();
+
+    const { data, error } = await supabase
+      .from('usuarios')
+      .update(payload)
+      .eq('id', id)
+      .select('*')
+      .maybeSingle();
+
+    if (error) throw error;
+
+    this.dispatchDataUpdated('usuarios');
+    return (data ?? null) as Usuario | null;
   }
 
-  deleteUsuario(id: number): void {
-    const data = this.getData();
-    const index = data.usuarios.findIndex((u: Usuario) => u.id === id);
-    if (index !== -1) {
-      data.usuarios.splice(index, 1);
-      this.saveData(data);
-    }
+  async deleteUsuario(id: number): Promise<void> {
+    const { error } = await supabase.from('usuarios').delete().eq('id', id);
+    if (error) throw error;
+    this.dispatchDataUpdated('usuarios');
   }
 
   // TURMAS
-async getTurmas(): Promise<Turma[]> {
-  const { data, error } = await supabase
-    .from('turmas')
-    .select('*')
-    .order('id', { ascending: true });
+  async getTurmas(): Promise<Turma[]> {
+    const { data, error } = await supabase
+      .from('turmas')
+      .select('*')
+      .order('id', { ascending: true });
 
-  if (error) {
-    console.error('Supabase getTurmas error:', error);
-    throw error;
+    if (error) throw error;
+    return (data ?? []).map(withCamel) as Turma[];
   }
 
-  return (data ?? []) as Turma[];
-}
+  async getTurmaById(id: number): Promise<Turma | null> {
+    const { data, error } = await supabase
+      .from('turmas')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
 
-async getTurmaById(id: number): Promise<Turma | null> {
-  const { data, error } = await supabase
-    .from('turmas')
-    .select('*')
-    .eq('id', id)
-    .maybeSingle();
-
-  if (error) {
-    console.error('Supabase getTurmaById error:', error);
-    throw error;
+    if (error) throw error;
+    return data ? (withCamel(data) as Turma) : null;
   }
 
-  return (data ?? null) as Turma | null;
-}
+  async createTurma(
+    turma: Omit<Turma, 'id' | 'created_at' | 'updated_at'>
+  ): Promise<Turma> {
+    const payload: any = {
+      nome: turma.nome,
+      ano: turma.ano,
+      turno: turma.turno
+    };
 
-async createTurma(turma: Omit<Turma, 'id' | 'created_at' | 'updated_at'>): Promise<Turma> {
-  // turno precisa ser MANHA/TARDE/NOITE/INTEGRAL
-  const payload = {
-    nome: turma.nome,
-    ano: turma.ano,
-    turno: turma.turno,
-  };
+    const { data, error } = await supabase
+      .from('turmas')
+      .insert(payload)
+      .select('*')
+      .single();
 
-  const { data, error } = await supabase
-    .from('turmas')
-    .insert(payload)
-    .select('*')
-    .single();
+    if (error) throw error;
 
-  if (error) {
-    console.error('Supabase createTurma error:', error);
-    throw error;
+    this.dispatchDataUpdated('turmas');
+    return withCamel(data) as Turma;
   }
 
-  window.dispatchEvent(new CustomEvent('dataUpdated', {
-    detail: { type: 'turmas', timestamp: Date.now() }
-  }));
+  async updateTurma(id: number, updates: Partial<Turma>): Promise<Turma | null> {
+    const payload: any = {};
+    if (updates.nome !== undefined) payload.nome = updates.nome;
+    if (updates.ano !== undefined) payload.ano = updates.ano;
+    if (updates.turno !== undefined) payload.turno = updates.turno;
+    payload.updated_at = nowIso();
 
-  return data as Turma;
-}
+    const { data, error } = await supabase
+      .from('turmas')
+      .update(payload)
+      .eq('id', id)
+      .select('*')
+      .maybeSingle();
 
-async updateTurma(id: number, updates: Partial<Turma>): Promise<Turma> {
-  const payload: any = {};
-  if (updates.nome !== undefined) payload.nome = updates.nome;
-  if (updates.ano !== undefined) payload.ano = updates.ano;
-  if (updates.turno !== undefined) payload.turno = updates.turno;
+    if (error) throw error;
 
-  const { data, error } = await supabase
-    .from('turmas')
-    .update(payload)
-    .eq('id', id)
-    .select('*')
-    .single();
-
-  if (error) {
-    console.error('Supabase updateTurma error:', error);
-    throw error;
+    this.dispatchDataUpdated('turmas');
+    return data ? (withCamel(data) as Turma) : null;
   }
 
-  window.dispatchEvent(new CustomEvent('dataUpdated', {
-    detail: { type: 'turmas', timestamp: Date.now() }
-  }));
-
-  return data as Turma;
-}
-
-async deleteTurma(id: number): Promise<void> {
-  const { error } = await supabase
-    .from('turmas')
-    .delete()
-    .eq('id', id);
-
-  if (error) {
-    console.error('Supabase deleteTurma error:', error);
-    throw error;
+  async deleteTurma(id: number): Promise<void> {
+    const { error } = await supabase.from('turmas').delete().eq('id', id);
+    if (error) throw error;
+    this.dispatchDataUpdated('turmas');
   }
-
-  window.dispatchEvent(new CustomEvent('dataUpdated', {
-    detail: { type: 'turmas', timestamp: Date.now() }
-  }));
-}
-
 
   // DISCIPLINAS
-  getDisciplinas(): Disciplina[] {
-    return this.getData().disciplinas;
+  async getDisciplinas(): Promise<Disciplina[]> {
+    const { data, error } = await supabase
+      .from('disciplinas')
+      .select('*')
+      .order('id', { ascending: true });
+
+    if (error) throw error;
+    return (data ?? []).map(withCamel) as Disciplina[];
   }
 
-  getDisciplinaById(id: number): Disciplina | null {
-    const data = this.getData();
-    return data.disciplinas.find((d: Disciplina) => d.id === id) || null;
+  async getDisciplinaById(id: number): Promise<Disciplina | null> {
+    const { data, error } = await supabase
+      .from('disciplinas')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (error) throw error;
+    return data ? (withCamel(data) as Disciplina) : null;
   }
 
-  createDisciplina(disciplina: Omit<Disciplina, 'id' | 'created_at' | 'updated_at'>): Disciplina {
-    const data = this.getData();
-    const newDisciplina: Disciplina = {
-      ...disciplina,
-      id: this.getNextId(data.disciplinas),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+  async createDisciplina(
+    disciplina: Omit<Disciplina, 'id' | 'created_at' | 'updated_at'>
+  ): Promise<Disciplina> {
+    const payload: any = {
+      nome: disciplina.nome,
+      codigo: disciplina.codigo,
+      carga_horaria: disciplina.carga_horaria ?? disciplina.cargaHoraria ?? 0
     };
-    data.disciplinas.push(newDisciplina);
-    this.saveData(data);
-    return newDisciplina;
+
+    const { data, error } = await supabase
+      .from('disciplinas')
+      .insert(payload)
+      .select('*')
+      .single();
+
+    if (error) throw error;
+
+    this.dispatchDataUpdated('disciplinas');
+    return withCamel(data) as Disciplina;
   }
 
-  updateDisciplina(id: number, updates: Partial<Disciplina>): Disciplina | null {
-    const data = this.getData();
-    const index = data.disciplinas.findIndex((d: Disciplina) => d.id === id);
-    if (index === -1) return null;
-    data.disciplinas[index] = { ...data.disciplinas[index], ...updates, updated_at: new Date().toISOString() };
-    this.saveData(data);
-    return data.disciplinas[index];
+  async updateDisciplina(id: number, updates: Partial<Disciplina>): Promise<Disciplina | null> {
+    const payload: any = {};
+    if (updates.nome !== undefined) payload.nome = updates.nome;
+    if (updates.codigo !== undefined) payload.codigo = updates.codigo;
+    if (updates.carga_horaria !== undefined) payload.carga_horaria = updates.carga_horaria;
+    if (updates.cargaHoraria !== undefined) payload.carga_horaria = updates.cargaHoraria;
+    payload.updated_at = nowIso();
+
+    const { data, error } = await supabase
+      .from('disciplinas')
+      .update(payload)
+      .eq('id', id)
+      .select('*')
+      .maybeSingle();
+
+    if (error) throw error;
+
+    this.dispatchDataUpdated('disciplinas');
+    return data ? (withCamel(data) as Disciplina) : null;
   }
 
-  deleteDisciplina(id: number): void {
-    const data = this.getData();
-    const index = data.disciplinas.findIndex((d: Disciplina) => d.id === id);
-    if (index !== -1) {
-      data.disciplinas.splice(index, 1);
-      this.saveData(data);
-    }
+  async deleteDisciplina(id: number): Promise<void> {
+    const { error } = await supabase.from('disciplinas').delete().eq('id', id);
+    if (error) throw error;
+    this.dispatchDataUpdated('disciplinas');
   }
 
   // PROFESSORES
-  getProfessores(): Professor[] {
-    return this.getData().professores;
+  async getProfessores(): Promise<Professor[]> {
+    const { data, error } = await supabase
+      .from('professores')
+      .select('*')
+      .order('id', { ascending: true });
+
+    if (error) throw error;
+    return (data ?? []) as Professor[];
   }
 
-  getProfessorById(id: number): Professor | null {
-    const data = this.getData();
-    return data.professores.find((p: Professor) => p.id === id) || null;
+  async getProfessorById(id: number): Promise<Professor | null> {
+    const { data, error } = await supabase
+      .from('professores')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (error) throw error;
+    return (data ?? null) as Professor | null;
   }
 
-  createProfessor(professor: Omit<Professor, 'id' | 'created_at' | 'updated_at'>): Professor {
-    const data = this.getData();
-    const newProfessor: Professor = {
-      ...professor,
-      id: this.getNextId(data.professores),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+  async createProfessor(
+    professor: Omit<Professor, 'id' | 'created_at' | 'updated_at'>
+  ): Promise<Professor> {
+    const payload: any = {
+      nome: professor.nome,
+      email: professor.email
     };
-    data.professores.push(newProfessor);
-    this.saveData(data);
-    return newProfessor;
+
+    const { data, error } = await supabase
+      .from('professores')
+      .insert(payload)
+      .select('*')
+      .single();
+
+    if (error) throw error;
+
+    this.dispatchDataUpdated('professores');
+    return data as Professor;
   }
 
-  updateProfessor(id: number, updates: Partial<Professor>): Professor | null {
-    const data = this.getData();
-    const index = data.professores.findIndex((p: Professor) => p.id === id);
-    if (index === -1) return null;
-    data.professores[index] = { ...data.professores[index], ...updates, updated_at: new Date().toISOString() };
-    this.saveData(data);
-    return data.professores[index];
+  async updateProfessor(id: number, updates: Partial<Professor>): Promise<Professor | null> {
+    const payload: any = {};
+    if (updates.nome !== undefined) payload.nome = updates.nome;
+    if (updates.email !== undefined) payload.email = updates.email;
+    payload.updated_at = nowIso();
+
+    const { data, error } = await supabase
+      .from('professores')
+      .update(payload)
+      .eq('id', id)
+      .select('*')
+      .maybeSingle();
+
+    if (error) throw error;
+
+    this.dispatchDataUpdated('professores');
+    return (data ?? null) as Professor | null;
   }
 
-  deleteProfessor(id: number): void {
-    const data = this.getData();
-    const index = data.professores.findIndex((p: Professor) => p.id === id);
-    if (index !== -1) {
-      data.professores.splice(index, 1);
-      this.saveData(data);
-    }
+  async deleteProfessor(id: number): Promise<void> {
+    const { error } = await supabase.from('professores').delete().eq('id', id);
+    if (error) throw error;
+    this.dispatchDataUpdated('professores');
   }
 
   // ALUNOS
-  getAlunos(): Aluno[] {
-    return this.getData().alunos;
+  async getAlunos(): Promise<Aluno[]> {
+    const { data, error } = await supabase
+      .from('alunos')
+      .select('*')
+      .order('id', { ascending: true });
+
+    if (error) throw error;
+    return (data ?? []).map(withCamel) as Aluno[];
   }
 
-  getAlunosByTurma(turmaId: number): Aluno[] {
-    return this.getData().alunos.filter((a: Aluno) => a.turma_id === turmaId || a.turmaId === turmaId);
+  async getAlunosByTurma(turmaId: number): Promise<Aluno[]> {
+    const { data, error } = await supabase
+      .from('alunos')
+      .select('*')
+      .eq('turma_id', turmaId)
+      .order('id', { ascending: true });
+
+    if (error) throw error;
+    return (data ?? []).map(withCamel) as Aluno[];
   }
 
-  getAlunosByDiario(diarioId: number): Aluno[] {
-    const data = this.getData();
-    const diarioAlunos = data.diario_alunos.filter((da: DiarioAluno) => da.diario_id === diarioId);
-    return data.alunos.filter((a: Aluno) => diarioAlunos.some((da: DiarioAluno) => da.aluno_id === a.id));
+  async getAlunosByDiario(diarioId: number): Promise<Aluno[]> {
+    const { data: vinculos, error: e1 } = await supabase
+      .from('diario_alunos')
+      .select('aluno_id')
+      .eq('diario_id', diarioId);
+
+    if (e1) throw e1;
+
+    const ids = (vinculos ?? []).map((v: any) => v.aluno_id).filter(Boolean);
+    if (ids.length === 0) return [];
+
+    const { data: alunos, error: e2 } = await supabase
+      .from('alunos')
+      .select('*')
+      .in('id', ids)
+      .order('id', { ascending: true });
+
+    if (e2) throw e2;
+
+    return (alunos ?? []).map(withCamel) as Aluno[];
   }
 
-  createAluno(aluno: Omit<Aluno, 'id' | 'created_at' | 'updated_at'>): Aluno {
-    const data = this.getData();
-    const newAluno: Aluno = {
-      ...aluno,
-      id: this.getNextId(data.alunos),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+  async createAluno(aluno: Omit<Aluno, 'id' | 'created_at' | 'updated_at'>): Promise<Aluno> {
+    const payload: any = {
+      nome: aluno.nome,
+      email: aluno.email ?? null,
+      turma_id: aluno.turma_id ?? aluno.turmaId
     };
-    data.alunos.push(newAluno);
-    this.saveData(data);
-    return newAluno;
+
+    const { data, error } = await supabase
+      .from('alunos')
+      .insert(payload)
+      .select('*')
+      .single();
+
+    if (error) throw error;
+
+    this.dispatchDataUpdated('alunos');
+    return withCamel(data) as Aluno;
   }
 
-  updateAluno(id: number, updates: Partial<Aluno>): Aluno | null {
-    const data = this.getData();
-    const index = data.alunos.findIndex((a: Aluno) => a.id === id);
-    if (index === -1) return null;
-    data.alunos[index] = { ...data.alunos[index], ...updates, updated_at: new Date().toISOString() };
-    this.saveData(data);
-    return data.alunos[index];
+  async updateAluno(id: number, updates: Partial<Aluno>): Promise<Aluno | null> {
+    const payload: any = {};
+    if (updates.nome !== undefined) payload.nome = updates.nome;
+    if (updates.email !== undefined) payload.email = updates.email;
+    if (updates.turma_id !== undefined) payload.turma_id = updates.turma_id;
+    if (updates.turmaId !== undefined) payload.turma_id = updates.turmaId;
+    payload.updated_at = nowIso();
+
+    const { data, error } = await supabase
+      .from('alunos')
+      .update(payload)
+      .eq('id', id)
+      .select('*')
+      .maybeSingle();
+
+    if (error) throw error;
+
+    this.dispatchDataUpdated('alunos');
+    return data ? (withCamel(data) as Aluno) : null;
   }
 
-  deleteAluno(id: number): void {
-    const data = this.getData();
-    const index = data.alunos.findIndex((a: Aluno) => a.id === id);
-    if (index !== -1) {
-      data.diario_alunos = data.diario_alunos.filter((da: DiarioAluno) => da.aluno_id !== id);
-      data.alunos.splice(index, 1);
-      this.saveData(data);
-    }
+  async deleteAluno(id: number): Promise<void> {
+    const { error } = await supabase.from('alunos').delete().eq('id', id);
+    if (error) throw error;
+    this.dispatchDataUpdated('alunos');
   }
 
   // DIÁRIOS
-  getDiarios(): Diario[] {
-    return this.getData().diarios;
+  async getDiarios(): Promise<Diario[]> {
+    const { data, error } = await supabase
+      .from('diarios')
+      .select('*')
+      .order('id', { ascending: true });
+
+    if (error) throw error;
+    return (data ?? []).map(withCamel) as Diario[];
   }
 
-  getDiariosByProfessor(professorId: number): Diario[] {
-    return this.getData().diarios.filter((d: Diario) => d.professor_id === professorId || d.professorId === professorId);
+  async getDiariosByProfessor(professorId: number): Promise<Diario[]> {
+    const { data, error } = await supabase
+      .from('diarios')
+      .select('*')
+      .eq('professor_id', professorId)
+      .order('id', { ascending: true });
+
+    if (error) throw error;
+    return (data ?? []).map(withCamel) as Diario[];
   }
 
-  createDiario(diario: Omit<Diario, 'id' | 'created_at' | 'updated_at'>): Diario {
-    const data = this.getData();
-    const newDiario: Diario = {
-      ...diario,
-      id: this.getNextId(data.diarios),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+  async createDiario(diario: Omit<Diario, 'id' | 'created_at' | 'updated_at'>): Promise<Diario> {
+    const payload: any = {
+      nome: diario.nome,
+      disciplina_id: diario.disciplina_id ?? diario.disciplinaId,
+      turma_id: diario.turma_id ?? diario.turmaId,
+      professor_id: diario.professor_id ?? diario.professorId,
+      bimestre: diario.bimestre,
+      data_inicio: diario.data_inicio ?? diario.dataInicio,
+      data_termino: diario.data_termino ?? diario.dataTermino,
+      status: diario.status ?? 'PENDENTE',
+      solicitacao_devolucao: diario.solicitacao_devolucao ?? null,
+      historico_status: diario.historico_status ?? null
     };
-    data.diarios.push(newDiario);
-    this.saveData(data);
-    return newDiario;
+
+    const { data, error } = await supabase
+      .from('diarios')
+      .insert(payload)
+      .select('*')
+      .single();
+
+    if (error) throw error;
+
+    this.dispatchDataUpdated('diarios');
+    return withCamel(data) as Diario;
   }
 
-  updateDiario(id: number, updates: Partial<Diario>): Diario | null {
-    const data = this.getData();
-    const index = data.diarios.findIndex((d: Diario) => d.id === id);
-    if (index === -1) return null;
-    data.diarios[index] = { ...data.diarios[index], ...updates, updated_at: new Date().toISOString() };
-    this.saveData(data);
-    return data.diarios[index];
+  async updateDiario(id: number, updates: Partial<Diario>): Promise<Diario | null> {
+    const payload: any = {};
+    if (updates.nome !== undefined) payload.nome = updates.nome;
+    if (updates.disciplina_id !== undefined) payload.disciplina_id = updates.disciplina_id;
+    if (updates.disciplinaId !== undefined) payload.disciplina_id = updates.disciplinaId;
+    if (updates.turma_id !== undefined) payload.turma_id = updates.turma_id;
+    if (updates.turmaId !== undefined) payload.turma_id = updates.turmaId;
+    if (updates.professor_id !== undefined) payload.professor_id = updates.professor_id;
+    if (updates.professorId !== undefined) payload.professor_id = updates.professorId;
+    if (updates.bimestre !== undefined) payload.bimestre = updates.bimestre;
+    if (updates.data_inicio !== undefined) payload.data_inicio = updates.data_inicio;
+    if (updates.dataInicio !== undefined) payload.data_inicio = updates.dataInicio;
+    if (updates.data_termino !== undefined) payload.data_termino = updates.data_termino;
+    if (updates.dataTermino !== undefined) payload.data_termino = updates.dataTermino;
+    if (updates.status !== undefined) payload.status = updates.status;
+    if (updates.solicitacao_devolucao !== undefined) payload.solicitacao_devolucao = updates.solicitacao_devolucao;
+    if (updates.historico_status !== undefined) payload.historico_status = updates.historico_status;
+
+    payload.updated_at = nowIso();
+
+    const { data, error } = await supabase
+      .from('diarios')
+      .update(payload)
+      .eq('id', id)
+      .select('*')
+      .maybeSingle();
+
+    if (error) throw error;
+
+    this.dispatchDataUpdated('diarios');
+    return data ? (withCamel(data) as Diario) : null;
   }
 
-  deleteDiario(id: number): void {
-    const data = this.getData();
-    const index = data.diarios.findIndex((d: Diario) => d.id === id);
-    if (index !== -1) {
-      data.diario_alunos = data.diario_alunos.filter((da: DiarioAluno) => da.diario_id !== id);
-      data.diarios.splice(index, 1);
-      this.saveData(data);
-    }
+  async deleteDiario(id: number): Promise<void> {
+    const { error } = await supabase.from('diarios').delete().eq('id', id);
+    if (error) throw error;
+    this.dispatchDataUpdated('diarios');
   }
 
   // AULAS
-  getAulasByDiario(diarioId: number): Aula[] {
-    return this.getData().aulas.filter((a: Aula) => a.diario_id === diarioId || a.diarioId === diarioId);
+  async getAulasByDiario(diarioId: number): Promise<Aula[]> {
+    const { data, error } = await supabase
+      .from('aulas')
+      .select('*')
+      .eq('diario_id', diarioId)
+      .order('id', { ascending: true });
+
+    if (error) throw error;
+    return (data ?? []).map(withCamel) as Aula[];
   }
 
-  createAula(aula: Omit<Aula, 'id' | 'created_at' | 'updated_at'>): Aula {
-    const data = this.getData();
-    const newAula: Aula = {
-      ...aula,
-      id: this.getNextId(data.aulas),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+  async createAula(aula: Omit<Aula, 'id' | 'created_at' | 'updated_at'>): Promise<Aula> {
+    const payload: any = {
+      diario_id: aula.diario_id ?? aula.diarioId,
+      data: aula.data,
+      horario: aula.horario ?? null,
+      conteudo: aula.conteudo ?? null,
+      observacoes: aula.observacoes ?? null
     };
-    data.aulas.push(newAula);
-    this.saveData(data);
-    return newAula;
+
+    const { data, error } = await supabase
+      .from('aulas')
+      .insert(payload)
+      .select('*')
+      .single();
+
+    if (error) throw error;
+
+    this.dispatchDataUpdated('aulas');
+    return withCamel(data) as Aula;
   }
 
-  updateAula(id: number, updates: Partial<Aula>): Aula | null {
-    const data = this.getData();
-    const index = data.aulas.findIndex((a: Aula) => a.id === id);
-    if (index === -1) return null;
-    data.aulas[index] = { ...data.aulas[index], ...updates, updated_at: new Date().toISOString() };
-    this.saveData(data);
-    return data.aulas[index];
+  async updateAula(id: number, updates: Partial<Aula>): Promise<Aula | null> {
+    const payload: any = {};
+    if (updates.diario_id !== undefined) payload.diario_id = updates.diario_id;
+    if (updates.diarioId !== undefined) payload.diario_id = updates.diarioId;
+    if (updates.data !== undefined) payload.data = updates.data;
+    if (updates.horario !== undefined) payload.horario = updates.horario;
+    if (updates.conteudo !== undefined) payload.conteudo = updates.conteudo;
+    if (updates.observacoes !== undefined) payload.observacoes = updates.observacoes;
+
+    payload.updated_at = nowIso();
+
+    const { data, error } = await supabase
+      .from('aulas')
+      .update(payload)
+      .eq('id', id)
+      .select('*')
+      .maybeSingle();
+
+    if (error) throw error;
+
+    this.dispatchDataUpdated('aulas');
+    return data ? (withCamel(data) as Aula) : null;
   }
 
-  deleteAula(id: number): void {
-    const data = this.getData();
-    const index = data.aulas.findIndex((a: Aula) => a.id === id);
-    if (index !== -1) {
-      data.aulas.splice(index, 1);
-      this.saveData(data);
-    }
+  async deleteAula(id: number): Promise<void> {
+    const { error } = await supabase.from('aulas').delete().eq('id', id);
+    if (error) throw error;
+    this.dispatchDataUpdated('aulas');
   }
 
   // PRESENÇAS
-  getPresencasByAula(aulaId: number): Presenca[] {
-    return this.getData().presencas.filter((p: Presenca) => p.aula_id === aulaId || p.aulaId === aulaId);
+  async getPresencasByAula(aulaId: number): Promise<Presenca[]> {
+    const { data, error } = await supabase
+      .from('presencas')
+      .select('*')
+      .eq('aula_id', aulaId)
+      .order('id', { ascending: true });
+
+    if (error) throw error;
+    return (data ?? []).map(withCamel) as Presenca[];
   }
 
-  getPresencasByAluno(alunoId: number): Presenca[] {
-    return this.getData().presencas.filter((p: Presenca) => p.aluno_id === alunoId || p.alunoId === alunoId);
+  async getPresencasByAluno(alunoId: number): Promise<Presenca[]> {
+    const { data, error } = await supabase
+      .from('presencas')
+      .select('*')
+      .eq('aluno_id', alunoId)
+      .order('id', { ascending: true });
+
+    if (error) throw error;
+    return (data ?? []).map(withCamel) as Presenca[];
   }
 
-  savePresencas(presencas: Omit<Presenca, 'id'>[]): Presenca[] {
-    const data = this.getData();
-    const aulaId = presencas[0]?.aula_id || presencas[0]?.aulaId;
+  async savePresencas(presencas: Omit<Presenca, 'id'>[]): Promise<void> {
+    if (!presencas || presencas.length === 0) return;
 
-    if (aulaId) {
-      data.presencas = data.presencas.filter((p: Presenca) => (p.aula_id !== aulaId && p.aulaId !== aulaId));
+    const aulaIds = Array.from(new Set(presencas.map(p => p.aula_id ?? p.aulaId).filter(Boolean)));
+
+    if (aulaIds.length > 0) {
+      const { error: delError } = await supabase
+        .from('presencas')
+        .delete()
+        .in('aula_id', aulaIds as number[]);
+
+      if (delError) throw delError;
     }
 
-    const newPresencas = presencas.map((p: any) => ({
-      ...p,
-      id: this.getNextId(data.presencas),
-      aula_id: p.aula_id || p.aulaId
+    const payload = presencas.map(p => ({
+      aula_id: p.aula_id ?? p.aulaId,
+      aluno_id: p.aluno_id ?? p.alunoId,
+      status: p.status
     }));
 
-    data.presencas.push(...newPresencas);
-    this.saveData(data);
-    return newPresencas;
+    const { error } = await supabase.from('presencas').insert(payload);
+    if (error) throw error;
+
+    this.dispatchDataUpdated('presencas');
   }
 
   // AVALIAÇÕES
-  getAvaliacoesByDiario(diarioId: number): Avaliacao[] {
-    return this.getData().avaliacoes.filter((a: Avaliacao) => a.diario_id === diarioId || a.diarioId === diarioId);
+  async getAvaliacoesByDiario(diarioId: number): Promise<Avaliacao[]> {
+    const { data, error } = await supabase
+      .from('avaliacoes')
+      .select('*')
+      .eq('diario_id', diarioId)
+      .order('id', { ascending: true });
+
+    if (error) throw error;
+    return (data ?? []).map(withCamel) as Avaliacao[];
   }
 
-  createAvaliacao(avaliacao: Omit<Avaliacao, 'id' | 'created_at' | 'updated_at'>): Avaliacao {
-    const data = this.getData();
-    const newAvaliacao: Avaliacao = {
-      ...avaliacao,
-      id: this.getNextId(data.avaliacoes),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+  async createAvaliacao(
+    avaliacao: Omit<Avaliacao, 'id' | 'created_at' | 'updated_at'>
+  ): Promise<Avaliacao> {
+    const payload: any = {
+      diario_id: avaliacao.diario_id ?? avaliacao.diarioId,
+      titulo: avaliacao.titulo,
+      data: avaliacao.data,
+      tipo: avaliacao.tipo,
+      peso: avaliacao.peso,
+      bimestre: avaliacao.bimestre ?? null
     };
-    data.avaliacoes.push(newAvaliacao);
-    this.saveData(data);
-    return newAvaliacao;
+
+    const { data, error } = await supabase
+      .from('avaliacoes')
+      .insert(payload)
+      .select('*')
+      .single();
+
+    if (error) throw error;
+
+    this.dispatchDataUpdated('avaliacoes');
+    return withCamel(data) as Avaliacao;
   }
 
-  updateAvaliacao(id: number, updates: Partial<Avaliacao>): Avaliacao | null {
-    const data = this.getData();
-    const index = data.avaliacoes.findIndex((a: Avaliacao) => a.id === id);
-    if (index === -1) return null;
-    data.avaliacoes[index] = { ...data.avaliacoes[index], ...updates, updated_at: new Date().toISOString() };
-    this.saveData(data);
-    return data.avaliacoes[index];
+  async updateAvaliacao(id: number, updates: Partial<Avaliacao>): Promise<Avaliacao | null> {
+    const payload: any = {};
+    if (updates.diario_id !== undefined) payload.diario_id = updates.diario_id;
+    if (updates.diarioId !== undefined) payload.diario_id = updates.diarioId;
+    if (updates.titulo !== undefined) payload.titulo = updates.titulo;
+    if (updates.data !== undefined) payload.data = updates.data;
+    if (updates.tipo !== undefined) payload.tipo = updates.tipo;
+    if (updates.peso !== undefined) payload.peso = updates.peso;
+    if (updates.bimestre !== undefined) payload.bimestre = updates.bimestre;
+
+    payload.updated_at = nowIso();
+
+    const { data, error } = await supabase
+      .from('avaliacoes')
+      .update(payload)
+      .eq('id', id)
+      .select('*')
+      .maybeSingle();
+
+    if (error) throw error;
+
+    this.dispatchDataUpdated('avaliacoes');
+    return data ? (withCamel(data) as Avaliacao) : null;
   }
 
-  deleteAvaliacao(id: number): void {
-    const data = this.getData();
-    const index = data.avaliacoes.findIndex((a: Avaliacao) => a.id === id);
-    if (index !== -1) {
-      data.avaliacoes.splice(index, 1);
-      this.saveData(data);
-    }
+  async deleteAvaliacao(id: number): Promise<void> {
+    const { error } = await supabase.from('avaliacoes').delete().eq('id', id);
+    if (error) throw error;
+    this.dispatchDataUpdated('avaliacoes');
   }
 
   // NOTAS
-  getNotasByAvaliacao(avaliacaoId: number): Nota[] {
-    return this.getData().notas.filter((n: Nota) => n.avaliacao_id === avaliacaoId || n.avaliacaoId === avaliacaoId);
+  async getNotasByAvaliacao(avaliacaoId: number): Promise<Nota[]> {
+    const { data, error } = await supabase
+      .from('notas')
+      .select('*')
+      .eq('avaliacao_id', avaliacaoId)
+      .order('id', { ascending: true });
+
+    if (error) throw error;
+    return (data ?? []).map(withCamel) as Nota[];
   }
 
-  getNotasByAluno(alunoId: number): Nota[] {
-    return this.getData().notas.filter((n: Nota) => n.aluno_id === alunoId || n.alunoId === alunoId);
+  async getNotasByAluno(alunoId: number): Promise<Nota[]> {
+    const { data, error } = await supabase
+      .from('notas')
+      .select('*')
+      .eq('aluno_id', alunoId)
+      .order('id', { ascending: true });
+
+    if (error) throw error;
+    return (data ?? []).map(withCamel) as Nota[];
   }
 
-  saveNotas(notas: Omit<Nota, 'id'>[]): Nota[] {
-    const data = this.getData();
-    const avaliacaoId = notas[0]?.avaliacao_id || notas[0]?.avaliacaoId;
+  async saveNotas(notas: Omit<Nota, 'id'>[]): Promise<void> {
+    if (!notas || notas.length === 0) return;
 
-    if (avaliacaoId) {
-      data.notas = data.notas.filter((n: Nota) => (n.avaliacao_id !== avaliacaoId && n.avaliacaoId !== avaliacaoId));
+    const avaliacaoIds = Array.from(
+      new Set(notas.map(n => n.avaliacao_id ?? n.avaliacaoId).filter(Boolean))
+    );
+
+    if (avaliacaoIds.length > 0) {
+      const { error: delError } = await supabase
+        .from('notas')
+        .delete()
+        .in('avaliacao_id', avaliacaoIds as number[]);
+
+      if (delError) throw delError;
     }
 
-    const newNotas = notas.map((n: any) => ({
-      ...n,
-      id: this.getNextId(data.notas),
-      avaliacao_id: n.avaliacao_id || n.avaliacaoId,
-      aluno_id: n.aluno_id || n.alunoId
+    const payload = notas.map(n => ({
+      avaliacao_id: n.avaliacao_id ?? n.avaliacaoId,
+      aluno_id: n.aluno_id ?? n.alunoId,
+      valor: n.valor
     }));
 
-    data.notas.push(...newNotas);
-    this.saveData(data);
-    return newNotas;
+    const { error } = await supabase.from('notas').insert(payload);
+    if (error) throw error;
+
+    this.dispatchDataUpdated('notas');
   }
 
   // OCORRÊNCIAS
-  getOcorrenciasByAluno(alunoId: number): Ocorrencia[] {
-    return this.getData().ocorrencias.filter((o: Ocorrencia) => o.aluno_id === alunoId || o.alunoId === alunoId);
+  async getOcorrencias(): Promise<Ocorrencia[]> {
+    const { data, error } = await supabase
+      .from('ocorrencias')
+      .select('*')
+      .order('id', { ascending: false });
+
+    if (error) throw error;
+    return (data ?? []).map(withCamel) as Ocorrencia[];
   }
 
-  getOcorrencias(): Ocorrencia[] {
-    return this.getData().ocorrencias;
+  async getOcorrenciasByAluno(alunoId: number): Promise<Ocorrencia[]> {
+    const { data, error } = await supabase
+      .from('ocorrencias')
+      .select('*')
+      .eq('aluno_id', alunoId)
+      .order('id', { ascending: false });
+
+    if (error) throw error;
+    return (data ?? []).map(withCamel) as Ocorrencia[];
   }
 
-  createOcorrencia(ocorrencia: Omit<Ocorrencia, 'id' | 'created_at' | 'updated_at'>): Ocorrencia {
-    const data = this.getData();
-    const newOcorrencia: Ocorrencia = {
-      ...ocorrencia,
-      id: this.getNextId(data.ocorrencias),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+  async createOcorrencia(
+    ocorrencia: Omit<Ocorrencia, 'id' | 'created_at' | 'updated_at'>
+  ): Promise<Ocorrencia> {
+    const payload: any = {
+      aluno_id: ocorrencia.aluno_id ?? ocorrencia.alunoId,
+      professor_id: ocorrencia.professor_id ?? ocorrencia.professorId ?? null,
+      data: ocorrencia.data,
+      tipo: ocorrencia.tipo,
+      descricao: ocorrencia.descricao
     };
-    data.ocorrencias.push(newOcorrencia);
-    this.saveData(data);
-    return newOcorrencia;
+
+    const { data, error } = await supabase
+      .from('ocorrencias')
+      .insert(payload)
+      .select('*')
+      .single();
+
+    if (error) throw error;
+
+    this.dispatchDataUpdated('ocorrencias');
+    return withCamel(data) as Ocorrencia;
   }
 
-  updateOcorrencia(id: number, updates: Partial<Ocorrencia>): Ocorrencia | null {
-    const data = this.getData();
-    const index = data.ocorrencias.findIndex((o: Ocorrencia) => o.id === id);
-    if (index === -1) return null;
-    data.ocorrencias[index] = { ...data.ocorrencias[index], ...updates, updated_at: new Date().toISOString() };
-    this.saveData(data);
-    return data.ocorrencias[index];
+  async updateOcorrencia(id: number, updates: Partial<Ocorrencia>): Promise<Ocorrencia | null> {
+    const payload: any = {};
+    if (updates.aluno_id !== undefined) payload.aluno_id = updates.aluno_id;
+    if (updates.alunoId !== undefined) payload.aluno_id = updates.alunoId;
+    if (updates.professor_id !== undefined) payload.professor_id = updates.professor_id;
+    if (updates.professorId !== undefined) payload.professor_id = updates.professorId;
+    if (updates.data !== undefined) payload.data = updates.data;
+    if (updates.tipo !== undefined) payload.tipo = updates.tipo;
+    if (updates.descricao !== undefined) payload.descricao = updates.descricao;
+
+    payload.updated_at = nowIso();
+
+    const { data, error } = await supabase
+      .from('ocorrencias')
+      .update(payload)
+      .eq('id', id)
+      .select('*')
+      .maybeSingle();
+
+    if (error) throw error;
+
+    this.dispatchDataUpdated('ocorrencias');
+    return data ? (withCamel(data) as Ocorrencia) : null;
   }
 
-  deleteOcorrencia(id: number): void {
-    const data = this.getData();
-    const index = data.ocorrencias.findIndex((o: Ocorrencia) => o.id === id);
-    if (index !== -1) {
-      data.ocorrencias.splice(index, 1);
-      this.saveData(data);
-    }
+  async deleteOcorrencia(id: number): Promise<void> {
+    const { error } = await supabase.from('ocorrencias').delete().eq('id', id);
+    if (error) throw error;
+    this.dispatchDataUpdated('ocorrencias');
   }
 
   // COMUNICADOS
-  getComunicados(): Comunicado[] {
-    return this.getData().comunicados;
+  async getComunicados(): Promise<Comunicado[]> {
+    const { data, error } = await supabase
+      .from('comunicados')
+      .select('*')
+      .order('id', { ascending: false });
+
+    if (error) throw error;
+    return (data ?? []).map(withCamel) as Comunicado[];
   }
 
-  createComunicado(comunicado: Omit<Comunicado, 'id' | 'created_at' | 'updated_at'>): Comunicado {
-    const data = this.getData();
-    const newComunicado: Comunicado = {
-      ...comunicado,
-      id: this.getNextId(data.comunicados),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+  async createComunicado(
+    comunicado: Omit<Comunicado, 'id' | 'created_at' | 'updated_at'>
+  ): Promise<Comunicado> {
+    const payload: any = {
+      titulo: comunicado.titulo,
+      mensagem: comunicado.mensagem,
+      data_envio: comunicado.data_envio ?? comunicado.dataEnvio ?? nowIso()
     };
-    data.comunicados.push(newComunicado);
-    this.saveData(data);
-    return newComunicado;
+
+    const { data, error } = await supabase
+      .from('comunicados')
+      .insert(payload)
+      .select('*')
+      .single();
+
+    if (error) throw error;
+
+    this.dispatchDataUpdated('comunicados');
+    return withCamel(data) as Comunicado;
   }
 
-  updateComunicado(id: number, updates: Partial<Comunicado>): Comunicado | null {
-    const data = this.getData();
-    const index = data.comunicados.findIndex((c: Comunicado) => c.id === id);
-    if (index === -1) return null;
-    data.comunicados[index] = { ...data.comunicados[index], ...updates, updated_at: new Date().toISOString() };
-    this.saveData(data);
-    return data.comunicados[index];
+  async updateComunicado(id: number, updates: Partial<Comunicado>): Promise<Comunicado | null> {
+    const payload: any = {};
+    if (updates.titulo !== undefined) payload.titulo = updates.titulo;
+    if (updates.mensagem !== undefined) payload.mensagem = updates.mensagem;
+    if (updates.data_envio !== undefined) payload.data_envio = updates.data_envio;
+    if (updates.dataEnvio !== undefined) payload.data_envio = updates.dataEnvio;
+
+    payload.updated_at = nowIso();
+
+    const { data, error } = await supabase
+      .from('comunicados')
+      .update(payload)
+      .eq('id', id)
+      .select('*')
+      .maybeSingle();
+
+    if (error) throw error;
+
+    this.dispatchDataUpdated('comunicados');
+    return data ? (withCamel(data) as Comunicado) : null;
   }
 
-  deleteComunicado(id: number): boolean {
-    const data = this.getData();
-    const index = data.comunicados.findIndex((c: Comunicado) => c.id === id);
-    if (index === -1) return false;
-    data.comunicados.splice(index, 1);
-    this.saveData(data);
-    return true;
+  async deleteComunicado(id: number): Promise<void> {
+    const { error } = await supabase.from('comunicados').delete().eq('id', id);
+    if (error) throw error;
+    this.dispatchDataUpdated('comunicados');
   }
 
   // RECADOS
-  getRecados(): Recado[] {
-    return this.getData().recados || [];
+  async getRecados(): Promise<Recado[]> {
+    const { data, error } = await supabase
+      .from('recados')
+      .select('*')
+      .order('id', { ascending: false });
+
+    if (error) throw error;
+    return (data ?? []).map(withCamel) as Recado[];
   }
 
-  getRecadosByProfessor(professorId: number): Recado[] {
-    const data = this.getData();
-    return (data.recados || []).filter((r: Recado) => r.professor_id === professorId || r.professorId === professorId);
+  async getRecadosByProfessor(professorId: number): Promise<Recado[]> {
+    const { data, error } = await supabase
+      .from('recados')
+      .select('*')
+      .eq('professor_id', professorId)
+      .order('id', { ascending: false });
+
+    if (error) throw error;
+    return (data ?? []).map(withCamel) as Recado[];
   }
 
-  getRecadosByTurma(turmaId: number): Recado[] {
-    const data = this.getData();
-    return (data.recados || []).filter((r: Recado) => (r.turma_id === turmaId || r.turmaId === turmaId) && !r.aluno_id && !r.alunoId);
+  async getRecadosByTurma(turmaId: number): Promise<Recado[]> {
+    const { data, error } = await supabase
+      .from('recados')
+      .select('*')
+      .eq('turma_id', turmaId)
+      .order('id', { ascending: false });
+
+    if (error) throw error;
+    return (data ?? []).map(withCamel) as Recado[];
   }
 
-  getRecadosByAluno(alunoId: number): Recado[] {
-    const data = this.getData();
-    return (data.recados || []).filter((r: Recado) => r.aluno_id === alunoId || r.alunoId === alunoId);
+  async getRecadosByAluno(alunoId: number): Promise<Recado[]> {
+    const { data, error } = await supabase
+      .from('recados')
+      .select('*')
+      .eq('aluno_id', alunoId)
+      .order('id', { ascending: false });
+
+    if (error) throw error;
+    return (data ?? []).map(withCamel) as Recado[];
   }
 
-  createRecado(recado: Omit<Recado, 'id' | 'created_at' | 'updated_at'>): Recado {
-    const data = this.getData();
-
-    if (!Array.isArray(data.recados)) {
-      data.recados = [];
-    }
-
-    const newRecado: Recado = {
-      ...recado,
-      id: this.getNextId(data.recados),
-      professor_id: recado.professor_id || recado.professorId || 0,
-      professor_nome: recado.professor_nome || recado.professorNome || '',
-      turma_id: recado.turma_id || recado.turmaId || 0,
-      turma_nome: recado.turma_nome || recado.turmaNome || '',
-      aluno_id: recado.aluno_id || recado.alunoId,
-      aluno_nome: recado.aluno_nome || recado.alunoNome,
-      data_envio: recado.data_envio || recado.dataEnvio || new Date().toISOString().split('T')[0],
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+  async createRecado(
+    recado: Omit<Recado, 'id' | 'created_at' | 'updated_at'>
+  ): Promise<Recado> {
+    const payload: any = {
+      titulo: recado.titulo,
+      mensagem: recado.mensagem,
+      professor_id: recado.professor_id ?? recado.professorId,
+      professor_nome: recado.professor_nome ?? recado.professorNome ?? '',
+      turma_id: recado.turma_id ?? recado.turmaId,
+      turma_nome: recado.turma_nome ?? recado.turmaNome ?? '',
+      aluno_id: recado.aluno_id ?? recado.alunoId ?? null,
+      aluno_nome: recado.aluno_nome ?? recado.alunoNome ?? null,
+      data_envio: recado.data_envio ?? recado.dataEnvio ?? new Date().toISOString().split('T')[0]
     };
 
-    data.recados.push(newRecado);
-    this.saveData(data);
+    const { data, error } = await supabase
+      .from('recados')
+      .insert(payload)
+      .select('*')
+      .single();
 
-    window.dispatchEvent(new CustomEvent('recadoCreated', { detail: newRecado }));
+    if (error) throw error;
 
-    return newRecado;
+    window.dispatchEvent(new CustomEvent('recadoCreated', { detail: withCamel(data) }));
+    this.dispatchDataUpdated('recados');
+    return withCamel(data) as Recado;
   }
 
-  updateRecado(id: number, updates: Partial<Recado>): Recado | null {
-    const data = this.getData();
+  async updateRecado(id: number, updates: Partial<Recado>): Promise<Recado | null> {
+    const payload: any = {};
+    if (updates.titulo !== undefined) payload.titulo = updates.titulo;
+    if (updates.mensagem !== undefined) payload.mensagem = updates.mensagem;
 
-    if (!Array.isArray(data.recados)) {
-      data.recados = [];
-      return null;
+    if (updates.professor_id !== undefined) payload.professor_id = updates.professor_id;
+    if (updates.professorId !== undefined) payload.professor_id = updates.professorId;
+
+    if (updates.professor_nome !== undefined) payload.professor_nome = updates.professor_nome;
+    if (updates.professorNome !== undefined) payload.professor_nome = updates.professorNome;
+
+    if (updates.turma_id !== undefined) payload.turma_id = updates.turma_id;
+    if (updates.turmaId !== undefined) payload.turma_id = updates.turmaId;
+
+    if (updates.turma_nome !== undefined) payload.turma_nome = updates.turma_nome;
+    if (updates.turmaNome !== undefined) payload.turma_nome = updates.turmaNome;
+
+    if (updates.aluno_id !== undefined) payload.aluno_id = updates.aluno_id;
+    if (updates.alunoId !== undefined) payload.aluno_id = updates.alunoId;
+
+    if (updates.aluno_nome !== undefined) payload.aluno_nome = updates.aluno_nome;
+    if (updates.alunoNome !== undefined) payload.aluno_nome = updates.alunoNome;
+
+    if (updates.data_envio !== undefined) payload.data_envio = updates.data_envio;
+    if (updates.dataEnvio !== undefined) payload.data_envio = updates.dataEnvio;
+
+    payload.updated_at = nowIso();
+
+    const { data, error } = await supabase
+      .from('recados')
+      .update(payload)
+      .eq('id', id)
+      .select('*')
+      .maybeSingle();
+
+    if (error) throw error;
+
+    if (data) {
+      window.dispatchEvent(new CustomEvent('recadoUpdated', { detail: withCamel(data) }));
     }
 
-    const index = data.recados.findIndex((r: Recado) => r.id === id);
-    if (index === -1) return null;
-
-    data.recados[index] = { 
-      ...data.recados[index], 
-      ...updates, 
-      updated_at: new Date().toISOString() 
-    };
-    this.saveData(data);
-
-    window.dispatchEvent(new CustomEvent('recadoUpdated', { detail: data.recados[index] }));
-
-    return data.recados[index];
+    this.dispatchDataUpdated('recados');
+    return data ? (withCamel(data) as Recado) : null;
   }
 
-  deleteRecado(id: number): boolean {
-    const data = this.getData();
-
-    if (!Array.isArray(data.recados)) {
-      data.recados = [];
-      return false;
-    }
-
-    const index = data.recados.findIndex((r: Recado) => r.id === id);
-    if (index === -1) return false;
-
-    data.recados.splice(index, 1);
-    this.saveData(data);
+  async deleteRecado(id: number): Promise<boolean> {
+    const { error } = await supabase.from('recados').delete().eq('id', id);
+    if (error) throw error;
 
     window.dispatchEvent(new CustomEvent('recadoDeleted', { detail: { id } }));
-
+    this.dispatchDataUpdated('recados');
     return true;
   }
 
-  // CÁLCULOS
-  calcularMediaAluno(alunoId: number, diarioId: number): number {
-    const data = this.getData();
-    const avaliacoes = data.avaliacoes.filter((a: Avaliacao) => a.diario_id === diarioId || a.diarioId === diarioId);
-    const notas = data.notas.filter((n: Nota) => n.aluno_id === alunoId || n.alunoId === alunoId);
+  // MÉDIA
+  async calcularMediaAluno(diarioId: number, alunoId: number): Promise<number> {
+    const avaliacoes = await this.getAvaliacoesByDiario(diarioId);
+    if (!avaliacoes.length) return 0;
 
-    let somaNotas = 0;
+    const notasAluno = await this.getNotasByAluno(alunoId);
+
     let somaPesos = 0;
+    let somaPonderada = 0;
 
-    avaliacoes.forEach((avaliacao: Avaliacao) => {
-      const nota = notas.find((n: Nota) => n.avaliacao_id === avaliacao.id || n.avaliacaoId === avaliacao.id);
-      if (nota) {
-        somaNotas += nota.valor * avaliacao.peso;
-        somaPesos += avaliacao.peso;
-      }
-    });
+    for (const av of avaliacoes) {
+      const nota = notasAluno.find(n => (n.avaliacao_id ?? n.avaliacaoId) === av.id);
+      if (!nota) continue;
 
-    return somaPesos > 0 ? somaNotas / somaPesos : 0;
-  }
-
-  // VÍNCULOS
-  vincularAlunoAoDiario(diarioId: number, alunoId: number): void {
-    const data = this.getData();
-    const newVinculo: DiarioAluno = {
-      id: this.getNextId(data.diario_alunos),
-      diario_id: diarioId,
-      aluno_id: alunoId
-    };
-    data.diario_alunos.push(newVinculo);
-    this.saveData(data);
-  }
-
-  desvincularAlunoDoDiario(diarioId: number, alunoId: number): void {
-    const data = this.getData();
-    const index = data.diario_alunos.findIndex((da: DiarioAluno) => da.diario_id === diarioId && da.aluno_id === alunoId);
-    if (index !== -1) {
-      data.diario_alunos.splice(index, 1);
-      this.saveData(data);
+      const peso = av.peso ?? 1;
+      somaPesos += peso;
+      somaPonderada += (nota.valor ?? 0) * peso;
     }
+
+    if (somaPesos === 0) return 0;
+    return Number((somaPonderada / somaPesos).toFixed(2));
   }
 
-  getDiarioAlunos(): DiarioAluno[] {
-    return this.getData().diario_alunos;
+  // VÍNCULOS DIÁRIO-ALUNO
+  async vincularAlunoAoDiario(diarioId: number, alunoId: number): Promise<DiarioAluno> {
+    const payload = { diario_id: diarioId, aluno_id: alunoId };
+
+    const { data, error } = await supabase
+      .from('diario_alunos')
+      .insert(payload)
+      .select('*')
+      .single();
+
+    if (error) throw error;
+
+    this.dispatchDataUpdated('diario_alunos');
+    return withCamel(data) as DiarioAluno;
   }
 
-  getProfessoresByDisciplina(disciplinaId: number): number[] {
-    return [];
+  async desvincularAlunoDoDiario(diarioId: number, alunoId: number): Promise<void> {
+    const { error } = await supabase
+      .from('diario_alunos')
+      .delete()
+      .eq('diario_id', diarioId)
+      .eq('aluno_id', alunoId);
+
+    if (error) throw error;
+
+    this.dispatchDataUpdated('diario_alunos');
   }
 
-  entregarDiario(diarioId: number, usuarioId: number): boolean {
+  async getDiarioAlunos(): Promise<DiarioAluno[]> {
+    const { data, error } = await supabase
+      .from('diario_alunos')
+      .select('*')
+      .order('id', { ascending: true });
+
+    if (error) throw error;
+    return (data ?? []).map(withCamel) as DiarioAluno[];
+  }
+
+  // PROFESSORES POR DISCIPLINA (tabela professor_disciplinas)
+  async getProfessoresByDisciplina(disciplinaId: number): Promise<Professor[]> {
+    const { data: rel, error: e1 } = await supabase
+      .from('professor_disciplinas')
+      .select('professor_id')
+      .eq('disciplina_id', disciplinaId);
+
+    if (e1) throw e1;
+
+    const ids = (rel ?? []).map((r: any) => r.professor_id).filter(Boolean);
+    if (ids.length === 0) return [];
+
+    const { data: profs, error: e2 } = await supabase
+      .from('professores')
+      .select('*')
+      .in('id', ids)
+      .order('id', { ascending: true });
+
+    if (e2) throw e2;
+
+    return (profs ?? []) as Professor[];
+  }
+
+  // STATUS DIÁRIO
+  private pushHistoricoStatus(diario: Diario, novoStatus: Diario['status'], motivo?: string) {
+    const historico = Array.isArray(diario.historico_status) ? [...diario.historico_status] : [];
+    historico.push({
+      status: novoStatus,
+      motivo: motivo ?? null,
+      at: nowIso()
+    });
+    return historico;
+  }
+
+  async entregarDiario(diarioId: number): Promise<Diario | null> {
+    const diario = await this.getDiarioById(diarioId);
+    if (!diario) return null;
+
+    const historico_status = this.pushHistoricoStatus(diario, 'ENTREGUE');
+    return await this.updateDiario(diarioId, { status: 'ENTREGUE', historico_status });
+  }
+
+  async devolverDiario(diarioId: number, motivo: string): Promise<Diario | null> {
+    const diario = await this.getDiarioById(diarioId);
+    if (!diario) return null;
+
+    const historico_status = this.pushHistoricoStatus(diario, 'DEVOLVIDO', motivo);
+    return await this.updateDiario(diarioId, {
+      status: 'DEVOLVIDO',
+      historico_status,
+      solicitacao_devolucao: { motivo, at: nowIso() }
+    });
+  }
+
+  async finalizarDiario(diarioId: number): Promise<Diario | null> {
+    const diario = await this.getDiarioById(diarioId);
+    if (!diario) return null;
+
+    const historico_status = this.pushHistoricoStatus(diario, 'FINALIZADO');
+    return await this.updateDiario(diarioId, { status: 'FINALIZADO', historico_status });
+  }
+
+  async solicitarDevolucaoDiario(diarioId: number, motivo: string): Promise<Diario | null> {
+    const diario = await this.getDiarioById(diarioId);
+    if (!diario) return null;
+
+    return await this.updateDiario(diarioId, {
+      solicitacao_devolucao: { motivo, at: nowIso() }
+    });
+  }
+
+  async getDiarioById(id: number): Promise<Diario | null> {
+    const { data, error } = await supabase
+      .from('diarios')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (error) throw error;
+    return data ? (withCamel(data) as Diario) : null;
+  }
+
+  professorPodeEditarDiario(diario: Diario, professorId: number): boolean {
+    const pid = diario.professor_id ?? diario.professorId;
+    if (pid !== professorId) return false;
+    return diario.status === 'PENDENTE' || diario.status === 'DEVOLVIDO';
+  }
+
+  coordenadorPodeGerenciarDiario(diario: Diario): boolean {
     return true;
-  }
-
-  devolverDiario(diarioId: number, usuarioId: number, observacao?: string): boolean {
-    return true;
-  }
-
-  finalizarDiario(diarioId: number, usuarioId: number): boolean {
-    return true;
-  }
-
-  solicitarDevolucaoDiario(diarioId: number, usuarioId: number, comentario: string): boolean {
-    return true;
-  }
-
-  professorPodeEditarDiario(diarioId: number, professorId: number): boolean {
-    return true;
-  }
-
-  coordenadorPodeGerenciarDiario(diarioId: number): { canDevolver: boolean; canFinalizar: boolean } {
-    return { canDevolver: true, canFinalizar: true };
   }
 }
 

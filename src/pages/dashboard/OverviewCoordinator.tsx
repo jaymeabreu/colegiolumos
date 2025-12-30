@@ -1,5 +1,5 @@
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Topbar } from "../../components/layout/Topbar"
 import { Sidebar } from "../../components/layout/Sidebar"
 import { PageHeader } from "../../components/layout/PageHeader"
@@ -28,9 +28,41 @@ export function OverviewCoordinator() {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedTurma, setSelectedTurma] = useState("all")
   
-  // Carregar dados
-  const alunos = supabaseService.getAlunos()
-  const turmas = supabaseService.getTurmas()
+  const [alunos, setAlunos] = useState<any[]>([])
+const [turmas, setTurmas] = useState<any[]>([])
+const [loading, setLoading] = useState(true)
+
+useEffect(() => {
+  let mounted = true
+
+  const load = async () => {
+    try {
+      setLoading(true)
+      const [turmasData] = await Promise.all([
+        supabaseService.getTurmas()
+      ])
+
+      if (!mounted) return
+      setTurmas(turmasData)
+
+      // enquanto getAlunos ainda é local/sync, mantém assim:
+      const alunosData = supabaseService.getAlunos()
+      setAlunos(alunosData)
+    } catch (e) {
+      console.error("Erro ao carregar overview:", e)
+      if (!mounted) return
+      setTurmas([])
+      setAlunos([])
+    } finally {
+      if (!mounted) return
+      setLoading(false)
+    }
+  }
+
+  load()
+  return () => { mounted = false }
+}, [])
+
   
   // Filtrar alunos
   const filteredAlunos = alunos.filter(aluno => {

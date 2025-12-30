@@ -41,7 +41,7 @@ export function AlunoPage() {
     loadData();
   }, []);
 
-  const loadData = () => {
+  const loadData = async () => {
     if (!user?.alunoId) {
       setLoading(false);
       return;
@@ -50,12 +50,13 @@ export function AlunoPage() {
     try {
       console.log('🎓 Carregando dados completos do aluno:', user.alunoId);
 
-      const alunoData = supabaseService.getAlunos().find(a => a.id === user.alunoId);
+      const alunoData = (await supabaseService.getAlunos()).find(a => a.id === user.alunoId);
+
       setAluno(alunoData || null);
 
       if (alunoData?.turmaId) {
-        const todosOsDiarios = supabaseService.getDiarios();
-        const todasAsDisciplinas = supabaseService.getDisciplinas();
+        const todosOsDiarios = await supabaseService.getDiarios();
+        const todasAsDisciplinas = await supabaseService.getDisciplinas();
         const diarioAlunos = supabaseService.getData().diarioAlunos;
 
         const diariosDoAluno = todosOsDiarios.filter(diario =>
@@ -440,7 +441,7 @@ export function AlunoPage() {
                       .sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime())
                       .map((avaliacao) => {
                         const diario = diarios.find(d => d.id === avaliacao.diarioId);
-                        const disciplina = diario ? supabaseService.getDisciplinas().find(d => d.id === diario.disciplinaId) : null;
+                        const disciplina = diario ? (await supabaseService.getDisciplinas()).find(d => d.id === diario.disciplinaId) : null;
                         const nota = notas.find(n => n.avaliacaoId === avaliacao.id);
 
                         return (

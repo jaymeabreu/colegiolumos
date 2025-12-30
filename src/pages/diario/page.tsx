@@ -15,9 +15,9 @@ export function DiarioPage() {
   const [diario, setDiario] = useState<Diario | null>(null)
   const navigate = useNavigate()
 
-  const loadDiario = () => {
+  const loadDiario = async () => {
     // Por enquanto carregando o primeiro diário - em produção seria baseado na URL ou seleção
-    const diarios = supabaseService.getDiarios()
+    const diarios = await supabaseService.getDiarios()
     if (diarios.length > 0) {
       setDiario(diarios[0])
     }

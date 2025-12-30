@@ -85,7 +85,7 @@ export function RecadosTab() {
         );
       }
       
-      const turmasData = supabaseService.getTurmas();
+      const turmasData = await supabaseService.getTurmas();
       console.log('Turmas carregadas:', turmasData);
       setTurmas(turmasData);
     } catch (error) {

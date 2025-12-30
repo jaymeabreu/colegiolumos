@@ -63,7 +63,8 @@ export function AulasTab({ diarioId, readOnly = false }: AulasTabProps) {
 
   const loadDiarioInfo = () => {
     try {
-      const diario = supabaseService.getDiarios().find(d => d.id === diarioId);
+      const diarios = await supabaseService.getDiarios();
+const diario = diarios.find(d => d.id === diarioId);
       if (diario) {
         const professor = mockDataService
           .getProfessores()

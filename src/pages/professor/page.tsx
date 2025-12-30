@@ -32,11 +32,11 @@ export function ProfessorPage() {
   const loadedRef = useRef(false);
   const tabContentRef = useRef<HTMLDivElement>(null);
 
-  const loadDiarios = useCallback(() => {
+  const loadDiarios = useCallback(async () => {
     if (!user || loadedRef.current) return;
     
     try {
-      const professorDiarios = supabaseService.getDiariosByProfessor(user.id);
+      const professorDiarios = await supabaseService.getDiariosByProfessor(user.id);
       setDiarios(professorDiarios);
       
       // Se só tem um diário, seleciona automaticamente
@@ -220,9 +220,10 @@ export function ProfessorPage() {
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {diarios.map((diario) => {
                       // Buscar dados reais do diário
-                      const disciplina = supabaseService.getDisciplinaById(diario.disciplinaId);
-                      const turma = supabaseService.getTurmaById(diario.turmaId);
-                      const alunos = supabaseService.getAlunosByDiario(diario.id);
+                      const disciplina = await supabaseService.getDisciplinaById(diario.disciplinaId);
+                      const turma = await supabaseService.getTurmaById(diario.turmaId);
+                      const alunos = await supabaseService.getAlunosByDiario(diario.id);
+
                       const podeEditar = supabaseService.professorPodeEditarDiario(diario.id, user?.professorId || 0);
                       
                       // Configuração do status
