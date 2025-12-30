@@ -7,7 +7,7 @@ import { Label } from '../../../components/ui/label';
 import { Textarea } from '../../../components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../../../components/ui/dialog';
 import { Badge } from '../../../components/ui/badge';
-import { mockDataService, Comunicado } from '../../../services/mockData';
+import { supabaseService, Comunicado } from '../../../services/supabaseService';
 import { authService } from '../../../services/auth';
 
 export function ComunicadosList() {
@@ -44,7 +44,7 @@ export function ComunicadosList() {
       console.log('Carregando comunicados...');
       setLoading(true);
 
-      const comunicadosData = supabaseService.getComunicados();
+      const comunicadosData = await supabaseService.getComunicados();
       console.log('Comunicados carregados:', comunicadosData);
       setComunicados(
         comunicadosData.sort(
@@ -75,7 +75,7 @@ export function ComunicadosList() {
 
       if (editingComunicado) {
         console.log('Editando comunicado:', editingComunicado.id);
-        const updatedComunicado = supabaseService.updateComunicado(editingComunicado.id, {
+        const updatedComunicado = await supabaseService.updateComunicado(editingComunicado.id, {
           titulo: formData.titulo.trim(),
           mensagem: formData.mensagem.trim(),
           autor: formData.autor.trim()
@@ -92,7 +92,7 @@ export function ComunicadosList() {
         }
       } else {
         console.log('Criando novo comunicado...');
-        const novoComunicado = supabaseService.createComunicado({
+        const novoComunicado = await supabaseService.createComunicado({
           titulo: formData.titulo.trim(),
           mensagem: formData.mensagem.trim(),
           autor: formData.autor.trim(),
@@ -137,7 +137,7 @@ export function ComunicadosList() {
     if (window.confirm('Tem certeza que deseja excluir este comunicado?')) {
       try {
         console.log('Excluindo comunicado:', id);
-        const success = supabaseService.deleteComunicado(id);
+        const success = await supabaseService.deleteComunicado(id);
         console.log('Resultado da exclusão:', success);
         
         if (success) {
@@ -176,7 +176,7 @@ export function ComunicadosList() {
       {/* HEADER NO MESMO PADRÃO DA TELA DE ALUNOS */}
       <div className="card-header">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div class="space-y-2">
+          <div className="space-y-2">
             <h3 className="card-title">Comunicados</h3>
             <p className="card-description">
               Gerencie os comunicados gerais da escola
@@ -323,7 +323,7 @@ export function ComunicadosList() {
                     <Button
                       variant="outline"
                       size="none"
-                  className="h-8 w-8 p-0 inline-flex items-center justify-center"
+                      className="h-8 w-8 p-0 inline-flex items-center justify-center"
                       onClick={() => handleEdit(comunicado)}
                       title="Editar comunicado"
                     >
@@ -332,7 +332,7 @@ export function ComunicadosList() {
                     <Button
                       variant="destructive"
                       size="none"
-                  className="h-8 w-8 p-0 inline-flex items-center justify-center"
+                      className="h-8 w-8 p-0 inline-flex items-center justify-center"
                       onClick={() => handleDelete(comunicado.id)}
                       title="Excluir comunicado"
                     >
