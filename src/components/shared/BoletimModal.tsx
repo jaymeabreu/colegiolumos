@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { X, GraduationCap, TrendingUp, Calendar, AlertCircle, BookOpen, Award, User } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
@@ -7,12 +6,12 @@ import { Progress } from '../ui/progress';
 import { ScrollArea } from '../ui/scroll-area';
 import { Button } from '../ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { supabaseService } from '../../services/supabaseService';
-import type { Aluno, Avaliacao, Nota, Disciplina, Diario, Aula, Presenca, Ocorrencia } from '../../services/mockData';
+import { supabaseService, Aluno, Avaliacao, Nota, Disciplina, Diario, Aula, Presenca, Ocorrencia } from '../../services/supabaseService';
+
 interface BoletimModalProps {
   aluno: Aluno;
   onClose: () => void;
-  diarioId?: string; // Opcional, usado quando chamado da área do professor
+  diarioId?: string;
 }
 
 interface DisciplinaBoletim {
@@ -56,14 +55,14 @@ export function BoletimModal({ aluno, onClose, diarioId }: BoletimModalProps) {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('resumo');
 
-  const carregarDadosReais = useCallback(() => {
+  const carregarDadosReais = useCallback(async () => {
     try {
       console.log('🎓 Carregando dados do aluno:', aluno.nome);
 
       // Buscar todos os diários que o aluno está vinculado
-      const todosOsDiarios = supabaseService.getDiarios();
-      const todasAsDisciplinas = supabaseService.getDisciplinas();
-      const diarioAlunos = supabaseService.getData().diarioAlunos;
+      const todosOsDiarios = await supabaseService.getDiarios();
+      const todasAsDisciplinas = await supabaseService.getDisciplinas();
+      const diarioAlunos = await supabaseService.getDiarioAlunos();
 
       const diarios = todosOsDiarios.filter(diario =>
         diarioAlunos.some(da => da.alunoId === aluno.id && da.diarioId === diario.id)
@@ -91,18 +90,18 @@ export function BoletimModal({ aluno, onClose, diarioId }: BoletimModalProps) {
       const boletimCompleto: DisciplinaBoletim[] = [];
 
       // Processar cada diário/disciplina
-      diarios.forEach(diario => {
+      for (const diario of diarios) {
         const disciplina = todasAsDisciplinas.find(d => d.id === diario.disciplinaId);
-        if (!disciplina) return;
+        if (!disciplina) continue;
 
         console.log(`📖 Processando disciplina: ${disciplina.nome}`);
 
         // Calcular média da disciplina
-        const media = supabaseService.calcularMediaAluno(aluno.id, diario.id);
+        const media = await supabaseService.calcularMediaAluno(aluno.id, diario.id);
 
         // Calcular frequência da disciplina
-        const aulas = supabaseService.getAulasByDiario(diario.id);
-        const presencas = supabaseService.getPresencasByAluno(aluno.id);
+        const aulas = await supabaseService.getAulasByDiario(diario.id);
+        const presencas = await supabaseService.getPresencasByAluno(aluno.id);
         const presencasDaDisciplina = presencas.filter(p =>
           aulas.some(a => a.id === p.aulaId)
         );
@@ -115,13 +114,13 @@ export function BoletimModal({ aluno, onClose, diarioId }: BoletimModalProps) {
         console.log(`📊 ${disciplina.nome}: Média ${media.toFixed(1)}, Frequência ${frequencia.toFixed(1)}%`);
 
         // Buscar avaliações e notas da disciplina
-        const avaliacoes = supabaseService.getAvaliacoesByDiario(diario.id);
-        const notas = supabaseService.getNotasByAluno(aluno.id);
+        const avaliacoes = await supabaseService.getAvaliacoesByDiario(diario.id);
+        const notas = await supabaseService.getNotasByAluno(aluno.id);
 
         // Calcular notas reais por bimestre (apenas se existirem)
         const notasPorBimestre = { bim1: null, bim2: null, bim3: null, bim4: null };
 
-        [1, 2, 3, 4].forEach(bimestre => {
+        for (let bimestre = 1; bimestre <= 4; bimestre++) {
           const avaliacoesBim = avaliacoes.filter(av => av.bimestre === bimestre);
           if (avaliacoesBim.length > 0) {
             const notasAluno = avaliacoesBim
@@ -133,7 +132,7 @@ export function BoletimModal({ aluno, onClose, diarioId }: BoletimModalProps) {
               notasPorBimestre[`bim${bimestre}` as keyof typeof notasPorBimestre] = Number(mediaBimestre.toFixed(1));
             }
           }
-        });
+        }
 
         avaliacoes.forEach(avaliacao => {
           const nota = notas.find(n => n.avaliacaoId === avaliacao.id);
@@ -188,14 +187,14 @@ export function BoletimModal({ aluno, onClose, diarioId }: BoletimModalProps) {
           frequenciaGeral += frequencia;
           totalDisciplinas++;
         }
-      });
+      }
 
       // Calcular médias gerais
       mediaGeral = totalDisciplinas > 0 ? mediaGeral / totalDisciplinas : 0;
       frequenciaGeral = totalDisciplinas > 0 ? frequenciaGeral / totalDisciplinas : 0;
 
       // Buscar ocorrências do aluno
-      const todasOcorrencias = supabaseService.getData().ocorrencias;
+      const todasOcorrencias = await supabaseService.getOcorrencias();
       const ocorrenciasDoAluno = todasOcorrencias.filter(o => o.alunoId === aluno.id);
 
       console.log('📈 Dados finais:', {
@@ -220,7 +219,7 @@ export function BoletimModal({ aluno, onClose, diarioId }: BoletimModalProps) {
     } finally {
       setLoading(false);
     }
-  }, [aluno.id]);
+  }, [aluno.id, aluno.nome]);
 
   useEffect(() => {
     if (aluno?.id) {
@@ -246,7 +245,7 @@ export function BoletimModal({ aluno, onClose, diarioId }: BoletimModalProps) {
     if (situacao === 'Recuperação' || situacao === 'Necessita Recuperação' || situacao === 'Desempenho Regular')
       return 'secondary';
     if (situacao === 'Risco de Reprovação' || situacao === 'Atenção Necessária') return 'destructive';
-    return 'outline'; // Em Andamento
+    return 'outline';
   }, []);
 
   const getOcorrenciaColor = useCallback((tipo: string) => {
