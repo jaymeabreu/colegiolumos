@@ -351,58 +351,100 @@ class SupabaseService {
   }
 
   // TURMAS
-  getTurmas(): Turma[] {
-    return this.getData().turmas;
-  }
-
-  getTurmaById(id: number): Turma | null {
-    const data = this.getData();
-    return data.turmas.find((t: Turma) => t.id === id) || null;
-  }
-
-  async createTurma(turma: Omit<Turma, 'id' | 'created_at' | 'updated_at'>): Promise<Turma> {
-  const { data: created, error } = await supabase
+async getTurmas(): Promise<Turma[]> {
+  const { data, error } = await supabase
     .from('turmas')
-    .insert([turma])
+    .select('*')
+    .order('id', { ascending: true });
+
+  if (error) {
+    console.error('Supabase getTurmas error:', error);
+    throw error;
+  }
+
+  return (data ?? []) as Turma[];
+}
+
+async getTurmaById(id: number): Promise<Turma | null> {
+  const { data, error } = await supabase
+    .from('turmas')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Supabase getTurmaById error:', error);
+    throw error;
+  }
+
+  return (data ?? null) as Turma | null;
+}
+
+async createTurma(turma: Omit<Turma, 'id' | 'created_at' | 'updated_at'>): Promise<Turma> {
+  // turno precisa ser MANHA/TARDE/NOITE/INTEGRAL
+  const payload = {
+    nome: turma.nome,
+    ano: turma.ano,
+    turno: turma.turno,
+  };
+
+  const { data, error } = await supabase
+    .from('turmas')
+    .insert(payload)
     .select('*')
     .single();
 
-  if (error) throw error;
+  if (error) {
+    console.error('Supabase createTurma error:', error);
+    throw error;
+  }
 
-  const data = this.getData();
-  data.turmas.push(created as Turma);
-  this.saveData(data);
+  window.dispatchEvent(new CustomEvent('dataUpdated', {
+    detail: { type: 'turmas', timestamp: Date.now() }
+  }));
 
-  return created as Turma;
+  return data as Turma;
 }
 
+async updateTurma(id: number, updates: Partial<Turma>): Promise<Turma> {
+  const payload: any = {};
+  if (updates.nome !== undefined) payload.nome = updates.nome;
+  if (updates.ano !== undefined) payload.ano = updates.ano;
+  if (updates.turno !== undefined) payload.turno = updates.turno;
 
-  async updateTurma(id: number, updates: Partial<Turma>): Promise<Turma> {
-  const { data: updated, error } = await supabase
+  const { data, error } = await supabase
     .from('turmas')
-    .update(updates)
+    .update(payload)
     .eq('id', id)
     .select('*')
     .single();
 
-  if (error) throw error;
+  if (error) {
+    console.error('Supabase updateTurma error:', error);
+    throw error;
+  }
 
-  const data = this.getData();
-  const idx = data.turmas.findIndex((t: Turma) => t.id === id);
-  if (idx !== -1) data.turmas[idx] = updated as Turma;
-  this.saveData(data);
+  window.dispatchEvent(new CustomEvent('dataUpdated', {
+    detail: { type: 'turmas', timestamp: Date.now() }
+  }));
 
-  return updated as Turma;
+  return data as Turma;
 }
 
+async deleteTurma(id: number): Promise<void> {
+  const { error } = await supabase
+    .from('turmas')
+    .delete()
+    .eq('id', id);
 
-  async deleteTurma(id: number): Promise<void> {
-  const { error } = await supabase.from('turmas').delete().eq('id', id);
-  if (error) throw error;
+  if (error) {
+    console.error('Supabase deleteTurma error:', error);
+    throw error;
+  }
 
-  const data = this.getData();
-  data.turmas = data.turmas.filter((t: Turma) => t.id !== id);
-  this.saveData(data);
+  window.dispatchEvent(new CustomEvent('dataUpdated', {
+    detail: { type: 'turmas', timestamp: Date.now() }
+  }));
 }
 
 
