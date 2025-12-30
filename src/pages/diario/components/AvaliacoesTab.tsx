@@ -36,14 +36,20 @@ export function AvaliacoesTab({ diarioId, readOnly = false }: AvaliacoesTabProps
   });
 
   useEffect(() => {
-    loadAvaliacoes();
+    void loadAvaliacoes();
     loadAlunos();
   }, [diarioId]);
 
-  const loadAvaliacoes = () => {
+  const loadAvaliacoes = async () => {
+  try {
     const avaliacoesData = await supabaseService.getAvaliacoesByDiario(diarioId);
     setAvaliacoes(avaliacoesData);
-  };
+  } catch (error) {
+    console.error('Erro ao carregar avaliações:', error);
+    setAvaliacoes([]);
+  }
+};
+
 
   const loadAlunos = () => {
     const alunosData = await supabaseService.getAlunosByDiario(diarioId);
@@ -83,7 +89,7 @@ export function AvaliacoesTab({ diarioId, readOnly = false }: AvaliacoesTabProps
       });
     }
 
-    loadAvaliacoes();
+    void loadAvaliacoes();
     setIsDialogOpen(false);
     resetForm();
   };
@@ -126,7 +132,7 @@ export function AvaliacoesTab({ diarioId, readOnly = false }: AvaliacoesTabProps
   const handleDelete = (avaliacaoId: number) => {
     if (confirm('Tem certeza que deseja excluir esta avaliação?')) {
       supabaseService.deleteAvaliacao(avaliacaoId);
-      loadAvaliacoes();
+      void loadAvaliacoes();
     }
   };
 
