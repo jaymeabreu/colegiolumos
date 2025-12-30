@@ -33,7 +33,8 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
   useEffect(() => {
     void loadOcorrencias();
 
-    loadAlunos();
+    void loadAlunos();
+
   }, [diarioId]);
 
   const loadOcorrencias = async () => {
@@ -42,7 +43,8 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
     setOcorrencias(ocorrenciasData);
   };
 
-  const loadAlunos = () => {
+  const loadAlunos = async () => {
+
     const alunosData = await supabaseService.getAlunosByDiario(diarioId);
     setAlunos(alunosData);
   };
