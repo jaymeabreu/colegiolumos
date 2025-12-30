@@ -33,6 +33,9 @@ export function LoginPage() {
     }
   }, [navigate]);
 
+  const cleanEmail = email.trim().toLowerCase();
+  const cleanSenha = senha.trim();
+  const result = await authService.login(cleanEmail, cleanSenha);
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -41,18 +44,11 @@ export function LoginPage() {
     try {
       const result = await authService.login(email, senha);
       
-      if (result.success && result.user) {
-        const redirectPath = authService.getRedirectPath(result.user.papel);
-        navigate(redirectPath, { replace: true });
-      } else {
-        setError(result.error || 'Erro ao fazer login');
-      }
-    } catch (err) {
-      console.error('Erro no login:', err);
-      setError('Erro interno do sistema');
-    } finally {
-      setLoading(false);
-    }
+      if (error || !data.user) {
+  console.error('SUPABASE SIGNIN ERROR', error);
+  return { success: false, error: error?.message || 'Falha no login' };
+}
+
   };
 
   return (
