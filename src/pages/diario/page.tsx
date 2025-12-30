@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { DiarioHeader } from "./components/DiarioHeader"
@@ -8,7 +7,7 @@ import { AvaliacoesTab } from "./components/AvaliacoesTab"
 import { AlunosTab } from "./components/AlunosTab"
 import { OcorrenciasTab } from "./components/OcorrenciasTab"
 import { DiarioStatusControls } from "../../components/shared/DiarioStatusControls"
-import { mockDataService, Diario } from "../../services/mockData"
+import { supabaseService, Diario } from "../../services/supabaseService"
 
 export function DiarioPage() {
   const [activeTab, setActiveTab] = useState("aulas")
