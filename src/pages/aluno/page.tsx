@@ -597,7 +597,8 @@ const calcularFrequencia = (diarioId: number): number => {
                       .sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime())
                       .map((avaliacao) => {
                         const diario = diarios.find(d => d.id === avaliacao.diarioId);
-                        const disciplina = diario ? (await supabaseService.getDisciplinas()).find(d => d.id === diario.disciplinaId) : null;
+                        const disciplina = diario ? disciplinas.find(d => d.id === diario.disciplinaId) : null;
+
                         const nota = notas.find(n => n.avaliacaoId === avaliacao.id);
 
                         return (
