@@ -7,8 +7,8 @@ import { ScrollArea } from '../../components/ui/scroll-area';
 import { AuthHeader } from '../../components/auth/AuthHeader';
 import { ErrorBoundary } from '../../components/ErrorBoundary';
 import { authService } from '../../services/auth';
-import { supabaseService } from '../../services/supabaseService';
-import type { Aluno, Diario, Nota, Presenca, Avaliacao, Ocorrencia } from '../../services/supabaseService';
+import type { Aluno, Diario, Nota, Presenca, Avaliacao, Ocorrencia, Disciplina, Aula } from '../../services/supabaseService';
+import { supabase } from '../../lib/supabaseClient';
 import { AvisosTab } from './components/AvisosTab';
 
 interface DisciplinaBoletim {
@@ -30,151 +30,307 @@ export function AlunoPage() {
   const [aluno, setAluno] = useState<Aluno | null>(null);
   const [diarios, setDiarios] = useState<Diario[]>([]);
   const [notas, setNotas] = useState<Nota[]>([]);
+  const [disciplinas, setDisciplinas] = useState<Disciplina[]>([]);
+  const [aulas, setAulas] = useState<Aula[]>([]);
   const [presencas, setPresencas] = useState<Presenca[]>([]);
   const [avaliacoes, setAvaliacoes] = useState<Avaliacao[]>([]);
   const [ocorrencias, setOcorrencias] = useState<Ocorrencia[]>([]);
   const [boletimCompleto, setBoletimCompleto] = useState<DisciplinaBoletim[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = authService.getAuthState();
+  
 
   useEffect(() => {
-    loadData();
-  }, []);
+  void loadData();
+}, []);
+
 
   const loadData = async () => {
-    if (!user?.alunoId) {
-      setLoading(false);
+  if (!user?.alunoId) {
+    setLoading(false);
+    return;
+  }
+
+  try {
+    setLoading(true);
+    console.log('🎓 Carregando dados completos do aluno (SUPABASE):', user.alunoId);
+
+    // 1) Aluno
+    const { data: alunoRow, error: alunoErr } = await supabase
+      .from('alunos')
+      .select('*')
+      .eq('id', user.alunoId)
+      .maybeSingle();
+
+    if (alunoErr) throw alunoErr;
+
+    const alunoData = (alunoRow as any) as Aluno | null;
+    setAluno(alunoData ?? null);
+
+    if (!alunoData) return;
+
+    // 2) Vinculo aluno -> diários (diario_alunos)
+    const { data: diarioAlunosRows, error: daErr } = await supabase
+      .from('diario_alunos')
+      .select('*')
+      .eq('aluno_id', user.alunoId);
+
+    if (daErr) throw daErr;
+
+    const diarioIds = Array.from(
+      new Set((diarioAlunosRows ?? []).map((r: any) => r.diario_id))
+    ).filter(Boolean) as number[];
+
+    if (diarioIds.length === 0) {
+      setDiarios([]);
+      setNotas([]);
+      setPresencas([]);
+      setAvaliacoes([]);
+      setOcorrencias([]);
+      setDisciplinas([]);
+      setAulas([]);
+      setBoletimCompleto([]);
       return;
     }
 
-    try {
-      console.log('🎓 Carregando dados completos do aluno:', user.alunoId);
+    // 3) Diários
+    const { data: diariosRows, error: diariosErr } = await supabase
+      .from('diarios')
+      .select('*')
+      .in('id', diarioIds);
 
-      const alunoData = (await supabaseService.getAlunos()).find(a => a.id === user.alunoId);
+    if (diariosErr) throw diariosErr;
 
-      setAluno(alunoData || null);
+    // normaliza snake_case -> camelCase esperado pelo seu front
+    const diariosDoAluno: Diario[] = (diariosRows ?? []).map((d: any) => ({
+      ...d,
+      turmaId: d.turma_id ?? d.turmaId,
+      professorId: d.professor_id ?? d.professorId,
+      disciplinaId: d.disciplina_id ?? d.disciplinaId,
+    }));
 
-      if (alunoData?.turmaId) {
-        const todosOsDiarios = await supabaseService.getDiarios();
-        const todasAsDisciplinas = await supabaseService.getDisciplinas();
-        const diarioAlunos = supabaseService.getData().diarioAlunos;
+    setDiarios(diariosDoAluno);
 
-        const diariosDoAluno = todosOsDiarios.filter(diario =>
-          diarioAlunos.some(da => da.alunoId === user.alunoId && da.diarioId === diario.id)
-        );
+    // 4) Disciplinas (para mostrar nome no boletim/avaliações)
+    const disciplinaIds = Array.from(
+      new Set(diariosDoAluno.map(d => d.disciplinaId).filter(Boolean))
+    ) as number[];
 
-        setDiarios(diariosDoAluno);
+    const { data: disciplinasRows, error: discErr } = await supabase
+      .from('disciplinas')
+      .select('*')
+      .in('id', disciplinaIds);
 
-        const notasAluno = supabaseService.getNotasByAluno(user.alunoId);
-        setNotas(notasAluno);
+    if (discErr) throw discErr;
 
-        const presencasAluno = supabaseService.getPresencasByAluno(user.alunoId);
-        setPresencas(presencasAluno);
+    const disciplinasData: Disciplina[] = (disciplinasRows ?? []).map((x: any) => ({
+      ...x,
+    }));
 
-        const todasAvaliacoes: Avaliacao[] = [];
-        diariosDoAluno.forEach(diario => {
-          const avaliacoesDiario = supabaseService.getAvaliacoesByDiario(diario.id);
-          todasAvaliacoes.push(...avaliacoesDiario);
-        });
-        setAvaliacoes(todasAvaliacoes);
+    setDisciplinas(disciplinasData);
 
-        const todasOcorrencias = supabaseService.getData().ocorrencias;
-        const ocorrenciasDoAluno = todasOcorrencias.filter(o => o.alunoId === user.alunoId);
-        setOcorrencias(ocorrenciasDoAluno);
+    // 5) Notas do aluno
+    const { data: notasRows, error: notasErr } = await supabase
+      .from('notas')
+      .select('*')
+      .eq('aluno_id', user.alunoId);
 
-        const boletim: DisciplinaBoletim[] = [];
-        diariosDoAluno.forEach(diario => {
-          const disciplina = todasAsDisciplinas.find(d => d.id === diario.disciplinaId);
-          if (!disciplina) return;
+    if (notasErr) throw notasErr;
 
-          const media = supabaseService.calcularMediaAluno(user.alunoId, diario.id);
+    const notasAluno: Nota[] = (notasRows ?? []).map((n: any) => ({
+      ...n,
+      alunoId: n.aluno_id ?? n.alunoId,
+      avaliacaoId: n.avaliacao_id ?? n.avaliacaoId,
+    }));
 
-          const aulas = supabaseService.getAulasByDiario(diario.id);
-          const presencasDaDisciplina = presencasAluno.filter(p =>
-            aulas.some(a => a.id === p.aulaId)
-          );
+    setNotas(notasAluno);
 
-          const totalAulas = aulas.length;
-          const presentes = presencasDaDisciplina.filter(p => p.status === 'PRESENTE').length;
-          const faltas = presencasDaDisciplina.filter(p => p.status === 'FALTA').length;
-          const frequencia = totalAulas > 0 ? (presentes / totalAulas) * 100 : 0;
+    // 6) Presenças do aluno
+    const { data: presRows, error: presErr } = await supabase
+      .from('presencas')
+      .select('*')
+      .eq('aluno_id', user.alunoId);
 
-          const avaliacoesDisciplina = supabaseService.getAvaliacoesByDiario(diario.id);
-          const notasPorBimestre = { bim1: null, bim2: null, bim3: null, bim4: null };
+    if (presErr) throw presErr;
 
-          [1, 2, 3, 4].forEach(bimestre => {
-            const avaliacoesBim = avaliacoesDisciplina.filter(av => av.bimestre === bimestre);
-            if (avaliacoesBim.length > 0) {
-              const notasAlunoBim = avaliacoesBim
-                .map(av => notasAluno.find(n => n.avaliacaoId === av.id))
-                .filter(nota => nota !== undefined);
+    const presencasAluno: Presenca[] = (presRows ?? []).map((p: any) => ({
+      ...p,
+      alunoId: p.aluno_id ?? p.alunoId,
+      aulaId: p.aula_id ?? p.aulaId,
+    }));
 
-              if (notasAlunoBim.length > 0) {
-                const mediaBimestre = notasAlunoBim.reduce((sum, nota) => sum + nota!.valor, 0) / notasAlunoBim.length;
-                notasPorBimestre[`bim${bimestre}` as keyof typeof notasPorBimestre] = Number(mediaBimestre.toFixed(1));
-              }
-            }
-          });
+    setPresencas(presencasAluno);
 
-          let situacao = 'Em Andamento';
-          if (media > 0) {
-            if (media >= 7 && frequencia >= 75) {
-              situacao = 'Aprovado';
-            } else if (media >= 5 && media < 7) {
-              situacao = 'Recuperação';
-            } else if (media < 5 || frequencia < 60) {
-              situacao = 'Reprovado';
-            }
-          }
+    // 7) Avaliações (de todos os diários do aluno)
+    const { data: avRows, error: avErr } = await supabase
+      .from('avaliacoes')
+      .select('*')
+      .in('diario_id', diarioIds);
 
-          boletim.push({
-            disciplina: disciplina.nome,
-            bimestre1: notasPorBimestre.bim1,
-            bimestre2: notasPorBimestre.bim2,
-            bimestre3: notasPorBimestre.bim3,
-            bimestre4: notasPorBimestre.bim4,
-            mediaFinal: media,
-            frequencia,
-            situacao,
-            totalAulas,
-            presencas: presentes,
-            faltas
-          });
-        });
+    if (avErr) throw avErr;
 
-        setBoletimCompleto(boletim);
+    const todasAvaliacoes: Avaliacao[] = (avRows ?? []).map((a: any) => ({
+      ...a,
+      diarioId: a.diario_id ?? a.diarioId,
+    }));
 
-        console.log('📊 Dados carregados:', {
-          diarios: diariosDoAluno.length,
-          notas: notasAluno.length,
-          presencas: presencasAluno.length,
-          avaliacoes: todasAvaliacoes.length,
-          ocorrencias: ocorrenciasDoAluno.length,
-          boletim: boletim.length
-        });
+    setAvaliacoes(todasAvaliacoes);
+
+    // 8) Aulas (para cálculo de frequência por diário)
+    const { data: aulasRows, error: aulasErr } = await supabase
+      .from('aulas')
+      .select('*')
+      .in('diario_id', diarioIds);
+
+    if (aulasErr) throw aulasErr;
+
+    const aulasData: Aula[] = (aulasRows ?? []).map((a: any) => ({
+      ...a,
+      diarioId: a.diario_id ?? a.diarioId,
+      professorId: a.professor_id ?? a.professorId,
+    }));
+
+    setAulas(aulasData);
+
+    // 9) Ocorrências
+    const { data: ocRows, error: ocErr } = await supabase
+      .from('ocorrencias')
+      .select('*')
+      .eq('aluno_id', user.alunoId);
+
+    if (ocErr) throw ocErr;
+
+    const ocorrenciasDoAluno: Ocorrencia[] = (ocRows ?? []).map((o: any) => ({
+      ...o,
+      alunoId: o.aluno_id ?? o.alunoId,
+    }));
+
+    setOcorrencias(ocorrenciasDoAluno);
+
+    // 10) Monta boletim
+    const boletim: DisciplinaBoletim[] = [];
+
+    diariosDoAluno.forEach((diario) => {
+      const disciplina = disciplinasData.find(d => d.id === diario.disciplinaId);
+      if (!disciplina) return;
+
+      const avaliacoesDisciplina = todasAvaliacoes.filter(av => av.diarioId === diario.id);
+      const notasPorBimestre: Record<string, number | null> = {
+        bim1: null, bim2: null, bim3: null, bim4: null
+      };
+
+      // média ponderada final
+      const notasValidas = avaliacoesDisciplina
+        .map(av => {
+          const nota = notasAluno.find(n => n.avaliacaoId === av.id);
+          return nota ? { valor: nota.valor, peso: av.peso ?? 1 } : null;
+        })
+        .filter(Boolean) as Array<{ valor: number; peso: number }>;
+
+      const somaPesos = notasValidas.reduce((s, x) => s + (x.peso || 1), 0);
+      const somaPonderada = notasValidas.reduce((s, x) => s + x.valor * (x.peso || 1), 0);
+      const mediaFinal = somaPesos > 0 ? Number((somaPonderada / somaPesos).toFixed(1)) : 0;
+
+      // médias por bimestre (simples)
+      [1, 2, 3, 4].forEach((bimestre) => {
+        const avBim = avaliacoesDisciplina.filter(av => av.bimestre === bimestre);
+        if (avBim.length === 0) return;
+
+        const notasBim = avBim
+          .map(av => notasAluno.find(n => n.avaliacaoId === av.id))
+          .filter(Boolean) as Nota[];
+
+        if (notasBim.length === 0) return;
+
+        const mediaBim = notasBim.reduce((s, n) => s + n.valor, 0) / notasBim.length;
+        notasPorBimestre[`bim${bimestre}`] = Number(mediaBim.toFixed(1));
+      });
+
+      // frequência
+      const aulasDoDiario = aulasData.filter(a => a.diarioId === diario.id);
+      const totalAulas = aulasDoDiario.length;
+
+      const presencasDaDisciplina = presencasAluno.filter(p =>
+        aulasDoDiario.some(a => a.id === p.aulaId)
+      );
+
+      const presentes = presencasDaDisciplina.filter(p => p.status === 'PRESENTE').length;
+      const faltas = presencasDaDisciplina.filter(p => p.status === 'FALTA').length;
+      const frequencia = totalAulas > 0 ? (presentes / totalAulas) * 100 : 0;
+
+      // situação
+      let situacao = 'Em Andamento';
+      if (mediaFinal > 0) {
+        if (mediaFinal >= 7 && frequencia >= 75) situacao = 'Aprovado';
+        else if (mediaFinal >= 5 && mediaFinal < 7) situacao = 'Recuperação';
+        else if (mediaFinal < 5 || frequencia < 60) situacao = 'Reprovado';
       }
-    } catch (error) {
-      console.error('Erro ao carregar dados do aluno:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+
+      boletim.push({
+        disciplina: disciplina.nome,
+        bimestre1: notasPorBimestre.bim1,
+        bimestre2: notasPorBimestre.bim2,
+        bimestre3: notasPorBimestre.bim3,
+        bimestre4: notasPorBimestre.bim4,
+        mediaFinal,
+        frequencia,
+        situacao,
+        totalAulas,
+        presencas: presentes,
+        faltas,
+      });
+    });
+
+    setBoletimCompleto(boletim);
+
+    console.log('📊 Dados carregados (Supabase):', {
+      diarios: diariosDoAluno.length,
+      disciplinas: disciplinasData.length,
+      notas: notasAluno.length,
+      presencas: presencasAluno.length,
+      avaliacoes: todasAvaliacoes.length,
+      ocorrencias: ocorrenciasDoAluno.length,
+      aulas: aulasData.length,
+      boletim: boletim.length
+    });
+  } catch (error) {
+    console.error('Erro ao carregar dados do aluno (Supabase):', error);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const calcularMedia = (diarioId: number): number => {
-    return supabaseService.calcularMediaAluno(user?.alunoId || 0, diarioId);
-  };
+  const avaliacoesDiario = avaliacoes.filter(a => a.diarioId === diarioId);
+  if (avaliacoesDiario.length === 0) return 0;
 
-  const calcularFrequencia = (diarioId: number): number => {
-    const aulas = supabaseService.getAulasByDiario(diarioId);
-    const presencasDiario = presencas.filter(p => 
-      aulas.some(a => a.id === p.aulaId)
-    );
+  const notasValidas = avaliacoesDiario
+    .map(av => {
+      const n = notas.find(x => x.avaliacaoId === av.id);
+      return n ? { valor: n.valor, peso: av.peso ?? 1 } : null;
+    })
+    .filter(Boolean) as Array<{ valor: number; peso: number }>;
 
-    if (presencasDiario.length === 0) return 100;
+  const somaPesos = notasValidas.reduce((s, x) => s + (x.peso || 1), 0);
+  const somaPonderada = notasValidas.reduce((s, x) => s + x.valor * (x.peso || 1), 0);
 
-    const presentes = presencasDiario.filter(p => p.status === 'PRESENTE').length;
-    return (presentes / presencasDiario.length) * 100;
-  };
+  return somaPesos > 0 ? Number((somaPonderada / somaPesos).toFixed(1)) : 0;
+};
+
+const calcularFrequencia = (diarioId: number): number => {
+  const aulasDoDiario = aulas.filter(a => a.diarioId === diarioId);
+  const totalAulas = aulasDoDiario.length;
+  if (totalAulas === 0) return 100;
+
+  const presencasDoDiario = presencas.filter(p =>
+    aulasDoDiario.some(a => a.id === p.aulaId)
+  );
+
+  const presentes = presencasDoDiario.filter(p => p.status === 'PRESENTE').length;
+  return (presentes / totalAulas) * 100;
+};
+
 
   const getMediaColor = (media: number) => {
     if (media >= 7) return 'text-green-600';
