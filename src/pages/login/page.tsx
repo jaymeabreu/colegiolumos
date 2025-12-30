@@ -1,155 +1,157 @@
-import { safeStorage } from '@/lib/safeStorage';
-import { supabase } from '@/lib/supabaseClient';
 
-export interface User {
-  id: number; // id interno da tabela public.usuarios
-  authUserId: string; // uuid do auth.users
-  nome: string;
-  email: string;
-  papel: 'COORDENADOR' | 'PROFESSOR' | 'ALUNO';
-  alunoId?: number;
-  professorId?: number;
-}
+import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Eye, EyeOff, GraduationCap } from 'lucide-react';
+import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
+import { Checkbox } from '../../components/ui/checkbox';
+import { authService } from '../../services/auth';
 
-export interface AuthState {
-  user: User | null;
-  isAuthenticated: boolean;
-}
+export function LoginPage() {
+  const navigate = useNavigate();
+  const [email, setEmail] = useState('');
+  const [senha, setSenha] = useState('');
+  const [lembrarMe, setLembrarMe] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const hasCheckedAuth = useRef(false);
 
-class AuthService {
-  private storageKey = 'gestao_escolar_auth';
-  private cachedAuthState: AuthState | null = null;
-
-  getAuthState(): AuthState {
-    if (this.cachedAuthState) return this.cachedAuthState;
-
-    try {
-      const stored = safeStorage.getItem(this.storageKey);
-      if (stored) {
-        const user = JSON.parse(stored);
-
-        // validação mínima do payload salvo
-        if (
-          user &&
-          typeof user === 'object' &&
-          typeof user.id === 'number' &&
-          typeof user.email === 'string' &&
-          typeof user.papel === 'string' &&
-          typeof user.authUserId === 'string'
-        ) {
-          this.cachedAuthState = { user, isAuthenticated: true };
-          return this.cachedAuthState;
-        }
-      }
-    } catch {
-      // storage corrompido
-      safeStorage.removeItem(this.storageKey);
+  // Verifica se já está logado e redireciona
+  useEffect(() => {
+    if (hasCheckedAuth.current) return;
+    
+    const { isAuthenticated, user } = authService.getAuthState();
+    if (isAuthenticated && user) {
+      hasCheckedAuth.current = true;
+      const redirectPath = authService.getRedirectPath(user.papel);
+      navigate(redirectPath, { replace: true });
+    } else {
+      hasCheckedAuth.current = true;
     }
+  }, [navigate]);
 
-    this.cachedAuthState = { user: null, isAuthenticated: false };
-    return this.cachedAuthState;
-  }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
 
-  async login(
-    email: string,
-    senha: string
-  ): Promise<{ success: boolean; user?: User; error?: string }> {
     try {
-      const cleanEmail = (email || '').trim().toLowerCase();
-      const cleanSenha = (senha || '').trim();
-
-      // Logs mínimos para depurar payload (removi a senha do log por segurança)
-      console.log('LOGIN TRY:', { email: cleanEmail, senhaLen: cleanSenha.length });
-
-      // 1) Login via Supabase Auth
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: cleanEmail,
-        password: cleanSenha,
-      });
-
-      if (error || !data?.user) {
-        console.error('SUPABASE SIGNIN ERROR:', {
-          message: error?.message,
-          status: (error as any)?.status,
-          name: (error as any)?.name,
-          code: (error as any)?.code,
-        });
-
-        // Mensagem que vem do Supabase ajuda a entender "invalid_credentials" vs "email_not_confirmed" etc.
-        return { success: false, error: error?.message || 'Falha ao autenticar' };
+      const result = await authService.login(email, senha);
+      
+      if (result.success && result.user) {
+        const redirectPath = authService.getRedirectPath(result.user.papel);
+        navigate(redirectPath, { replace: true });
+      } else {
+        setError(result.error || 'Erro ao fazer login');
       }
-
-      const authUserId = data.user.id;
-
-      // 2) Busca perfil no seu domínio (public.usuarios)
-      const { data: usuario, error: perfilError } = await supabase
-        .from('usuarios')
-        .select('*')
-        .eq('auth_user_id', authUserId)
-        .single();
-
-      if (perfilError || !usuario) {
-        console.error('PERFIL ERROR / usuario não encontrado:', {
-          perfilError,
-          authUserId,
-        });
-
-        // Usuário autenticou, mas não tem perfil/role cadastrado
-        await supabase.auth.signOut();
-        return { success: false, error: 'Usuário sem perfil cadastrado no sistema' };
-      }
-
-      const user: User = {
-        id: usuario.id,
-        authUserId,
-        nome: usuario.nome,
-        email: usuario.email,
-        papel: usuario.papel,
-        alunoId: usuario.aluno_id ?? undefined,
-        professorId: usuario.professor_id ?? undefined,
-      };
-
-      safeStorage.setItem(this.storageKey, JSON.stringify(user));
-      this.cachedAuthState = { user, isAuthenticated: true };
-
-      return { success: true, user };
-    } catch (e) {
-      console.error('Erro no login:', e);
-      return { success: false, error: 'Erro ao fazer login' };
-    }
-  }
-
-  async logout(): Promise<void> {
-    try {
-      await supabase.auth.signOut();
+    } catch (err) {
+      console.error('Erro no login:', err);
+      setError('Erro interno do sistema');
     } finally {
-      safeStorage.removeItem(this.storageKey);
-      this.cachedAuthState = null;
+      setLoading(false);
     }
-  }
+  };
 
-  getRedirectPath(papel: string): string {
-    switch (papel) {
-      case 'COORDENADOR':
-        return '/app/admin';
-      case 'PROFESSOR':
-        return '/app/professor';
-      case 'ALUNO':
-        return '/app/aluno';
-      default:
-        return '/';
-    }
-  }
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <div className="flex justify-center mb-4">
+            <div className="p-3 bg-blue-600 rounded-full">
+              <GraduationCap className="h-8 w-8 text-white" />
+            </div>
+          </div>
+          <CardTitle className="text-2xl font-bold">Colégio Lumos</CardTitle>
+          <CardDescription>
+            Faça login para acessar o sistema
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Input
+                id="email"
+                type="email"
+                placeholder="E-mail"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                disabled={loading}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <div className="relative">
+                <Input
+                  id="senha"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Senha"
+                  value={senha}
+                  onChange={(e) => setSenha(e.target.value)}
+                  required
+                  disabled={loading}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => setShowPassword(!showPassword)}
+                  disabled={loading}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            </div>
 
-  hasPermission(userRole: string, requiredRole: string): boolean {
-    if (userRole === 'COORDENADOR') return true;
-    return userRole === requiredRole;
-  }
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="lembrar"
+                checked={lembrarMe}
+                onCheckedChange={setLembrarMe}
+                disabled={loading}
+              />
+              <Label htmlFor="lembrar" className="text-sm">
+                Lembrar-me
+              </Label>
+            </div>
 
-  canAccessDiario(userId: number, diarioId: number): boolean {
-    if (userId === 2 && diarioId === 1) return true;
-    return false;
-  }
+            {error && (
+              <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md">
+                {error}
+              </div>
+            )}
+
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? 'Entrando...' : 'Entrar'}
+            </Button>
+
+            <div className="text-center">
+              <Button variant="link" className="text-sm" disabled={loading}>
+                Esqueceu sua senha?
+              </Button>
+            </div>
+          </form>
+
+          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+            <p className="text-sm font-medium text-gray-700 mb-2">Contas de teste:</p>
+            <div className="space-y-1 text-xs text-gray-600">
+              <p><strong>Coordenador:</strong> coordenador@colegiolumos.com.br / 123456</p>
+              <p><strong>Professor:</strong> prof@demo.com / 123456</p>
+              <p><strong>Aluno:</strong> aluno@demo.com / 123456</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
 }
 
-export const authService = new AuthService();
+export default LoginPage;
