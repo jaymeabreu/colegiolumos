@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Plus, Edit, Trash2, GraduationCap } from 'lucide-react';
-import { Card, CardContent } from '../../../components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
 import {
@@ -68,69 +68,60 @@ export function TurmasList() {
     );
   }, [turmas, searchTerm]);
 
-  const handleSubmit = useCallback(
-    async (e: React.FormEvent) => {
-      e.preventDefault();
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
 
-      try {
-        setLoading(true);
+    try {
+      setLoading(true);
 
-        const payload = {
-          nome: formData.nome.trim(),
-          ano: Number(formData.ano),
-          turno: formData.turno
-        };
+      const payload = {
+        nome: formData.nome.trim(),
+        ano: Number(formData.ano),
+        turno: formData.turno
+      };
 
-        if (editingTurma) {
-          await supabaseService.updateTurma(editingTurma.id, payload);
-        } else {
-          await supabaseService.createTurma(payload);
-        }
-
-        await loadData();
-        resetForm();
-        alert(editingTurma ? 'Turma atualizada com sucesso!' : 'Turma criada com sucesso!');
-      } catch (error) {
-        console.error('Erro ao salvar turma:', error);
-        alert('Erro ao salvar turma');
-      } finally {
-        setLoading(false);
+      if (editingTurma) {
+        await supabaseService.updateTurma(editingTurma.id, payload);
+      } else {
+        await supabaseService.createTurma(payload);
       }
-    },
-    [formData, editingTurma, loadData]
-  );
+
+      await loadData();
+      resetForm();
+      alert(editingTurma ? 'Turma atualizada com sucesso!' : 'Turma criada com sucesso!');
+    } catch (error) {
+      console.error('Erro ao salvar turma:', error);
+      alert('Erro ao salvar turma');
+    } finally {
+      setLoading(false);
+    }
+  }, [formData, editingTurma, loadData]);
 
   const handleEdit = useCallback((turma: Turma) => {
     setEditingTurma(turma);
-
     setFormData({
       nome: turma.nome,
       ano: turma.ano,
-      // garante que o valor esteja no padrão do banco
       turno: (turma.turno as TurnoDB) ?? 'MANHA'
     });
-
     setIsDialogOpen(true);
   }, []);
 
-  const handleDelete = useCallback(
-    async (id: number) => {
-      if (confirm('Tem certeza que deseja excluir esta turma?')) {
-        try {
-          setLoading(true);
-          await supabaseService.deleteTurma(id);
-          await loadData();
-          alert('Turma excluída com sucesso!');
-        } catch (error) {
-          console.error('Erro ao excluir turma:', error);
-          alert('Erro ao excluir turma');
-        } finally {
-          setLoading(false);
-        }
+  const handleDelete = useCallback(async (id: number) => {
+    if (confirm('Tem certeza que deseja excluir esta turma?')) {
+      try {
+        setLoading(true);
+        await supabaseService.deleteTurma(id);
+        await loadData();
+        alert('Turma excluída com sucesso!');
+      } catch (error) {
+        console.error('Erro ao excluir turma:', error);
+        alert('Erro ao excluir turma');
+      } finally {
+        setLoading(false);
       }
-    },
-    [loadData]
-  );
+    }
+  }, [loadData]);
 
   const resetForm = useCallback(() => {
     setFormData({
@@ -144,7 +135,89 @@ export function TurmasList() {
 
   return (
     <Card>
-      <CardHeaderBlock />
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <CardTitle>Turmas</CardTitle>
+            <CardDescription>Gerencie as turmas da escola</CardDescription>
+          </div>
+
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={resetForm} disabled={loading}>
+                <Plus className="h-4 w-4 mr-2" />
+                Nova Turma
+              </Button>
+            </DialogTrigger>
+
+            <DialogContent className="max-w-[95vw] lg:max-w-[800px] max-h-[95vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>{editingTurma ? 'Editar Turma' : 'Nova Turma'}</DialogTitle>
+                <DialogDescription>Preencha as informações da turma</DialogDescription>
+              </DialogHeader>
+
+              <form onSubmit={handleSubmit}>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="nome">Nome da Turma</Label>
+                    <Input
+                      id="nome"
+                      value={formData.nome}
+                      onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+                      placeholder="Ex: 9º Ano A"
+                      required
+                      disabled={loading}
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="ano">Ano</Label>
+                    <Input
+                      id="ano"
+                      type="number"
+                      value={formData.ano}
+                      onChange={(e) => setFormData({ ...formData, ano: Number(e.target.value) })}
+                      placeholder="Ex: 2026"
+                      required
+                      disabled={loading}
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="turno">Turno</Label>
+                    <Select
+                      value={formData.turno}
+                      onValueChange={(value: TurnoDB) =>
+                        setFormData({ ...formData, turno: value })
+                      }
+                      disabled={loading}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o turno" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="MANHA">Manhã</SelectItem>
+                        <SelectItem value="TARDE">Tarde</SelectItem>
+                        <SelectItem value="NOITE">Noite</SelectItem>
+                        <SelectItem value="INTEGRAL">Integral</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <DialogFooter className="mt-6">
+                  <Button type="button" variant="outline" onClick={resetForm} disabled={loading}>
+                    Cancelar
+                  </Button>
+                  <Button type="submit" disabled={loading}>
+                    {loading ? 'Salvando...' : editingTurma ? 'Salvar' : 'Criar'}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </CardHeader>
 
       <CardContent>
         <div className="mb-4">
@@ -205,94 +278,7 @@ export function TurmasList() {
             )}
           </div>
         )}
-
-        {/* Dialog fica aqui pra manter o mesmo layout/estrutura */}
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <span />
-          </DialogTrigger>
-          <DialogContent className="max-w-[95vw] lg:max-w-[800px] max-h-[95vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>{editingTurma ? 'Editar Turma' : 'Nova Turma'}</DialogTitle>
-              <DialogDescription>Preencha as informações da turma</DialogDescription>
-            </DialogHeader>
-
-            <form onSubmit={handleSubmit}>
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="nome">Nome da Turma</Label>
-                  <Input
-                    id="nome"
-                    value={formData.nome}
-                    onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                    placeholder="Ex: 9º Ano A"
-                    required
-                    disabled={loading}
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="ano">Ano</Label>
-                  <Input
-                    id="ano"
-                    type="number"
-                    value={formData.ano}
-                    onChange={(e) => setFormData({ ...formData, ano: Number(e.target.value) })}
-                    placeholder="Ex: 2026"
-                    required
-                    disabled={loading}
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="turno">Turno</Label>
-                  <Select
-                    value={formData.turno}
-                    onValueChange={(value: TurnoDB) => setFormData({ ...formData, turno: value })}
-                    disabled={loading}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o turno" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="MANHA">Manhã</SelectItem>
-                      <SelectItem value="TARDE">Tarde</SelectItem>
-                      <SelectItem value="NOITE">Noite</SelectItem>
-                      <SelectItem value="INTEGRAL">Integral</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <DialogFooter className="mt-6">
-                <Button type="button" variant="outline" onClick={resetForm} disabled={loading}>
-                  Cancelar
-                </Button>
-                <Button type="submit" disabled={loading}>
-                  {loading ? 'Salvando...' : editingTurma ? 'Salvar' : 'Criar'}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
       </CardContent>
     </Card>
-  );
-}
-
-/**
- * Mantive um Header separado só para preservar exatamente o layout/estrutura do seu arquivo
- * sem mexer na lógica. Se preferir, posso colocar isso inline novamente.
- */
-function CardHeaderBlock() {
-  return (
-    <div className="p-6 pb-0">
-      <div className="flex items-center justify-between">
-        <div className="space-y-2">
-          <h3 className="card-title">Turmas</h3>
-          <p className="card-description">Gerencie as turmas da escola</p>
-        </div>
-      </div>
-    </div>
   );
 }
