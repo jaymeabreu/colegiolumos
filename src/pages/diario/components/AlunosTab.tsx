@@ -6,7 +6,8 @@ import { Input } from '../../../components/ui/input';
 import { Badge } from '../../../components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '../../../components/ui/avatar';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../../components/ui/card';
-import { mockDataService, Aluno } from '../../../services/mockData';
+import { supabaseService } from '../../../services/supabaseService';
+import type { Aluno } from '../../../services/supabaseService';
 import { BoletimModal } from '../../../components/shared/BoletimModal';
 
 interface AlunosTabProps {

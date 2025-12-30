@@ -9,7 +9,9 @@ import { Textarea } from '../../../components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
 import { Badge } from '../../../components/ui/badge';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../../components/ui/card';
-import { mockDataService, Avaliacao, Aluno, Nota } from '../../../services/mockData';
+import { supabaseService } from '../../../services/supabaseService';
+import type { Avaliacao, Aluno, Nota } from '../../../services/supabaseService';
+
 
 interface AvaliacoesTabProps {
   diarioId: number;

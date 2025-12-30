@@ -4,7 +4,8 @@ import { MessageSquare, Calendar, User, Users, Bell } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Badge } from '../../../components/ui/badge';
 import { Separator } from '../../../components/ui/separator';
-import { mockDataService, Comunicado, Recado } from '../../../services/mockData';
+import { supabaseService } from '../../../services/supabaseService';
+import type { Comunicado, Recado } from '../../../services/supabaseService';
 import { authService } from '../../../services/auth';
 
 export function AvisosTab() {

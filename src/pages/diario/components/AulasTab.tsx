@@ -12,12 +12,8 @@ import {
 } from '../../../components/ui/dialog';
 import { Label } from '../../../components/ui/label';
 import { Textarea } from '../../../components/ui/textarea';
-import {
-  mockDataService,
-  Aula,
-  Aluno,
-  Presenca
-} from '../../../services/mockData';
+import { supabaseService } from '../../../services/supabaseService';
+import type { Aula, Aluno, Presenca } from '../../../services/supabaseService';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../../components/ui/card';
 
 interface AulasTabProps {

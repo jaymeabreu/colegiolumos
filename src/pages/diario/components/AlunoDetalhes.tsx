@@ -1,6 +1,6 @@
 
 import { BoletimModal } from '../../../components/shared/BoletimModal';
-import { Aluno } from '../../../services/mockData';
+import type { Aluno } from '../../../services/supabaseService';
 
 interface AlunoDetalhesProps {
   aluno: Aluno;

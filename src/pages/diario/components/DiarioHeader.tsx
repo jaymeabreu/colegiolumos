@@ -2,7 +2,7 @@
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { DiarioStatusControls } from '../../../components/shared/DiarioStatusControls';
-import { Diario, Disciplina, Turma, Usuario } from '../../../services/mockData';
+import type { Diario, Disciplina, Turma, Usuario } from '../../../services/supabaseService';
 
 interface DiarioHeaderProps {
   currentDiario: Diario | null;

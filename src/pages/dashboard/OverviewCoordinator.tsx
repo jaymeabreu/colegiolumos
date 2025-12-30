@@ -16,7 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "../../components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select"
 import { AlunoDetalhes } from "../diario/components/AlunoDetalhes"
-import { mockDataService } from "../../services/mockData"
+import { supabaseService } from "../../services/supabaseService"
 import { FileText, Search, User, X } from "lucide-react"
 import { studentsData, teachersData, staffData } from "../../mocks/dashboard-data"
 import { BoletimModal } from '../../components/shared/BoletimModal';

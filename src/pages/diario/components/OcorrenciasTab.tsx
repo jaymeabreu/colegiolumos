@@ -9,7 +9,8 @@ import { Textarea } from '../../../components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
 import { Badge } from '../../../components/ui/badge';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../../components/ui/card';
-import { mockDataService, Ocorrencia, Aluno } from '../../../services/mockData';
+import { supabaseService } from '../../../services/supabaseService';
+import type { Ocorrencia, Aluno } from '../../../services/supabaseService';
 
 interface OcorrenciasTabProps {
   diarioId: number;
