@@ -48,7 +48,15 @@ export function LoginPage() {
   console.error('SUPABASE SIGNIN ERROR', error);
   return { success: false, error: error?.message || 'Falha no login' };
 }
-
+ else {
+        setError(result.error || 'Erro ao fazer login');
+      }
+    } catch (err) {
+      console.error('Erro no login:', err);
+      setError('Erro interno do sistema');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
