@@ -37,7 +37,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../../../components/ui/select';
-import { mockDataService, Usuario, Aluno } from '../../../services/mockData';
+import { supabaseService, Usuario, Aluno } from '../../../services/supabaseService';
 
 export function UsuariosList() {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
@@ -47,6 +47,7 @@ export function UsuariosList() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [editingUsuario, setEditingUsuario] = useState<Usuario | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const [filters, setFilters] = useState({
     papel: '',
@@ -63,9 +64,18 @@ export function UsuariosList() {
     confirmarSenha: '',
   });
 
-  const loadData = useCallback(() => {
-    setUsuarios(supabaseService.getUsuarios());
-    setAlunos(supabaseService.getAlunos());
+  const loadData = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const usuariosData = await supabaseService.getUsuarios();
+      const alunosData = await supabaseService.getAlunos();
+      setUsuarios(usuariosData);
+      setAlunos(alunosData);
+    } catch (error) {
+      console.error('Erro ao carregar dados:', error);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -136,7 +146,7 @@ export function UsuariosList() {
   }, [formData.senha]);
 
   const handleSubmit = useCallback(
-    (e: React.FormEvent) => {
+    async (e: React.FormEvent) => {
       e.preventDefault();
 
       if (formData.senha !== formData.confirmarSenha) {
@@ -144,30 +154,39 @@ export function UsuariosList() {
         return;
       }
 
-      const data = {
-        nome: formData.nome,
-        email: formData.email,
-        papel: formData.papel as 'COORDENADOR' | 'PROFESSOR' | 'ALUNO',
-        alunoId: formData.alunoId ? Number(formData.alunoId) : undefined,
-      };
+      try {
+        setIsLoading(true);
+        const data = {
+          nome: formData.nome,
+          email: formData.email,
+          papel: formData.papel as 'COORDENADOR' | 'PROFESSOR' | 'ALUNO',
+          alunoId: formData.alunoId ? Number(formData.alunoId) : undefined,
+        };
 
-      if (editingUsuario) {
-        supabaseService.updateUsuario(
-          editingUsuario.id,
-          data,
-          formData.senha || undefined
-        );
-      } else {
-        if (!formData.senha) {
-          alert('Senha é obrigatória para novos usuários!');
-          return;
+        if (editingUsuario) {
+          await supabaseService.updateUsuario(
+            editingUsuario.id,
+            data,
+            formData.senha || undefined
+          );
+        } else {
+          if (!formData.senha) {
+            alert('Senha é obrigatória para novos usuários!');
+            return;
+          }
+          await supabaseService.createUsuario(data, formData.senha);
         }
-        supabaseService.createUsuario(data, formData.senha);
-      }
 
-      loadData();
-      setIsDialogOpen(false);
-      resetForm();
+        await loadData();
+        setIsDialogOpen(false);
+        resetForm();
+        alert(editingUsuario ? 'Usuário atualizado com sucesso!' : 'Usuário criado com sucesso!');
+      } catch (error) {
+        console.error('Erro ao salvar usuário:', error);
+        alert('Erro ao salvar usuário. Tente novamente.');
+      } finally {
+        setIsLoading(false);
+      }
     },
     [formData, editingUsuario, loadData]
   );
@@ -187,10 +206,19 @@ export function UsuariosList() {
   }, []);
 
   const handleDelete = useCallback(
-    (id: number) => {
+    async (id: number) => {
       if (confirm('Tem certeza que deseja excluir este usuário?')) {
-        supabaseService.deleteUsuario(id);
-        loadData();
+        try {
+          setIsLoading(true);
+          await supabaseService.deleteUsuario(id);
+          await loadData();
+          alert('Usuário excluído com sucesso!');
+        } catch (error) {
+          console.error('Erro ao excluir usuário:', error);
+          alert('Erro ao excluir usuário. Tente novamente.');
+        } finally {
+          setIsLoading(false);
+        }
       }
     },
     [loadData]
@@ -234,7 +262,7 @@ export function UsuariosList() {
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <div class="space-y-2">
+          <div className="space-y-2">
             <h3 className="card-title">Usuários</h3>
             <p className="card-description">
               Gerencie os usuários do sistema
@@ -257,6 +285,7 @@ export function UsuariosList() {
                   resetForm();
                   setIsDialogOpen(true);
                 }}
+                disabled={isLoading}
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Novo Usuário
@@ -284,6 +313,7 @@ export function UsuariosList() {
                     onChange={(e) =>
                       setFormData((prev) => ({ ...prev, nome: e.target.value }))
                     }
+                    disabled={isLoading}
                   />
                 </div>
 
@@ -296,6 +326,7 @@ export function UsuariosList() {
                     onChange={(e) =>
                       setFormData((prev) => ({ ...prev, email: e.target.value }))
                     }
+                    disabled={isLoading}
                   />
                 </div>
 
@@ -306,6 +337,7 @@ export function UsuariosList() {
                     onValueChange={(value) =>
                       setFormData((prev) => ({ ...prev, papel: value }))
                     }
+                    disabled={isLoading}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione o papel" />
@@ -326,6 +358,7 @@ export function UsuariosList() {
                       onValueChange={(value) =>
                         setFormData((prev) => ({ ...prev, alunoId: value }))
                       }
+                      disabled={isLoading}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione um aluno" />
@@ -357,6 +390,7 @@ export function UsuariosList() {
                           senha: e.target.value,
                         }))
                       }
+                      disabled={isLoading}
                     />
                   </div>
                   <div>
@@ -371,6 +405,7 @@ export function UsuariosList() {
                           confirmarSenha: e.target.value,
                         }))
                       }
+                      disabled={isLoading}
                     />
                   </div>
                 </div>
@@ -381,6 +416,7 @@ export function UsuariosList() {
                     variant="outline"
                     size="sm"
                     onClick={generatePassword}
+                    disabled={isLoading}
                   >
                     <Shuffle className="h-4 w-4 mr-1" />
                     Gerar senha
@@ -390,7 +426,7 @@ export function UsuariosList() {
                     variant="outline"
                     size="sm"
                     onClick={copyPassword}
-                    disabled={!formData.senha}
+                    disabled={!formData.senha || isLoading}
                   >
                     <Copy className="h-4 w-4 mr-1" />
                     Copiar
@@ -400,6 +436,7 @@ export function UsuariosList() {
                     variant="outline"
                     size="sm"
                     onClick={() => setShowPassword((prev) => !prev)}
+                    disabled={isLoading}
                   >
                     {showPassword ? (
                       <EyeOff className="h-4 w-4 mr-1" />
@@ -415,11 +452,12 @@ export function UsuariosList() {
                     type="button"
                     variant="outline"
                     onClick={() => setIsDialogOpen(false)}
+                    disabled={isLoading}
                   >
                     Cancelar
                   </Button>
-                  <Button type="submit">
-                    {editingUsuario ? 'Salvar alterações' : 'Criar usuário'}
+                  <Button type="submit" disabled={isLoading}>
+                    {isLoading ? 'Salvando...' : editingUsuario ? 'Salvar alterações' : 'Criar usuário'}
                   </Button>
                 </DialogFooter>
               </form>
@@ -435,6 +473,7 @@ export function UsuariosList() {
               placeholder="Buscar usuários..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              disabled={isLoading}
             />
           </div>
 
@@ -447,6 +486,7 @@ export function UsuariosList() {
                     ? 'bg-blue-50 border-blue-200 text-blue-700'
                     : ''
                 }`}
+                disabled={isLoading}
               >
                 <Filter className="h-4 w-4" />
                 Filtros
@@ -491,6 +531,7 @@ export function UsuariosList() {
                   size="none"
                   className="h-8 w-8 p-0 inline-flex items-center justify-center"
                   onClick={() => handleEdit(usuario)}
+                  disabled={isLoading}
                 >
                   <Edit className="h-4 w-4" />
                 </Button>
@@ -499,6 +540,7 @@ export function UsuariosList() {
                   size="none"
                   className="h-8 w-8 p-0 inline-flex items-center justify-center"
                   onClick={() => handleDelete(usuario.id)}
+                  disabled={isLoading}
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
