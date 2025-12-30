@@ -58,10 +58,12 @@ export function AulasTab({ diarioId, readOnly = false }: AulasTabProps) {
   useEffect(() => {
     loadAulas();
     loadAlunos();
-    loadDiarioInfo();
+    void loadDiarioInfo();
+
   }, [diarioId]);
 
-  const loadDiarioInfo = () => {
+  const loadDiarioInfo = async () => {
+
     try {
       const diarios = await supabaseService.getDiarios();
 const diario = diarios.find(d => d.id === diarioId);
