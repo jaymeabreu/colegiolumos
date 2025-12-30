@@ -7,7 +7,7 @@ import { ScrollArea } from '../../components/ui/scroll-area';
 import { AuthHeader } from '../../components/auth/AuthHeader';
 import { ErrorBoundary } from '../../components/ErrorBoundary';
 import { authService } from '../../services/auth';
-import { mockDataService, Aluno, Diario, Nota, Presenca, Avaliacao, Ocorrencia, Disciplina } from '../../services/mockData';
+import { supabaseService, Aluno, Diario, Nota, Presenca, Avaliacao, Ocorrencia, Disciplina } from '../../services/mockData';
 import { AvisosTab } from './components/AvisosTab';
 
 interface DisciplinaBoletim {
