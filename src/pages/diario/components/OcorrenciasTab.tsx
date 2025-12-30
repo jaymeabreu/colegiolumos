@@ -31,11 +31,13 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
   });
 
   useEffect(() => {
-    loadOcorrencias();
+    void loadOcorrencias();
+
     loadAlunos();
   }, [diarioId]);
 
-  const loadOcorrencias = () => {
+  const loadOcorrencias = async () => {
+
     const ocorrenciasData = await supabaseService.getOcorrenciasByDiario(diarioId);
     setOcorrencias(ocorrenciasData);
   };
@@ -71,7 +73,8 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
       });
     }
     
-    loadOcorrencias();
+    void loadOcorrencias();
+
     setIsDialogOpen(false);
     resetForm();
   };
@@ -90,7 +93,8 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
   const handleDelete = (ocorrenciaId: number) => {
     if (confirm('Tem certeza que deseja excluir esta ocorrência?')) {
       supabaseService.deleteOcorrencia(ocorrenciaId);
-      loadOcorrencias();
+     void loadOcorrencias();
+
     }
   };
 
