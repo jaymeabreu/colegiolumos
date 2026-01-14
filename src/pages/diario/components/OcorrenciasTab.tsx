@@ -33,21 +33,35 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
     loadData();
   }, [diarioId]);
 
+  // Recarregar alunos quando abre o diálogo
+  useEffect(() => {
+    if (isDialogOpen) {
+      loadAlunos();
+    }
+  }, [isDialogOpen]);
+
   const loadData = async () => {
     try {
-      // Carregar alunos PRIMEIRO
-      const alunosData = await supabaseService.getAlunosByDiario(diarioId);
-      setAlunos(alunosData || []);
+      await loadAlunos();
 
-      // Depois carregar ocorrências
       const ocorrenciasData = await supabaseService.getOcorrencias();
       const filtered = (ocorrenciasData || []).filter(o => {
-        return (alunosData || []).some(a => a.id === (o.alunoId || o.aluno_id));
+        return (alunos || []).some(a => a.id === (o.alunoId || o.aluno_id));
       });
       setOcorrencias(filtered);
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
       setOcorrencias([]);
+    }
+  };
+
+  const loadAlunos = async () => {
+    try {
+      const alunosData = await supabaseService.getAlunosByDiario(diarioId);
+      console.log('Alunos carregados:', alunosData);
+      setAlunos(alunosData || []);
+    } catch (error) {
+      console.error('Erro ao carregar alunos:', error);
       setAlunos([]);
     }
   };
@@ -186,16 +200,23 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
                       onValueChange={(value) => setFormData({ ...formData, alunoId: value })}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Selecione o aluno" />
+                        <SelectValue placeholder={alunos.length === 0 ? "Nenhum aluno disponível" : "Selecione o aluno"} />
                       </SelectTrigger>
                       <SelectContent>
-                        {(alunos || []).map((aluno) => (
-                          <SelectItem key={aluno.id} value={aluno.id.toString()}>
-                            {aluno.nome}
-                          </SelectItem>
-                        ))}
+                        {(alunos || []).length === 0 ? (
+                          <div className="p-2 text-sm text-muted-foreground">Nenhum aluno encontrado</div>
+                        ) : (
+                          (alunos || []).map((aluno) => (
+                            <SelectItem key={aluno.id} value={aluno.id.toString()}>
+                              {aluno.nome}
+                            </SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
+                    {(alunos || []).length === 0 && (
+                      <p className="text-xs text-red-600">⚠️ Nenhum aluno vinculado a este diário</p>
+                    )}
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
