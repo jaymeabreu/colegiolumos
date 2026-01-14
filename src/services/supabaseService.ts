@@ -242,35 +242,28 @@ class SupabaseService {
     usuario: Omit<Usuario, 'id' | 'created_at' | 'updated_at'>,
     senha?: string
   ): Promise<Usuario> {
-    // Se não passou senha, gera uma aleatória
-    if (!senha) {
-      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$%&*';
-      senha = '';
-      for (let i = 0; i < 12; i++) {
-        senha += chars.charAt(Math.floor(Math.random() * chars.length));
-      }
-    }
-
     try {
-      // 1) Criar usuário no Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: usuario.email,
-        password: senha,
-        email_confirm: true,
-      });
+      // Importar função de hash dinamicamente
+      const { hashPassword } = await import('@/lib/hashUtils');
 
-      if (authError || !authData.user) {
-        throw new Error(`Erro ao criar conta: ${authError?.message || 'Desconhecido'}`);
+      // Se não passou senha, gera uma aleatória
+      if (!senha) {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$%&*';
+        senha = '';
+        for (let i = 0; i < 12; i++) {
+          senha += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
       }
 
-      const authUserId = authData.user.id;
+      // Hash da senha
+      const senhaHash = await hashPassword(senha);
 
-      // 2) Criar registro na tabela usuarios
+      // Criar registro na tabela usuarios com senha hasheada
       const payload: any = {
         nome: usuario.nome,
         email: usuario.email,
         papel: usuario.papel,
-        auth_user_id: authUserId,
+        senha_hash: senhaHash,
         aluno_id: usuario.aluno_id ?? undefined,
         professor_id: usuario.professor_id ?? undefined,
         ativo: usuario.ativo ?? true
