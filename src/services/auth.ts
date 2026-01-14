@@ -1,6 +1,5 @@
 import { safeStorage } from '@/lib/safeStorage';
 import { supabase } from '@/lib/supabaseClient';
-import { verifyPassword } from '@/lib/hashUtils';
 
 export interface User {
   id: number;
@@ -40,38 +39,23 @@ class AuthService {
 
   async login(email: string, senha: string): Promise<{ success: boolean; user?: User; error?: string }> {
     try {
-      // 1) Busca usuário no banco por email
+      // Busca usuário no banco
       const { data: usuario, error: queryError } = await supabase
         .from('usuarios')
         .select('*')
-        .eq('email', email.toLowerCase())
+        .eq('email', email)
         .single();
 
       if (queryError || !usuario) {
-        console.error('Usuário não encontrado:', email);
         return { success: false, error: 'Email ou senha inválidos' };
       }
 
-      console.log('Usuário encontrado:', usuario.email);
-
-      // Se não tiver senha_hash, não consegue fazer login
-      if (!usuario.senha_hash) {
-        console.error('Usuário não tem senha configurada');
-        return { success: false, error: 'Usuário sem senha configurada. Contate o administrador.' };
-      }
-
-      // 2) Verifica a senha
-      console.log('Verificando senha...');
-      const senhaCorreta = await verifyPassword(senha, usuario.senha_hash);
-
-      if (!senhaCorreta) {
-        console.error('Senha incorreta');
+      // Verifica a senha simples
+      if (usuario.senha !== senha) {
         return { success: false, error: 'Email ou senha inválidos' };
       }
 
-      console.log('Senha correta! Fazendo login...');
-
-      // 3) Cria objeto User
+      // Cria objeto User
       const user: User = {
         id: usuario.id,
         nome: usuario.nome,
@@ -81,7 +65,7 @@ class AuthService {
         professorId: usuario.professor_id ?? undefined,
       };
 
-      // 4) Salva no localStorage
+      // Salva no localStorage
       safeStorage.setItem(this.storageKey, JSON.stringify(user));
       this.cachedAuthState = { user, isAuthenticated: true };
 
