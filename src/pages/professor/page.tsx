@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useMemo, useRef, memo } from 'react';
-import { BookOpen, Users, ClipboardList, AlertTriangle, ChevronRight, Calendar, Clock, ArrowLeft, CheckCircle, MessageSquare } from 'lucide-react';
+import { BookOpen, Users, ClipboardList, AlertTriangle, ChevronRight, Calendar, Clock, GraduationCap, ArrowLeft, CheckCircle, MessageSquare } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
+import { ScrollArea } from '../../components/ui/scroll-area';
 import { AuthHeader } from '../../components/auth/AuthHeader';
 import { ErrorBoundary } from '../../components/ErrorBoundary';
 import { authService } from '../../services/auth';
@@ -13,6 +14,7 @@ import { AlunosTab } from '../diario/components/AlunosTab';
 import { OcorrenciasTab } from '../diario/components/OcorrenciasTab';
 import { RecadosTab } from './components/RecadosTab';
 
+// Memoização dos componentes de tab para melhor performance
 const MemoizedAulasTab = memo(AulasTab);
 const MemoizedAvaliacoesTab = memo(AvaliacoesTab);
 const MemoizedAlunosTab = memo(AlunosTab);
@@ -23,6 +25,11 @@ export function ProfessorPage() {
   const [activeTab, setActiveTab] = useState('aulas');
   const [selectedDiario, setSelectedDiario] = useState<number | null>(null);
   const [diarios, setDiarios] = useState<Diario[]>([]);
+  const [diarioExtras, setDiarioExtras] = useState<Record<number, {
+    disciplinaNome: string;
+    turmaNome: string;
+    alunosCount: number;
+  }>>({});
   const [loading, setLoading] = useState(true);
   const [showDiarioSelection, setShowDiarioSelection] = useState(true);
   const { user } = authService.getAuthState();
@@ -33,11 +40,33 @@ export function ProfessorPage() {
     if (!user || !user.professor_id || loadedRef.current) return;
     
     try {
-      console.log('Carregando diários para professor_id:', user.professor_id);
+      // CORRIGIDO: Usar professor_id ao invés de id
       const professorDiarios = await supabaseService.getDiariosByProfessor(user.professor_id);
-      console.log('Diários carregados:', professorDiarios);
       setDiarios(professorDiarios);
 
+      // Monta extras (disciplina/turma/qtd alunos) ANTES do render
+      const extrasEntries = await Promise.all(
+        professorDiarios.map(async (d) => {
+          const [disciplina, turma, alunos] = await Promise.all([
+            supabaseService.getDisciplinaById(d.disciplina_id ?? d.disciplinaId),
+            supabaseService.getTurmaById(d.turma_id ?? d.turmaId),
+            supabaseService.getAlunosByDiario(d.id),
+          ]);
+
+          return [
+            d.id,
+            {
+              disciplinaNome: (disciplina as any)?.nome ?? '—',
+              turmaNome: (turma as any)?.nome ?? '—',
+              alunosCount: Array.isArray(alunos) ? alunos.length : 0,
+            },
+          ] as const;
+        })
+      );
+
+      setDiarioExtras(Object.fromEntries(extrasEntries));
+
+      // Se só tem um diário, seleciona automaticamente
       if (professorDiarios.length === 1) {
         setSelectedDiario(professorDiarios[0].id);
         setShowDiarioSelection(false);
@@ -50,7 +79,7 @@ export function ProfessorPage() {
     } finally {
       setLoading(false);
     }
-  }, [user?.professor_id]);
+  }, [user?.professor_id, user?.id]);
 
   useEffect(() => {
     if (!loadedRef.current) {
@@ -58,6 +87,7 @@ export function ProfessorPage() {
     }
   }, [loadDiarios]);
 
+  // Função para recarregar diários após mudança de status
   const handleStatusChange = useCallback(() => {
     loadedRef.current = false;
     loadDiarios();
@@ -127,22 +157,29 @@ export function ProfessorPage() {
     );
   }
 
+  // Tela de seleção de diários
   if (showDiarioSelection || (!selectedDiario && activeTab !== 'recados')) {
     return (
       <ErrorBoundary>
         <div className="min-h-screen flex flex-col bg-background">
+          {/* Header */}
           <header className="sticky top-0 z-50 border-b bg-card px-6 py-4 flex-shrink-0 h-20 flex items-center">
             <div className="flex items-center justify-between w-full">
               <div className="flex items-center gap-4">
                 <div>
-                  <h1 className="text-2xl font-bold">Área do Professor</h1>
-                  <p className="text-base text-muted-foreground">Selecione um diário para gerenciar</p>
+                  <h1 className="text-2xl font-bold">
+                    Área do Professor
+                  </h1>
+                  <p className="text-base text-muted-foreground">
+                    Selecione um diário para gerenciar
+                  </p>
                 </div>
               </div>
               <AuthHeader />
             </div>
           </header>
 
+          {/* Content */}
           <main className="flex-1 p-6">
             <div className="max-w-4xl mx-auto">
               {diarios.length === 0 ? (
@@ -160,7 +197,9 @@ export function ProfessorPage() {
               ) : (
                 <div className="space-y-6">
                   <div className="text-center">
-                    <h3 className="card-title">Meus Diários - Ano Letivo 2025</h3>
+                    <h3 className="card-title">
+                      Meus Diários - Ano Letivo 2025
+                    </h3>
                     <p className="text-muted-foreground">
                       Você possui {diarios.length} {diarios.length === 1 ? 'diário' : 'diários'} atribuído{diarios.length === 1 ? '' : 's'}
                     </p>
@@ -168,23 +207,44 @@ export function ProfessorPage() {
 
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {diarios.map((diario) => {
+                      const extra = diarioExtras[diario.id];
+                      const alunosCount = extra?.alunosCount ?? 0;
+                      const disciplinaNome = extra?.disciplinaNome ?? 'Disciplina';
+                      const turmaNome = extra?.turmaNome ?? 'Turma';
+
+                      const podeEditar = supabaseService.professorPodeEditarDiario(diario, user?.professor_id || 0);
+                      
                       const getStatusInfo = () => {
                         switch (diario.status) {
                           case 'PENDENTE':
-                            return { label: 'Em Edição', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' };
+                            return { 
+                              label: 'Em Edição', 
+                              color: 'bg-yellow-100 text-yellow-800 border-yellow-200'
+                            };
                           case 'ENTREGUE':
-                            return { label: 'Entregue', color: 'bg-blue-100 text-blue-800 border-blue-200' };
+                            return { 
+                              label: 'Entregue', 
+                              color: 'bg-blue-100 text-blue-800 border-blue-200'
+                            };
                           case 'DEVOLVIDO':
-                            return { label: 'Devolvido', color: 'bg-orange-100 text-orange-800 border-orange-200' };
+                            return { 
+                              label: 'Devolvido', 
+                              color: 'bg-orange-100 text-orange-800 border-orange-200'
+                            };
                           case 'FINALIZADO':
-                            return { label: 'Finalizado', color: 'bg-green-100 text-green-800 border-green-200' };
+                            return { 
+                              label: 'Finalizado', 
+                              color: 'bg-green-100 text-green-800 border-green-200'
+                            };
                           default:
-                            return { label: 'Em Edição', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' };
+                            return { 
+                              label: 'Em Edição', 
+                              color: 'bg-yellow-100 text-yellow-800 border-yellow-200'
+                            };
                         }
                       };
 
                       const statusInfo = getStatusInfo();
-                      const podeEditar = supabaseService.professorPodeEditarDiario(diario, user?.professor_id || 0);
 
                       const handleEntregarDiario = async (e: React.MouseEvent) => {
                         e.stopPropagation();
@@ -203,10 +263,12 @@ export function ProfessorPage() {
                           <CardHeader className="pb-3">
                             <div className="flex items-start justify-between">
                               <div className="flex-1">
-                                <CardTitle className="text-lg group-hover:text-primary transition-colors">
-                                  {diario.nome}
-                                </CardTitle>
-                                <div className="flex items-center gap-2 mt-2">
+                                <div className="flex items-center gap-2">
+                                  <CardTitle className="text-lg group-hover:text-primary transition-colors">
+                                    {diario.nome}
+                                  </CardTitle>
+                                </div>
+                                <div className="flex items-center gap-2">
                                   <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${statusInfo.color}`}>
                                     {statusInfo.label}
                                   </div>
@@ -220,6 +282,14 @@ export function ProfessorPage() {
                               <div className="flex items-center gap-2 text-base text-muted-foreground">
                                 <Calendar className="h-4 w-4" />
                                 <span>Bimestre: {diario.bimestre}º</span>
+                              </div>
+                              <div className="flex items-center gap-2 text-base text-muted-foreground">
+                                <BookOpen className="h-4 w-4" />
+                                <span>{disciplinaNome}</span>
+                              </div>
+                              <div className="flex items-center gap-2 text-base text-muted-foreground">
+                                <Users className="h-4 w-4" />
+                                <span>{alunosCount} alunos matriculados</span>
                               </div>
                             </div>
                             
@@ -236,7 +306,7 @@ export function ProfessorPage() {
                               )}
                               
                               <Button 
-                                className="w-full"
+                                className="w-full group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
                                 variant="outline"
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -264,6 +334,7 @@ export function ProfessorPage() {
   return (
     <ErrorBoundary>
       <div className="min-h-screen flex flex-col bg-background">
+        {/* Header Fixo */}
         <header className="sticky top-0 z-50 border-b bg-card px-6 py-4 flex-shrink-0 h-20 flex items-center">
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-6">
@@ -278,15 +349,18 @@ export function ProfessorPage() {
               
               <div className="flex flex-col">
                 <h1 className="text-2xl font-bold">{currentDiario?.nome}</h1>
-                <span className="text-base text-muted-foreground">
-                  {currentDiario?.bimestre ? `${currentDiario.bimestre}º Bimestre` : 'Bimestre não definido'}
-                </span>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-base text-muted-foreground">
+                    {currentDiario?.bimestre ? `${currentDiario.bimestre}º Bimestre` : 'Bimestre não definido'}
+                  </span>
+                </div>
               </div>
             </div>
             <AuthHeader />
           </div>
         </header>
 
+        {/* Tabs Navigation Fixas */}
         <div className="sticky top-20 z-40 border-b bg-card px-6 flex-shrink-0">
           <nav className="flex space-x-8 py-0">
             {tabsConfig.map(({ id, label, icon: Icon }) => (
@@ -306,6 +380,7 @@ export function ProfessorPage() {
           </nav>
         </div>
 
+        {/* Content Scrollável */}
         <main className="flex-1 relative overflow-hidden">
           <div 
             ref={tabContentRef}
