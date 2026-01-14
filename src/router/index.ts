@@ -1,8 +1,8 @@
-
 import { useNavigate, type NavigateFunction } from "react-router-dom";
 import { useRoutes } from "react-router-dom";
 import { useEffect, useRef } from "react";
 import routes from "./config";
+import { authService } from "../services/auth";
 
 let navigateResolver: (navigate: ReturnType<typeof useNavigate>) => void;
 
@@ -25,6 +25,12 @@ export function AppRoutes() {
     if (!isInitialized.current) {
       window.REACT_APP_NAVIGATE = navigate;
       navigateResolver(window.REACT_APP_NAVIGATE);
+      
+      // Registra o navigate no authService para logout funcionar
+      authService.setNavigate((path: string, options?: any) => {
+        navigate(path, options);
+      });
+      
       isInitialized.current = true;
     }
   }, [navigate]);
