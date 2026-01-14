@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from 'react';
-import { Plus, Calendar, AlertTriangle, User, Edit, Trash2 } from 'lucide-react';
+import { Plus, Calendar, AlertTriangle, Edit, Trash2 } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../../../components/ui/dialog';
@@ -31,60 +30,74 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
   });
 
   useEffect(() => {
-    void loadOcorrencias();
-
-    void loadAlunos();
-
+    loadOcorrencias();
+    loadAlunos();
   }, [diarioId]);
 
   const loadOcorrencias = async () => {
-
-    const ocorrenciasData = await supabaseService.getOcorrenciasByDiario(diarioId);
-    setOcorrencias(ocorrenciasData);
+    try {
+      const ocorrenciasData = await supabaseService.getOcorrencias();
+      setOcorrencias((ocorrenciasData || []).filter(o => {
+        const aluno = (alunos || []).find(a => a.id === o.alunoId);
+        return aluno !== undefined;
+      }));
+    } catch (error) {
+      console.error('Erro ao carregar ocorrências:', error);
+      setOcorrencias([]);
+    }
   };
 
   const loadAlunos = async () => {
-
-    const alunosData = await supabaseService.getAlunosByDiario(diarioId);
-    setAlunos(alunosData);
+    try {
+      const alunosData = await supabaseService.getAlunosByDiario(diarioId);
+      setAlunos(alunosData || []);
+    } catch (error) {
+      console.error('Erro ao carregar alunos:', error);
+      setAlunos([]);
+    }
   };
 
-  const filteredOcorrencias = ocorrencias.filter(ocorrencia => {
-    const aluno = alunos.find(a => a.id === ocorrencia.alunoId);
+  const filteredOcorrencias = (ocorrencias || []).filter(ocorrencia => {
+    const aluno = (alunos || []).find(a => a.id === (ocorrencia.alunoId || ocorrencia.aluno_id));
     return (
-      aluno?.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      ocorrencia.tipo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      ocorrencia.descricao.toLowerCase().includes(searchTerm.toLowerCase())
+      (aluno?.nome?.toLowerCase() ?? '').includes(searchTerm.toLowerCase()) ||
+      (ocorrencia.tipo?.toLowerCase() ?? '').includes(searchTerm.toLowerCase()) ||
+      (ocorrencia.descricao?.toLowerCase() ?? '').includes(searchTerm.toLowerCase())
     );
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (editingOcorrencia) {
-      supabaseService.updateOcorrencia(editingOcorrencia.id, {
-        ...formData,
-        alunoId: parseInt(formData.alunoId)
-      });
-    } else {
-      supabaseService.createOcorrencia({
-        ...formData,
-        alunoId: parseInt(formData.alunoId),
-        diarioId,
-        professorId: 1
-      });
-    }
-    
-    void loadOcorrencias();
 
-    setIsDialogOpen(false);
-    resetForm();
+    try {
+      if (editingOcorrencia) {
+        await supabaseService.updateOcorrencia(editingOcorrencia.id, {
+          alunoId: parseInt(formData.alunoId),
+          tipo: formData.tipo,
+          data: formData.data,
+          descricao: formData.descricao
+        });
+      } else {
+        await supabaseService.createOcorrencia({
+          alunoId: parseInt(formData.alunoId),
+          tipo: formData.tipo,
+          data: formData.data,
+          descricao: formData.descricao
+        });
+      }
+
+      await loadOcorrencias();
+      setIsDialogOpen(false);
+      resetForm();
+    } catch (error) {
+      console.error('Erro ao salvar ocorrência:', error);
+    }
   };
 
   const handleEdit = (ocorrencia: Ocorrencia) => {
     setEditingOcorrencia(ocorrencia);
     setFormData({
-      alunoId: ocorrencia.alunoId.toString(),
+      alunoId: (ocorrencia.alunoId || ocorrencia.aluno_id).toString(),
       tipo: ocorrencia.tipo,
       data: ocorrencia.data,
       descricao: ocorrencia.descricao
@@ -92,11 +105,14 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
     setIsDialogOpen(true);
   };
 
-  const handleDelete = (ocorrenciaId: number) => {
+  const handleDelete = async (ocorrenciaId: number) => {
     if (confirm('Tem certeza que deseja excluir esta ocorrência?')) {
-      supabaseService.deleteOcorrencia(ocorrenciaId);
-     void loadOcorrencias();
-
+      try {
+        await supabaseService.deleteOcorrencia(ocorrenciaId);
+        await loadOcorrencias();
+      } catch (error) {
+        console.error('Erro ao excluir ocorrência:', error);
+      }
     }
   };
 
@@ -116,7 +132,7 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
   };
 
   const getTipoBadgeVariant = (tipo: string) => {
-    switch (tipo.toLowerCase()) {
+    switch ((tipo || '').toLowerCase()) {
       case 'disciplinar':
         return 'destructive';
       case 'comportamental':
@@ -131,7 +147,7 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
   };
 
   const getAlunoNome = (alunoId: number) => {
-    const aluno = alunos.find(a => a.id === alunoId);
+    const aluno = (alunos || []).find(a => a.id === alunoId);
     return aluno?.nome || 'Aluno não encontrado';
   };
 
@@ -139,7 +155,7 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
     <Card>
       <CardHeader>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div class="space-y-2">
+          <div className="space-y-2">
             <CardTitle>Ocorrências</CardTitle>
             <CardDescription>
               Registre ocorrências disciplinares e pedagógicas
@@ -171,7 +187,7 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
                         <SelectValue placeholder="Selecione o aluno" />
                       </SelectTrigger>
                       <SelectContent>
-                        {alunos.map((aluno) => (
+                        {(alunos || []).map((aluno) => (
                           <SelectItem key={aluno.id} value={aluno.id.toString()}>
                             {aluno.nome}
                           </SelectItem>
@@ -205,7 +221,6 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
                         value={formData.data}
                         onChange={(e) => setFormData({ ...formData, data: e.target.value })}
                         required
-                        className="input"
                       />
                     </div>
                   </div>
@@ -224,7 +239,7 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
                     <Button type="button" variant="outline" onClick={handleDialogClose}>
                       Cancelar
                     </Button>
-                    <Button type="submit" className="btn btn-primary">
+                    <Button type="submit">
                       {editingOcorrencia ? 'Salvar' : 'Registrar'}
                     </Button>
                   </div>
@@ -237,7 +252,6 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
       <CardContent>
         <div className="mb-4">
           <Input
-            className="input"
             placeholder="Buscar ocorrências..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -248,7 +262,7 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
             <div key={ocorrencia.id} className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 p-4 border rounded-lg">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
-                  <h3 className="font-medium">{getAlunoNome(ocorrencia.alunoId)}</h3>
+                  <h3 className="font-medium">{getAlunoNome(ocorrencia.alunoId || ocorrencia.aluno_id)}</h3>
                   <Badge variant={getTipoBadgeVariant(ocorrencia.tipo)}>
                     {ocorrencia.tipo}
                   </Badge>
@@ -260,7 +274,7 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
                   </span>
                   <span className="flex items-center gap-1">
                     <AlertTriangle className="h-3 w-3" />
-                    {ocorrencia.descricao.substring(0, 50)}...
+                    {(ocorrencia.descricao || '').substring(0, 50)}...
                   </span>
                 </div>
               </div>
