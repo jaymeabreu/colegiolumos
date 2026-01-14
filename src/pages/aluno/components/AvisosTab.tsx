@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { MessageSquare, Calendar, User, Users, Bell } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
@@ -65,17 +64,9 @@ export function AvisosTab() {
 
       // Carregar recados para o aluno
       if (user?.alunoId) {
-        const aluno = (await supabaseService.getAlunos()).find(a => a.id === user.alunoId);
-        console.log('Aluno encontrado:', aluno);
-        
-        if (aluno?.turmaId) {
-          const recadosData = await supabaseService.getRecadosForAluno(user.alunoId, aluno.turmaId);
-          console.log('Recados carregados para o aluno:', recadosData);
-          setRecados(recadosData.sort((a, b) => new Date(b.dataEnvio).getTime() - new Date(a.dataEnvio).getTime()));
-        } else {
-          console.log('Aluno não tem turma definida');
-          setRecados([]);
-        }
+        const recadosData = await supabaseService.getRecadosByAluno(user.alunoId);
+        console.log('Recados carregados para o aluno:', recadosData);
+        setRecados(recadosData.sort((a, b) => new Date(b.dataEnvio).getTime() - new Date(a.dataEnvio).getTime()));
       } else {
         console.log('Usuário não tem alunoId definido');
         setRecados([]);
