@@ -243,9 +243,6 @@ class SupabaseService {
     senha?: string
   ): Promise<Usuario> {
     try {
-      // Importar função de hash dinamicamente
-      const { hashPassword } = await import('@/lib/hashUtils');
-
       // Se não passou senha, gera uma aleatória
       if (!senha) {
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$%&*';
@@ -255,15 +252,12 @@ class SupabaseService {
         }
       }
 
-      // Hash da senha
-      const senhaHash = await hashPassword(senha);
-
-      // Criar registro na tabela usuarios com senha hasheada
+      // Criar registro na tabela usuarios
       const payload: any = {
         nome: usuario.nome,
         email: usuario.email,
         papel: usuario.papel,
-        senha_hash: senhaHash,
+        senha: senha,
         aluno_id: usuario.aluno_id ?? undefined,
         professor_id: usuario.professor_id ?? undefined,
         ativo: usuario.ativo ?? true
