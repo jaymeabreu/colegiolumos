@@ -30,29 +30,24 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
   });
 
   useEffect(() => {
-    loadOcorrencias();
-    loadAlunos();
+    loadData();
   }, [diarioId]);
 
-  const loadOcorrencias = async () => {
+  const loadData = async () => {
     try {
-      const ocorrenciasData = await supabaseService.getOcorrencias();
-      setOcorrencias((ocorrenciasData || []).filter(o => {
-        const aluno = (alunos || []).find(a => a.id === o.alunoId);
-        return aluno !== undefined;
-      }));
-    } catch (error) {
-      console.error('Erro ao carregar ocorrências:', error);
-      setOcorrencias([]);
-    }
-  };
-
-  const loadAlunos = async () => {
-    try {
+      // Carregar alunos PRIMEIRO
       const alunosData = await supabaseService.getAlunosByDiario(diarioId);
       setAlunos(alunosData || []);
+
+      // Depois carregar ocorrências
+      const ocorrenciasData = await supabaseService.getOcorrencias();
+      const filtered = (ocorrenciasData || []).filter(o => {
+        return (alunosData || []).some(a => a.id === (o.alunoId || o.aluno_id));
+      });
+      setOcorrencias(filtered);
     } catch (error) {
-      console.error('Erro ao carregar alunos:', error);
+      console.error('Erro ao carregar dados:', error);
+      setOcorrencias([]);
       setAlunos([]);
     }
   };
@@ -68,6 +63,11 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!formData.alunoId || !formData.tipo || !formData.data || !formData.descricao) {
+      alert('Preencha todos os campos!');
+      return;
+    }
 
     try {
       if (editingOcorrencia) {
@@ -86,11 +86,12 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
         });
       }
 
-      await loadOcorrencias();
+      await loadData();
       setIsDialogOpen(false);
       resetForm();
     } catch (error) {
       console.error('Erro ao salvar ocorrência:', error);
+      alert('Erro ao salvar ocorrência');
     }
   };
 
@@ -109,9 +110,10 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
     if (confirm('Tem certeza que deseja excluir esta ocorrência?')) {
       try {
         await supabaseService.deleteOcorrencia(ocorrenciaId);
-        await loadOcorrencias();
+        await loadData();
       } catch (error) {
         console.error('Erro ao excluir ocorrência:', error);
+        alert('Erro ao excluir ocorrência');
       }
     }
   };
@@ -178,7 +180,7 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="alunoId">Aluno</Label>
+                    <Label htmlFor="alunoId">Aluno *</Label>
                     <Select
                       value={formData.alunoId}
                       onValueChange={(value) => setFormData({ ...formData, alunoId: value })}
@@ -197,7 +199,7 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="tipo">Tipo</Label>
+                      <Label htmlFor="tipo">Tipo *</Label>
                       <Select
                         value={formData.tipo}
                         onValueChange={(value) => setFormData({ ...formData, tipo: value })}
@@ -214,7 +216,7 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="data">Data</Label>
+                      <Label htmlFor="data">Data *</Label>
                       <Input
                         id="data"
                         type="date"
@@ -225,7 +227,7 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="descricao">Descrição</Label>
+                    <Label htmlFor="descricao">Descrição *</Label>
                     <Textarea
                       id="descricao"
                       value={formData.descricao}
