@@ -31,10 +31,10 @@ export function ProfessorPage() {
   const tabContentRef = useRef<HTMLDivElement>(null);
 
   const loadDiarios = useCallback(async () => {
-    if (!user || loadedRef.current) return;
+    if (!user || !user.professor_id || loadedRef.current) return;
     
     try {
-      const professorDiarios = await supabaseService.getDiariosByProfessor(user.id);
+      const professorDiarios = await supabaseService.getDiariosByProfessor(user.professor_id);
       setDiarios(professorDiarios);
 
       if (professorDiarios.length === 1) {
