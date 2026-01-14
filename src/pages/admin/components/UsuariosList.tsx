@@ -160,15 +160,19 @@ export function UsuariosList() {
           nome: formData.nome,
           email: formData.email,
           papel: formData.papel as 'COORDENADOR' | 'PROFESSOR' | 'ALUNO',
-          alunoId: formData.alunoId ? Number(formData.alunoId) : undefined,
+          aluno_id: formData.alunoId ? Number(formData.alunoId) : undefined,
         };
 
         if (editingUsuario) {
-          await supabaseService.updateUsuario(
-            editingUsuario.id,
-            data,
-            formData.senha || undefined
-          );
+          // Se tem senha nova, atualiza também
+          if (formData.senha) {
+            await supabaseService.updateUsuario(editingUsuario.id, {
+              ...data,
+              senha: formData.senha
+            });
+          } else {
+            await supabaseService.updateUsuario(editingUsuario.id, data);
+          }
         } else {
           if (!formData.senha) {
             alert('Senha é obrigatória para novos usuários!');
@@ -314,6 +318,7 @@ export function UsuariosList() {
                       setFormData((prev) => ({ ...prev, nome: e.target.value }))
                     }
                     disabled={isLoading}
+                    required
                   />
                 </div>
 
@@ -327,6 +332,7 @@ export function UsuariosList() {
                       setFormData((prev) => ({ ...prev, email: e.target.value }))
                     }
                     disabled={isLoading}
+                    required
                   />
                 </div>
 
@@ -501,7 +507,65 @@ export function UsuariosList() {
                 )}
               </Button>
             </DialogTrigger>
-            {/* conteúdo do modal de filtro aqui */}
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Filtrar Usuários</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label>Papel</Label>
+                  <Select
+                    value={filters.papel}
+                    onValueChange={(value) =>
+                      setFilters((prev) => ({ ...prev, papel: value }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Todos" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos</SelectItem>
+                      <SelectItem value="COORDENADOR">Coordenador</SelectItem>
+                      <SelectItem value="PROFESSOR">Professor</SelectItem>
+                      <SelectItem value="ALUNO">Aluno</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Tem Aluno?</Label>
+                  <Select
+                    value={filters.temAluno}
+                    onValueChange={(value) =>
+                      setFilters((prev) => ({ ...prev, temAluno: value }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Qualquer um" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Qualquer um</SelectItem>
+                      <SelectItem value="sim">Sim</SelectItem>
+                      <SelectItem value="nao">Não</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={clearFilters}
+                >
+                  Limpar filtros
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => setIsFilterOpen(false)}
+                >
+                  Aplicar
+                </Button>
+              </DialogFooter>
+            </DialogContent>
           </Dialog>
         </div>
 
@@ -559,3 +623,5 @@ export function UsuariosList() {
     </Card>
   );
 }
+
+export default UsuariosList;
