@@ -24,7 +24,12 @@ export function ProfessorPage() {
   const [selectedDiario, setSelectedDiario] = useState<number | null>(null);
   const [diarios, setDiarios] = useState<Diario[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user } = authService.getAuthState();
+  const authState = authService.getAuthState();
+const user = authState.user;
+
+// DEBUG: Log completo
+console.log('authState completo:', authState);
+console.log('user completo:', user);
   const loadedRef = useRef(false);
   const tabContentRef = useRef<HTMLDivElement>(null);
 
@@ -232,3 +237,4 @@ export function ProfessorPage() {
 }
 
 export default ProfessorPage;
+
