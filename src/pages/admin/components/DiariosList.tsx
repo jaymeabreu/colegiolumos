@@ -1,5 +1,7 @@
-// TRECHO A SER CORRIGIDO NO DiariosList.tsx
-// Substitua este useEffect (linhas ~153-178):
+// ================================================
+// SUBSTITUA O useEffect DE FILTRAGEM (linhas ~153-178)
+// NO SEU DiariosList.tsx POR ESTE CÓDIGO:
+// ================================================
 
   // Filtrar professores quando disciplina é selecionada
   useEffect(() => {
@@ -10,30 +12,30 @@
       }
 
       try {
-        // Pegar IDs dos professores que ensinam esta disciplina
+        // Pegar os IDs dos professores que ensinam esta disciplina
         const professoresIds = await supabaseService.getProfessoresByDisciplina(Number(formData.disciplinaId));
         
-        // Filtrar os usuários PROFESSOR que estão na lista acima
+        console.log('=== FILTRAGEM DE PROFESSORES ===');
+        console.log('Disciplina selecionada:', formData.disciplinaId);
+        console.log('IDs de professores da disciplina:', professoresIds);
+        console.log('Todos os professores (usuários):', professores);
+        
+        // Filtrar: só pega os usuários PROFESSOR que estão na lista de IDs
         const professoresDaDisciplina = professores.filter(p => {
-          // Verificar se o professor_id do usuário está na lista de IDs retornada
-          if (p.professor_id && professoresIds.includes(p.professor_id)) {
-            return true;
-          }
-          return false;
+          console.log(`Verificando professor: ${p.nome} (professor_id: ${p.professor_id})`);
+          const match = p.professor_id && professoresIds.includes(p.professor_id);
+          console.log(`  → Match: ${match}`);
+          return match;
         });
-
-        console.log('Professores da disciplina:', professoresDaDisciplina);
-        console.log('IDs esperados:', professoresIds);
-        console.log('Todos os professores:', professores);
+        
+        console.log('Professores filtrados:', professoresDaDisciplina);
+        console.log('=================================');
         
         setProfessoresFiltrados(professoresDaDisciplina);
         
         // Limpar professor selecionado se não está na lista filtrada
-        if (formData.professorId) {
-          const professorValido = professoresDaDisciplina.some(p => p.professor_id?.toString() === formData.professorId);
-          if (!professorValido) {
-            setFormData(prev => ({ ...prev, professorId: '' }));
-          }
+        if (formData.professorId && !professoresIds.includes(Number(formData.professorId))) {
+          setFormData(prev => ({ ...prev, professorId: '' }));
         }
       } catch (error) {
         console.error('Erro ao filtrar professores:', error);
@@ -43,6 +45,3 @@
 
     filtrarProfessores();
   }, [formData.disciplinaId, professores, formData.professorId]);
-
-// APÓS CORRIGIR, ABRA O CONSOLE DO NAVEGADOR (F12)
-// E VEJA QUAL SÃO OS LOGS PARA DIAGNOSTICAR O PROBLEMA
