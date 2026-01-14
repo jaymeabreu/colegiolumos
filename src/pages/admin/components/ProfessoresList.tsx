@@ -255,7 +255,7 @@ export function ProfessoresList() {
           ativo: true
         };
         
-        await supabaseService.createUsuario(usuarioData);
+        await supabaseService.createUsuario(usuarioData, formData.senhaUsuario);
       }
 
       await loadData();
