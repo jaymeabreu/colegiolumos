@@ -45,3 +45,5 @@
 
     filtrarProfessores();
   }, [formData.disciplinaId, professores, formData.professorId]);
+
+export function DiariosList() {
