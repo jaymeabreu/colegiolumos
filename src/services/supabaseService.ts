@@ -1292,27 +1292,20 @@ class SupabaseService {
     return (data ?? []).map(withCamel) as DiarioAluno[];
   }
 
-  // PROFESSORES POR DISCIPLINA (tabela professor_disciplinas)
-  async getProfessoresByDisciplina(disciplinaId: number): Promise<Professor[]> {
-    const { data: rel, error: e1 } = await supabase
+  // PROFESSORES POR DISCIPLINA (tabela professor_disciplinas) - CORRIGIDO PARA RETORNAR IDs
+  async getProfessoresByDisciplina(disciplinaId: number): Promise<number[]> {
+    const { data, error } = await supabase
       .from('professor_disciplinas')
       .select('professor_id')
       .eq('disciplina_id', disciplinaId);
 
-    if (e1) throw e1;
+    if (error) throw error;
 
-    const ids = (rel ?? []).map((r: any) => r.professor_id).filter(Boolean);
-    if (ids.length === 0) return [];
-
-    const { data: profs, error: e2 } = await supabase
-      .from('professores')
-      .select('*')
-      .in('id', ids)
-      .order('id', { ascending: true });
-
-    if (e2) throw e2;
-
-    return (profs ?? []) as Professor[];
+    const ids = (data ?? []).map((row: any) => row.professor_id).filter((id: any) => id !== null && id !== undefined);
+    console.log('getProfessoresByDisciplina - disciplinaId:', disciplinaId);
+    console.log('getProfessoresByDisciplina - resultado bruto:', data);
+    console.log('getProfessoresByDisciplina - IDs extraídos:', ids);
+    return ids as number[];
   }
 
   // STATUS DIÁRIO
@@ -1334,24 +1327,26 @@ class SupabaseService {
     return await this.updateDiario(diarioId, { status: 'ENTREGUE', historico_status });
   }
 
-  async devolverDiario(diarioId: number, motivo: string): Promise<Diario | null> {
+  async devolverDiario(diarioId: number, usuarioId: number, motivo?: string): Promise<boolean> {
     const diario = await this.getDiarioById(diarioId);
-    if (!diario) return null;
+    if (!diario) return false;
 
     const historico_status = this.pushHistoricoStatus(diario, 'DEVOLVIDO', motivo);
-    return await this.updateDiario(diarioId, {
+    const resultado = await this.updateDiario(diarioId, {
       status: 'DEVOLVIDO',
       historico_status,
-      solicitacao_devolucao: { motivo, at: nowIso() }
+      solicitacao_devolucao: { comentario: motivo ?? 'Devolvido para revisão', dataSolicitacao: nowIso() }
     });
+    return resultado !== null;
   }
 
-  async finalizarDiario(diarioId: number): Promise<Diario | null> {
+  async finalizarDiario(diarioId: number, usuarioId: number): Promise<boolean> {
     const diario = await this.getDiarioById(diarioId);
-    if (!diario) return null;
+    if (!diario) return false;
 
     const historico_status = this.pushHistoricoStatus(diario, 'FINALIZADO');
-    return await this.updateDiario(diarioId, { status: 'FINALIZADO', historico_status });
+    const resultado = await this.updateDiario(diarioId, { status: 'FINALIZADO', historico_status });
+    return resultado !== null;
   }
 
   async solicitarDevolucaoDiario(diarioId: number, motivo: string): Promise<Diario | null> {
