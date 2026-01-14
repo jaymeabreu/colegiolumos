@@ -75,7 +75,7 @@ export function DiariosList() {
     loadData();
   }, [loadData]);
 
-  // Filtrar professores quando disciplina é selecionada - CORRIGIDO
+  // Filtrar professores quando disciplina é selecionada - CORRIGIDO FINAL
   useEffect(() => {
     const filtrarProfessores = async () => {
       if (!formData.disciplinaId) {
@@ -87,37 +87,37 @@ export function DiariosList() {
         // Pegar os IDs dos professores que ensinam esta disciplina
         const resultado = await supabaseService.getProfessoresByDisciplina(Number(formData.disciplinaId));
         
-        // CORREÇÃO: Se resultado for array de objetos, extrair apenas os IDs
+        // Debug completo
+        console.log('=== FILTRAGEM FINAL ===');
+        console.log('Resultado bruto:', resultado);
+        console.log('Tipo do resultado:', typeof resultado);
+        console.log('É array?:', Array.isArray(resultado));
+        
+        // Garantir que é um array de números
         let professoresIds: number[] = [];
         if (Array.isArray(resultado)) {
-          if (resultado.length > 0 && typeof resultado[0] === 'object' && 'professor_id' in resultado[0]) {
-            // Se vem como array de objetos
-            professoresIds = resultado.map((item: any) => item.professor_id);
-          } else if (resultado.length > 0 && typeof resultado[0] === 'number') {
-            // Se vem como array de números
-            professoresIds = resultado;
-          }
+          professoresIds = resultado.map(item => {
+            if (typeof item === 'number') return item;
+            if (typeof item === 'object' && item.professor_id) return item.professor_id;
+            return parseInt(item);
+          }).filter(id => !isNaN(id));
         }
         
-        console.log('=== FILTRAGEM DE PROFESSORES ===');
-        console.log('Disciplina selecionada:', formData.disciplinaId);
-        console.log('IDs de professores da disciplina (após processamento):', professoresIds);
-        console.log('Todos os professores (usuários):', professores);
+        console.log('IDs processados:', professoresIds);
+        console.log('Professores disponíveis:', professores.map(p => ({ id: p.id, professor_id: p.professor_id, nome: p.nome })));
         
-        // Filtrar: só pega os usuários PROFESSOR que estão na lista de IDs
+        // Filtrar
         const professoresDaDisciplina = professores.filter(p => {
-          console.log(`Verificando professor: ${p.nome} (professor_id: ${p.professor_id})`);
-          const match = p.professor_id && professoresIds.includes(p.professor_id);
-          console.log(`  → Match: ${match}`);
+          const match = p.professor_id !== undefined && p.professor_id !== null && professoresIds.includes(p.professor_id);
+          console.log(`${p.nome}: professor_id=${p.professor_id}, match=${match}`);
           return match;
         });
         
-        console.log('Professores filtrados:', professoresDaDisciplina);
-        console.log('=================================');
+        console.log('Resultado final:', professoresDaDisciplina.map(p => p.nome));
+        console.log('======================');
         
         setProfessoresFiltrados(professoresDaDisciplina);
         
-        // Limpar professor selecionado se não está na lista filtrada
         if (formData.professorId && !professoresIds.includes(Number(formData.professorId))) {
           setFormData(prev => ({ ...prev, professorId: '' }));
         }
