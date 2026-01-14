@@ -59,7 +59,6 @@ export function DiariosList() {
       setDisciplinas(disciplinasData);
       setProfessores(usuariosData.filter(u => u.papel === 'PROFESSOR'));
       
-      // Carregar usuário atual
       const userData = localStorage.getItem('user');
       if (userData) {
         setCurrentUser(JSON.parse(userData));
@@ -76,7 +75,7 @@ export function DiariosList() {
     loadData();
   }, [loadData]);
 
-  // Filtrar professores quando disciplina é selecionada
+  // Filtrar professores quando disciplina é selecionada - CORRIGIDO
   useEffect(() => {
     const filtrarProfessores = async () => {
       if (!formData.disciplinaId) {
@@ -86,11 +85,23 @@ export function DiariosList() {
 
       try {
         // Pegar os IDs dos professores que ensinam esta disciplina
-        const professoresIds = await supabaseService.getProfessoresByDisciplina(Number(formData.disciplinaId));
+        const resultado = await supabaseService.getProfessoresByDisciplina(Number(formData.disciplinaId));
+        
+        // CORREÇÃO: Se resultado for array de objetos, extrair apenas os IDs
+        let professoresIds: number[] = [];
+        if (Array.isArray(resultado)) {
+          if (resultado.length > 0 && typeof resultado[0] === 'object' && 'professor_id' in resultado[0]) {
+            // Se vem como array de objetos
+            professoresIds = resultado.map((item: any) => item.professor_id);
+          } else if (resultado.length > 0 && typeof resultado[0] === 'number') {
+            // Se vem como array de números
+            professoresIds = resultado;
+          }
+        }
         
         console.log('=== FILTRAGEM DE PROFESSORES ===');
         console.log('Disciplina selecionada:', formData.disciplinaId);
-        console.log('IDs de professores da disciplina:', professoresIds);
+        console.log('IDs de professores da disciplina (após processamento):', professoresIds);
         console.log('Todos os professores (usuários):', professores);
         
         // Filtrar: só pega os usuários PROFESSOR que estão na lista de IDs
@@ -119,19 +130,16 @@ export function DiariosList() {
     filtrarProfessores();
   }, [formData.disciplinaId, professores, formData.professorId]);
 
-  // Filtros ultra-otimizados - cache de cálculos pesados
   const filteredDiarios = useMemo(() => {
     if (!searchTerm && !Object.values(filters).some(v => v && v !== 'all')) {
-      return diarios; // Retorna lista completa sem processamento
+      return diarios;
     }
 
     return diarios.filter(diario => {
-      // Filtro de busca simples primeiro
       if (searchTerm && diario.nome && !diario.nome.toLowerCase().includes(searchTerm.toLowerCase())) {
         return false;
       }
 
-      // Filtros simples primeiro
       if (filters.disciplina && filters.disciplina !== 'all' && 
           diario.disciplina_id?.toString() !== filters.disciplina) return false;
       
@@ -144,11 +152,9 @@ export function DiariosList() {
       if (filters.bimestre && filters.bimestre !== 'all' && diario.bimestre && 
           diario.bimestre.toString() !== filters.bimestre) return false;
 
-      // Filtro por status do diário
       if (filters.statusDiario && filters.statusDiario !== 'all' && 
           diario.status !== filters.statusDiario) return false;
 
-      // Status baseado nas datas - cálculo mais pesado por último
       if (filters.status && filters.status !== 'all' && diario.dataInicio && diario.dataTermino) {
         const hoje = new Date();
         const dataInicio = new Date(diario.dataInicio);
@@ -306,7 +312,6 @@ export function DiariosList() {
     return Object.values(filters).filter(value => value !== '' && value !== 'all').length;
   }, [filters]);
 
-  // Cache de nomes para evitar buscas repetidas
   const getTurmaNome = useCallback((turmaId?: number) => {
     if (!turmaId) return 'N/A';
     return turmas.find(t => t.id === turmaId)?.nome || 'N/A';
@@ -756,7 +761,6 @@ export function DiariosList() {
                     )}
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
-                    {/* Ações do Coordenador */}
                     {currentUser?.papel === 'COORDENADOR' && (
                       <>
                         {permissions.canDevolver && (
@@ -793,7 +797,7 @@ export function DiariosList() {
                     <Button
                       variant="outline"
                       size="none"
-                    className="h-8 w-8 p-0 inline-flex items-center justify-center"
+                      className="h-8 w-8 p-0 inline-flex items-center justify-center"
                       onClick={() => handleEdit(diario)}
                     >
                       <Edit className="h-4 w-4" />
@@ -801,7 +805,7 @@ export function DiariosList() {
                     <Button
                       variant="destructive"
                       size="none"
-                    className="h-8 w-8 p-0 inline-flex items-center justify-center"
+                      className="h-8 w-8 p-0 inline-flex items-center justify-center"
                       onClick={() => handleDelete(diario.id)}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -821,7 +825,6 @@ export function DiariosList() {
         )}
       </CardContent>
 
-      {/* Modal de Devolução */}
       <Dialog open={isDevolverDialogOpen} onOpenChange={setIsDevolverDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -861,7 +864,6 @@ export function DiariosList() {
         </DialogContent>
       </Dialog>
 
-      {/* Modal de Finalização */}
       <Dialog open={isFinalizarDialogOpen} onOpenChange={setIsFinalizarDialogOpen}>
         <DialogContent>
           <DialogHeader>
