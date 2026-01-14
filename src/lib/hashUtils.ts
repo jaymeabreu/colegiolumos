@@ -1,6 +1,5 @@
-// src/lib/hashUtils.ts
+// src/lib/hashUtils.ts - VERSÃO CORRIGIDA
 
-// Hash simples usando SHA-256 + salt
 const SALT = 'colegio-lumos-salt-2025';
 
 export async function hashPassword(password: string): Promise<string> {
@@ -15,10 +14,8 @@ export async function hashPassword(password: string): Promise<string> {
 
 export async function verifyPassword(password: string, hash: string): Promise<boolean> {
   const newHash = await hashPassword(password);
+  console.log('Senha digitada hash:', newHash);
+  console.log('Hash no banco:', hash);
+  console.log('São iguais?', newHash === hash);
   return newHash === hash;
-}
-
-// Função para gerar hash conhecido (para testes)
-export async function getHashForPassword(password: string): Promise<string> {
-  return await hashPassword(password);
 }
