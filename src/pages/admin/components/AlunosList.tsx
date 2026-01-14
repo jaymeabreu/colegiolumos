@@ -218,7 +218,11 @@ export function AlunosList() {
       }
 
       await loadData();
+      
+      // ✅ CORREÇÃO: Fechar modal PRIMEIRO, depois resetar formulário
+      setIsDialogOpen(false);
       resetForm();
+      
       alert(editingAluno ? 'Aluno atualizado com sucesso!' : 'Aluno cadastrado com sucesso!');
     } catch (error) {
       console.error('Erro ao salvar aluno:', error);
@@ -309,7 +313,6 @@ export function AlunosList() {
     });
     setSelectedImage(null);
     setEditingAluno(null);
-    setIsDialogOpen(false);
     setShowPassword(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
