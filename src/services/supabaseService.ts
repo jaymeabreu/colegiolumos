@@ -597,6 +597,7 @@ class SupabaseService {
   async createAluno(aluno: Omit<Aluno, 'id' | 'created_at' | 'updated_at'>): Promise<Aluno> {
     const payload: any = {
       nome: aluno.nome,
+      matricula: aluno.matricula,
       email: aluno.email ?? null,
       turma_id: aluno.turma_id ?? aluno.turmaId
     };
