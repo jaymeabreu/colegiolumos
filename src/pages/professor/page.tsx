@@ -24,36 +24,23 @@ export function ProfessorPage() {
   const [selectedDiario, setSelectedDiario] = useState<number | null>(null);
   const [diarios, setDiarios] = useState<Diario[]>([]);
   const [loading, setLoading] = useState(true);
-  const authState = authService.getAuthState();
-const user = authState.user;
-
-// DEBUG: Log completo
-console.log('authState completo:', authState);
-console.log('user completo:', user);
+  const { user } = authService.getAuthState();
   const loadedRef = useRef(false);
   const tabContentRef = useRef<HTMLDivElement>(null);
 
+  // Carregar diários uma única vez
   useEffect(() => {
     if (loadedRef.current || !user?.id) return;
 
     const carregarDiarios = async () => {
       try {
-        console.log('=== DEBUG PROFESSOR PAGE ===');
-        console.log('user:', user);
-        console.log('user.id:', user.id);
-        console.log('user.professor_id:', user.professor_id);
-        
-        // Tenta com professor_id primeiro
-        if (user.professor_id) {
-          console.log('Carregando diários com professor_id:', user.professor_id);
-          const dados = await supabaseService.getDiariosByProfessor(user.professor_id);
-          console.log('Diários retornados:', dados);
+        // CORRIGIDO: Usar professorId (camelCase) ao invés de professor_id
+        if (user.professorId) {
+          const dados = await supabaseService.getDiariosByProfessor(user.professorId);
           setDiarios(dados);
         } else {
-          console.log('professor_id não encontrado no user!');
           setDiarios([]);
         }
-        
         loadedRef.current = true;
       } catch (error) {
         console.error('Erro ao carregar diários:', error);
@@ -64,7 +51,7 @@ console.log('user completo:', user);
     };
 
     carregarDiarios();
-  }, [user?.id, user?.professor_id]);
+  }, [user?.id, user?.professorId]);
 
   const currentDiario = useMemo(() => {
     return diarios.find(d => d.id === selectedDiario) || null;
@@ -99,6 +86,7 @@ console.log('user completo:', user);
     }
   }, [activeTab, selectedDiario]);
 
+  // Tela de carregamento
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -110,6 +98,7 @@ console.log('user completo:', user);
     );
   }
 
+  // Tela de seleção de diários (quando nenhum está selecionado)
   if (!selectedDiario) {
     return (
       <ErrorBoundary>
@@ -131,7 +120,6 @@ console.log('user completo:', user);
                   <CardHeader className="text-center py-12">
                     <BookOpen className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                     <CardTitle>Nenhum diário encontrado</CardTitle>
-                    <p className="text-sm text-muted-foreground mt-2">professor_id: {user?.professor_id}</p>
                   </CardHeader>
                 </Card>
               ) : (
@@ -180,6 +168,7 @@ console.log('user completo:', user);
     );
   }
 
+  // Tela de visualização do diário
   return (
     <ErrorBoundary>
       <div className="min-h-screen flex flex-col bg-background">
@@ -237,4 +226,3 @@ console.log('user completo:', user);
 }
 
 export default ProfessorPage;
-
