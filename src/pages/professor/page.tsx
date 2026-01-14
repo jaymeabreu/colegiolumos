@@ -14,7 +14,6 @@ import { AlunosTab } from '../diario/components/AlunosTab';
 import { OcorrenciasTab } from '../diario/components/OcorrenciasTab';
 import { RecadosTab } from './components/RecadosTab';
 
-// Memoização dos componentes de tab para melhor performance
 const MemoizedAulasTab = memo(AulasTab);
 const MemoizedAvaliacoesTab = memo(AvaliacoesTab);
 const MemoizedAlunosTab = memo(AlunosTab);
@@ -40,33 +39,43 @@ export function ProfessorPage() {
     if (!user || !user.professor_id || loadedRef.current) return;
     
     try {
-      // CORRIGIDO: Usar professor_id ao invés de id
       const professorDiarios = await supabaseService.getDiariosByProfessor(user.professor_id);
+      console.log('Diários carregados:', professorDiarios);
       setDiarios(professorDiarios);
 
-      // Monta extras (disciplina/turma/qtd alunos) ANTES do render
       const extrasEntries = await Promise.all(
         professorDiarios.map(async (d) => {
-          const [disciplina, turma, alunos] = await Promise.all([
-            supabaseService.getDisciplinaById(d.disciplina_id ?? d.disciplinaId),
-            supabaseService.getTurmaById(d.turma_id ?? d.turmaId),
-            supabaseService.getAlunosByDiario(d.id),
-          ]);
+          try {
+            const [disciplina, turma, alunos] = await Promise.all([
+              supabaseService.getDisciplinaById(d.disciplina_id ?? d.disciplinaId),
+              supabaseService.getTurmaById(d.turma_id ?? d.turmaId),
+              supabaseService.getAlunosByDiario(d.id),
+            ]);
 
-          return [
-            d.id,
-            {
-              disciplinaNome: (disciplina as any)?.nome ?? '—',
-              turmaNome: (turma as any)?.nome ?? '—',
-              alunosCount: Array.isArray(alunos) ? alunos.length : 0,
-            },
-          ] as const;
+            return [
+              d.id,
+              {
+                disciplinaNome: (disciplina as any)?.nome ?? '—',
+                turmaNome: (turma as any)?.nome ?? '—',
+                alunosCount: Array.isArray(alunos) ? alunos.length : 0,
+              },
+            ] as const;
+          } catch (err) {
+            console.error(`Erro ao carregar extras do diário ${d.id}:`, err);
+            return [
+              d.id,
+              {
+                disciplinaNome: '—',
+                turmaNome: '—',
+                alunosCount: 0,
+              },
+            ] as const;
+          }
         })
       );
 
       setDiarioExtras(Object.fromEntries(extrasEntries));
 
-      // Se só tem um diário, seleciona automaticamente
       if (professorDiarios.length === 1) {
         setSelectedDiario(professorDiarios[0].id);
         setShowDiarioSelection(false);
@@ -79,7 +88,7 @@ export function ProfessorPage() {
     } finally {
       setLoading(false);
     }
-  }, [user?.professor_id, user?.id]);
+  }, [user?.professor_id]);
 
   useEffect(() => {
     if (!loadedRef.current) {
@@ -87,7 +96,6 @@ export function ProfessorPage() {
     }
   }, [loadDiarios]);
 
-  // Função para recarregar diários após mudança de status
   const handleStatusChange = useCallback(() => {
     loadedRef.current = false;
     loadDiarios();
@@ -157,12 +165,10 @@ export function ProfessorPage() {
     );
   }
 
-  // Tela de seleção de diários
   if (showDiarioSelection || (!selectedDiario && activeTab !== 'recados')) {
     return (
       <ErrorBoundary>
         <div className="min-h-screen flex flex-col bg-background">
-          {/* Header */}
           <header className="sticky top-0 z-50 border-b bg-card px-6 py-4 flex-shrink-0 h-20 flex items-center">
             <div className="flex items-center justify-between w-full">
               <div className="flex items-center gap-4">
@@ -179,7 +185,6 @@ export function ProfessorPage() {
             </div>
           </header>
 
-          {/* Content */}
           <main className="flex-1 p-6">
             <div className="max-w-4xl mx-auto">
               {diarios.length === 0 ? (
@@ -334,7 +339,6 @@ export function ProfessorPage() {
   return (
     <ErrorBoundary>
       <div className="min-h-screen flex flex-col bg-background">
-        {/* Header Fixo */}
         <header className="sticky top-0 z-50 border-b bg-card px-6 py-4 flex-shrink-0 h-20 flex items-center">
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-6">
@@ -360,7 +364,6 @@ export function ProfessorPage() {
           </div>
         </header>
 
-        {/* Tabs Navigation Fixas */}
         <div className="sticky top-20 z-40 border-b bg-card px-6 flex-shrink-0">
           <nav className="flex space-x-8 py-0">
             {tabsConfig.map(({ id, label, icon: Icon }) => (
@@ -380,7 +383,6 @@ export function ProfessorPage() {
           </nav>
         </div>
 
-        {/* Content Scrollável */}
         <main className="flex-1 relative overflow-hidden">
           <div 
             ref={tabContentRef}
