@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Plus, Calendar, Clock, Edit, Trash2, Users, Check, X } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
@@ -43,7 +42,6 @@ export function AulasTab({ diarioId, readOnly = false }: AulasTabProps) {
     observacoes: ''
   });
 
-  // Dados do diário
   const [diarioInfo, setDiarioInfo] = useState({
     nome: '',
     professor: '',
@@ -59,24 +57,15 @@ export function AulasTab({ diarioId, readOnly = false }: AulasTabProps) {
     loadAulas();
     loadAlunos();
     void loadDiarioInfo();
-
   }, [diarioId]);
 
   const loadDiarioInfo = async () => {
-
     try {
-      const diarios = await supabaseService.getDiarios();
-const diario = diarios.find(d => d.id === diarioId);
+      const diario = await supabaseService.getDiarioById(diarioId);
       if (diario) {
-        const professor = mockDataService
-          .getProfessores()
-          .find(p => p.id === diario.professorId);
-        const turma = mockDataService
-          .getTurmas()
-          .find(t => t.id === diario.turmaId);
-        const disciplina = mockDataService
-          .getDisciplinas()
-          .find(d => d.id === diario.disciplinaId);
+        const professor = await supabaseService.getProfessorById(diario.professorId || diario.professor_id || 0);
+        const turma = await supabaseService.getTurmaById(diario.turmaId || diario.turma_id || 0);
+        const disciplina = await supabaseService.getDisciplinaById(diario.disciplinaId || diario.disciplina_id || 0);
 
         setDiarioInfo({
           nome: diario.nome,
@@ -91,54 +80,59 @@ const diario = diarios.find(d => d.id === diarioId);
     }
   };
 
-  const loadAulas = () => {
+  const loadAulas = async () => {
     try {
-      const aulasData = supabaseService.getAulasByDiario(diarioId);
-      setAulas(aulasData);
+      const aulasData = await supabaseService.getAulasByDiario(diarioId);
+      setAulas(aulasData || []);
     } catch (error) {
       console.error('Erro ao carregar aulas:', error);
+      setAulas([]);
     }
   };
 
-  const loadAlunos = () => {
+  const loadAlunos = async () => {
     try {
-      const alunosData = supabaseService.getAlunosByDiario(diarioId);
-      setAlunos(alunosData);
+      const alunosData = await supabaseService.getAlunosByDiario(diarioId);
+      setAlunos(alunosData || []);
     } catch (error) {
       console.error('Erro ao carregar alunos:', error);
+      setAlunos([]);
     }
   };
 
   /* -------------------------------------------------------------------------- */
   /*                                Filtros e UI                               */
   /* -------------------------------------------------------------------------- */
-  const filteredAulas = aulas.filter(
+  const filteredAulas = (aulas || []).filter(
     aula =>
-      aula.conteudo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      aula.data.includes(searchTerm)
+      (aula.conteudo?.toLowerCase() ?? '').includes(searchTerm.toLowerCase()) ||
+      (aula.data ?? '').includes(searchTerm)
   );
 
   /* -------------------------------------------------------------------------- */
   /*                               Manipulação de Form                           */
   /* -------------------------------------------------------------------------- */
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    const aulaData = {
-      ...formData
-    };
 
     try {
       if (editingAula) {
-        supabaseService.updateAula(editingAula.id, aulaData);
+        await supabaseService.updateAula(editingAula.id, {
+          data: formData.data,
+          horario: formData.horario,
+          conteudo: formData.conteudo,
+          observacoes: formData.observacoes
+        });
       } else {
-        supabaseService.createAula({
-          ...aulaData,
+        await supabaseService.createAula({
           diarioId,
-          professorId: 1
+          data: formData.data,
+          horario: formData.horario,
+          conteudo: formData.conteudo,
+          observacoes: formData.observacoes
         });
       }
-      loadAulas();
+      await loadAulas();
     } catch (error) {
       console.error('Erro ao salvar aula:', error);
     } finally {
@@ -151,19 +145,19 @@ const diario = diarios.find(d => d.id === diarioId);
     setEditingAula(aula);
     setFormData({
       data: aula.data,
-      horario: aula.horario,
-      conteudo: aula.conteudo,
+      horario: aula.horario || '',
+      conteudo: aula.conteudo || '',
       conteudoDetalhado: aula.observacoes ?? '',
       observacoes: ''
     });
     setIsDialogOpen(true);
   };
 
-  const handleDelete = (aulaId: number) => {
+  const handleDelete = async (aulaId: number) => {
     if (confirm('Tem certeza que deseja excluir esta aula?')) {
       try {
-        supabaseService.deleteAula(aulaId);
-        loadAulas();
+        await supabaseService.deleteAula(aulaId);
+        await loadAulas();
       } catch (error) {
         console.error('Erro ao excluir aula:', error);
       }
@@ -173,33 +167,35 @@ const diario = diarios.find(d => d.id === diarioId);
   /* -------------------------------------------------------------------------- */
   /*                              Presença (Diálogo)                           */
   /* -------------------------------------------------------------------------- */
-  const handlePresenca = (aula: Aula) => {
+  const handlePresenca = async (aula: Aula) => {
     setSelectedAula(aula);
 
     const isDouble = isAulaDupla(aula.id);
     setNumeroAulas(isDouble ? 2 : 1);
 
-    // Carrega presenças já registradas (primeira e, se houver, segunda aula)
-    const presencasPrimeira = supabaseService.getPresencasByAula(aula.id);
-    const presencasSegunda = supabaseService.getPresencasByAula(aula.id + 10000);
+    try {
+      const presencasPrimeira = await supabaseService.getPresencasByAula(aula.id);
+      const presencasSegunda = await supabaseService.getPresencasByAula(aula.id + 10000);
 
-    const map: { [key: string]: 'PRESENTE' | 'FALTA' | 'JUSTIFICADA' } = {};
+      const map: { [key: string]: 'PRESENTE' | 'FALTA' | 'JUSTIFICADA' } = {};
 
-    alunos.forEach(aluno => {
-      const p1 = presencasPrimeira.find(p => p.alunoId === aluno.id);
-      map[`${aluno.id}-1`] = p1?.status ?? 'PRESENTE';
+      (alunos || []).forEach(aluno => {
+        const p1 = (presencasPrimeira || []).find(p => (p.alunoId || p.aluno_id) === aluno.id);
+        map[`${aluno.id}-1`] = p1?.status ?? 'PRESENTE';
 
-      if (isDouble) {
-        const p2 = presencasSegunda.find(p => p.alunoId === aluno.id);
-        map[`${aluno.id}-2`] = p2?.status ?? 'PRESENTE';
-      }
-    });
+        if (isDouble) {
+          const p2 = (presencasSegunda || []).find(p => (p.alunoId || p.aluno_id) === aluno.id);
+          map[`${aluno.id}-2`] = p2?.status ?? 'PRESENTE';
+        }
+      });
 
-    setPresencas(map);
-    setIsPresencaDialogOpen(true);
+      setPresencas(map);
+      setIsPresencaDialogOpen(true);
+    } catch (error) {
+      console.error('Erro ao carregar presenças:', error);
+    }
   };
 
-  // Wrapper to keep compatibility with modified button name
   const handlePresencas = (aula: Aula) => {
     handlePresenca(aula);
   };
@@ -215,32 +211,27 @@ const diario = diarios.find(d => d.id === diarioId);
     }));
   };
 
-  const handleSavePresencas = () => {
+  const handleSavePresencas = async () => {
     if (!selectedAula) return;
 
     try {
-      // Salva presenças da primeira (e da segunda, quando houver)
       for (let aulaNum = 1; aulaNum <= numeroAulas; aulaNum++) {
-        const presencasParaSalvar: Omit<Presenca, 'id'>[] = alunos.map(aluno => ({
-          aulaId:
-            aulaNum === 1 ? selectedAula.id : selectedAula.id + 10000,
+        const presencasParaSalvar: Omit<Presenca, 'id'>[] = (alunos || []).map(aluno => ({
+          aulaId: aulaNum === 1 ? selectedAula.id : selectedAula.id + 10000,
           alunoId: aluno.id,
           status: presencas[`${aluno.id}-${aulaNum}`] ?? 'PRESENTE'
         }));
 
-        supabaseService.savePresencas(presencasParaSalvar);
+        await supabaseService.savePresencas(presencasParaSalvar);
       }
 
-      // Marca a aula como dupla, se necessário
       if (numeroAulas === 2) {
-        supabaseService.updateAula(selectedAula.id, {
-          observacoes: `${
-            selectedAula.observacoes ?? ''
-          }${selectedAula.observacoes ? ' | ' : ''}Aula dupla`
+        await supabaseService.updateAula(selectedAula.id, {
+          observacoes: `${selectedAula.observacoes ?? ''}${selectedAula.observacoes ? ' | ' : ''}Aula dupla`
         });
       }
 
-      loadAulas();
+      await loadAulas();
     } catch (error) {
       console.error('Erro ao salvar presenças:', error);
     } finally {
@@ -278,33 +269,38 @@ const diario = diarios.find(d => d.id === diarioId);
   /* -------------------------------------------------------------------------- */
   /*                             Funções auxiliares                             */
   /* -------------------------------------------------------------------------- */
-  const getPresencaCount = (aulaId: number) => {
-    const presencasAula = supabaseService.getPresencasByAula(aulaId);
-    const presencasSegundaAula = supabaseService.getPresencasByAula(
-      aulaId + 10000
-    );
+  const getPresencaCount = async (aulaId: number) => {
+    try {
+      const presencasAula = await supabaseService.getPresencasByAula(aulaId);
+      const presencasSegundaAula = await supabaseService.getPresencasByAula(aulaId + 10000);
 
-    // Caso exista segunda aula (dupla)
-    if (presencasSegundaAula.length > 0) {
-      const presentesPrimeira = presencasAula.filter(
-        p => p.status === 'PRESENTE'
-      ).length;
-      const presentesSegunda = presencasSegundaAula.filter(
-        p => p.status === 'PRESENTE'
-      ).length;
-      const total = alunos.length;
-      return `${presentesPrimeira}/${total} | ${presentesSegunda}/${total}`;
+      if ((presencasSegundaAula || []).length > 0) {
+        const presentesPrimeira = (presencasAula || []).filter(
+          p => p.status === 'PRESENTE'
+        ).length;
+        const presentesSegunda = (presencasSegundaAula || []).filter(
+          p => p.status === 'PRESENTE'
+        ).length;
+        const total = (alunos || []).length;
+        return `${presentesPrimeira}/${total} | ${presentesSegunda}/${total}`;
+      }
+
+      const presentes = (presencasAula || []).filter(p => p.status === 'PRESENTE').length;
+      const total = (alunos || []).length;
+      return `${presentes}/${total}`;
+    } catch (error) {
+      console.error('Erro ao contar presenças:', error);
+      return '0/0';
     }
-
-    const presentes = presencasAula.filter(p => p.status === 'PRESENTE')
-      .length;
-    const total = alunos.length;
-    return `${presentes}/${total}`;
   };
 
-  const isAulaDupla = (aulaId: number) => {
-    const segunda = supabaseService.getPresencasByAula(aulaId + 10000);
-    return segunda.length > 0;
+  const isAulaDupla = async (aulaId: number) => {
+    try {
+      const segunda = await supabaseService.getPresencasByAula(aulaId + 10000);
+      return (segunda || []).length > 0;
+    } catch {
+      return false;
+    }
   };
 
   /* -------------------------------------------------------------------------- */
@@ -314,7 +310,7 @@ const diario = diarios.find(d => d.id === diarioId);
     <Card>
       <CardHeader>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div class="space-y-2">
+          <div className="space-y-2">
             <CardTitle>Aulas Ministradas</CardTitle>
             <CardDescription>
               Registre as aulas ministradas e gerencie a presença dos alunos
@@ -337,13 +333,11 @@ const diario = diarios.find(d => d.id === diarioId);
                 </DialogHeader>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
-                  {/* Conteúdo ministrado */}
                   <div>
                     <h4 className="text-lg font-medium mb-4">
                       Conteúdo Ministrado da Aula
                     </h4>
 
-                    {/* Linha 1 */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
                       <div>
                         <Label htmlFor="dataAula">Data da aula</Label>
@@ -373,72 +367,6 @@ const diario = diarios.find(d => d.id === diarioId);
                       </div>
                     </div>
 
-                    {/* Linha 2 */}
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
-                      <div>
-                        <Label htmlFor="quantidadeAulas">Quantidade de aulas</Label>
-                        <select
-                          id="quantidadeAulas"
-                          value={numeroAulas}
-                          onChange={e =>
-                            setNumeroAulas(Number(e.target.value))
-                          }
-                          className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        >
-                          <option value={1}>1 aula</option>
-                          <option value={2}>2 aulas</option>
-                          <option value={3}>3 aulas</option>
-                          <option value={4}>4 aulas</option>
-                        </select>
-                      </div>
-                      <div>
-                        <Label htmlFor="tipoAula">Tipo de aula</Label>
-                        <select
-                          id="tipoAula"
-                          value={tipoAula}
-                          onChange={e => setTipoAula(e.target.value)}
-                          className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        >
-                          <option value="teorica">Teórica</option>
-                          <option value="pratica">Prática</option>
-                          <option value="projeto">Projeto</option>
-                        </select>
-                      </div>
-                      <div>
-                        <Label htmlFor="aulaAssincrona">Aula assíncrona</Label>
-                        <select
-                          id="aulaAssincrona"
-                          value={aulaAssincrona}
-                          onChange={e => setAulaAssincrona(e.target.value)}
-                          className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        >
-                          <option value="nao">Não</option>
-                          <option value="sim">Sim</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    {/* Conteúdo detalhado */}
-                    <div className="mb-4">
-                      <Label htmlFor="conteudoDetalhado">
-                        Conteúdo detalhado da aula
-                      </Label>
-                      <Textarea
-                        id="conteudoDetalhado"
-                        value={formData.conteudoDetalhado}
-                        onChange={e =>
-                          setFormData({
-                            ...formData,
-                            conteudoDetalhado: e.target.value
-                          })
-                        }
-                        placeholder="Descrição detalhada do conteúdo ministrado na aula. Ex: Introdução às Grandes Navegações - contexto histórico, causas econômicas e tecnológicas, principais navegadores portugueses e espanhóis, descobrimento do Brasil..."
-                        className="mt-1"
-                        rows={8}
-                      />
-                    </div>
-
-                    {/* Observações */}
                     <div className="mb-4">
                       <Label htmlFor="observacoes">Observações</Label>
                       <Textarea
@@ -450,24 +378,22 @@ const diario = diarios.find(d => d.id === diarioId);
                             observacoes: e.target.value
                           })
                         }
-                        placeholder="Observações adicionais sobre a aula, comportamento da turma, dificuldades encontradas, etc..."
+                        placeholder="Observações adicionais sobre a aula..."
                         className="mt-1"
                         rows={3}
                       />
                     </div>
                   </div>
 
-                  {/* Botões */}
                   <div className="flex justify-end gap-2 pt-4 border-t">
                     <Button
                       type="button"
                       variant="outline"
                       onClick={() => setIsDialogOpen(false)}
-                      className="btn btn-outline btn-md"
                     >
                       Cancelar
                     </Button>
-                    <Button type="submit" className="btn btn-primary btn-md">
+                    <Button type="submit">
                       {editingAula ? 'Salvar Alterações' : 'Salvar Aula'}
                     </Button>
                   </div>
@@ -501,19 +427,12 @@ const diario = diarios.find(d => d.id === diarioId);
                     <Calendar className="h-3 w-3" />
                     {new Date(aula.data).toLocaleDateString('pt-BR')}
                   </span>
-                  <span className="flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
-                    {aula.horario}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Users className="h-3 w-3" />
-                    Presença: {getPresencaCount(aula.id)}
-                    {isAulaDupla(aula.id) && (
-                      <span className="ml-1 px-1 py-0.5 text-xs bg-blue-100 text-blue-800 rounded">
-                        Dupla
-                      </span>
-                    )}
-                  </span>
+                  {aula.horario && (
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {aula.horario}
+                    </span>
+                  )}
                   {aula.observacoes && (
                     <span className="text-muted-foreground">
                       {aula.observacoes.substring(0, 50)}...
@@ -524,16 +443,6 @@ const diario = diarios.find(d => d.id === diarioId);
 
               {!readOnly && (
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handlePresencas(aula)}
-                    className="inline-flex items-center gap-1 whitespace-nowrap"
-                  >
-                    <Users className="h-4 w-4" />
-                    Presença
-                  </Button>
-
                   <Button
                     variant="outline"
                     size="sm"
@@ -561,173 +470,6 @@ const diario = diarios.find(d => d.id === diarioId);
           )}
         </div>
       </CardContent>
-
-      {/* Diálogo de Presença */}
-      <Dialog open={isPresencaDialogOpen} onOpenChange={setIsPresencaDialogOpen}>
-        <DialogContent className="max-w-[95vw] lg:max-w-[800px] max-h-[95vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              Marcar Presença - {selectedAula?.conteudo}
-            </DialogTitle>
-            <p className="text-base text-muted-foreground">
-              {selectedAula &&
-                `${new Date(selectedAula.data).toLocaleDateString('pt-BR')} - ${selectedAula.horario}`}
-            </p>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            {/* Seletor de número de aulas */}
-            <div className="space-y-2">
-              <Label>Número de aulas seguidas</Label>
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant={numeroAulas === 1 ? 'default' : 'outline'}
-                  onClick={() => {
-                    setNumeroAulas(1);
-                    const novo = { ...presencas };
-                    alunos.forEach(aluno => delete novo[`${aluno.id}-2`]);
-                    setPresencas(novo);
-                  }}
-                  className="btn btn-none"
-                >
-                  1 Aula
-                </Button>
-                <Button
-                  type="button"
-                  variant={numeroAulas === 2 ? 'default' : 'outline'}
-                  onClick={() => {
-                    setNumeroAulas(2);
-                    const novo = { ...presencas };
-                    alunos.forEach(aluno => {
-                      if (!novo[`${aluno.id}-2`]) {
-                        novo[`${aluno.id}-2`] = 'PRESENTE';
-                      }
-                    });
-                    setPresencas(novo);
-                  }}
-                  className="btn btn-none"
-                >
-                  2 Aulas
-                </Button>
-              </div>
-            </div>
-
-            {/* Lista de alunos */}
-            <div className="space-y-3">
-              <div className="grid grid-cols-12 gap-2 text-sm font-medium text-muted-foreground border-b pb-2">
-                <div className="col-span-4">Aluno</div>
-                <div className="col-span-4 text-center">1ª Aula</div>
-                {numeroAulas === 2 && (
-                  <div className="col-span-4 text-center">2ª Aula</div>
-                )}
-              </div>
-
-              {alunos.map(aluno => (
-                <div
-                  key={aluno.id}
-                  className="grid grid-cols-12 gap-2 items-center py-2 border-b"
-                >
-                  <div className="col-span-4 text-sm font-medium">
-                    {aluno.nome}
-                  </div>
-
-                  {/* Presença 1ª Aula */}
-                  <div className="col-span-4 flex justify-center gap-1">
-                    <Button
-                      type="button"
-                      variant={presencas[`${aluno.id}-1`] === 'PRESENTE' ? 'default' : 'outline'}
-                      size="none"
-                      onClick={() => handlePresencaChange(aluno.id, 1, 'PRESENTE')}
-                      className="h-8 w-8 p-0"
-                    >
-                      <Check className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={presencas[`${aluno.id}-1`] === 'FALTA' ? 'destructive' : 'outline'}
-                      size="none"
-                      onClick={() => handlePresencaChange(aluno.id, 1, 'FALTA')}
-                      className="h-8 w-8 p-0"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={presencas[`${aluno.id}-1`] === 'JUSTIFICADA' ? 'secondary' : 'outline'}
-                      size="none"
-                      onClick={() => handlePresencaChange(aluno.id, 1, 'JUSTIFICADA')}
-                      className="h-8 px-2 text-xs"
-                    >
-                      J
-                    </Button>
-                  </div>
-
-                  {/* Presença 2ª Aula */}
-                  {numeroAulas === 2 && (
-                    <div className="col-span-4 flex justify-center gap-1">
-                      <Button
-                        type="button"
-                        variant={presencas[`${aluno.id}-2`] === 'PRESENTE' ? 'default' : 'outline'}
-                        size="none"
-                        onClick={() => handlePresencaChange(aluno.id, 2, 'PRESENTE')}
-                        className="h-8 w-8 p-0"
-                      >
-                        <Check className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        type="button"
-                        variant={presencas[`${aluno.id}-2`] === 'FALTA' ? 'destructive' : 'outline'}
-                        size="none"
-                        onClick={() => handlePresencaChange(aluno.id, 2, 'FALTA')}
-                        className="h-8 w-8 p-0"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        type="button"
-                        variant={presencas[`${aluno.id}-2`] === 'JUSTIFICADA' ? 'secondary' : 'outline'}
-                        size="none"
-                        onClick={() => handlePresencaChange(aluno.id, 2, 'JUSTIFICADA')}
-                        className="h-8 px-2 text-xs"
-                      >
-                        J
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            {/* Legenda */}
-            <div className="flex gap-4 text-xs text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <Check className="h-3 w-3" />
-                Presente
-              </div>
-              <div className="flex items-center gap-1">
-                <X className="h-3 w-3" />
-                Falta
-              </div>
-              <div className="flex items-center gap-1">
-                <span className="w-3 h-3 bg-secondary rounded text-center text-xs">
-                  J
-                </span>
-                Justificada
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-2 pt-4">
-              <Button type="button" variant="outline" onClick={handlePresencaDialogClose}>
-                Cancelar
-              </Button>
-              <Button type="button" onClick={handleSavePresencas} className="btn btn-primary">
-                Salvar Presenças
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </Card>
   );
 }
