@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from 'react';
-import { Plus, Calendar, FileText, Edit, Trash2, GraduationCap } from 'lucide-react';
+import { Plus, Calendar, Edit, Trash2, GraduationCap } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../../../components/ui/dialog';
@@ -11,7 +10,6 @@ import { Badge } from '../../../components/ui/badge';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../../components/ui/card';
 import { supabaseService } from '../../../services/supabaseService';
 import type { Avaliacao, Aluno, Nota } from '../../../services/supabaseService';
-
 
 interface AvaliacoesTabProps {
   diarioId: number;
@@ -36,82 +34,99 @@ export function AvaliacoesTab({ diarioId, readOnly = false }: AvaliacoesTabProps
   });
 
   useEffect(() => {
-    void loadAvaliacoes();
-    void loadAlunos();
-
+    loadAvaliacoes();
+    loadAlunos();
   }, [diarioId]);
 
   const loadAvaliacoes = async () => {
-  try {
-    const avaliacoesData = await supabaseService.getAvaliacoesByDiario(diarioId);
-    setAvaliacoes(avaliacoesData);
-  } catch (error) {
-    console.error('Erro ao carregar avaliações:', error);
-    setAvaliacoes([]);
-  }
-};
-
+    try {
+      const avaliacoesData = await supabaseService.getAvaliacoesByDiario(diarioId);
+      setAvaliacoes(avaliacoesData || []);
+    } catch (error) {
+      console.error('Erro ao carregar avaliações:', error);
+      setAvaliacoes([]);
+    }
+  };
 
   const loadAlunos = async () => {
-
-    const alunosData = await supabaseService.getAlunosByDiario(diarioId);
-    setAlunos(alunosData);
+    try {
+      const alunosData = await supabaseService.getAlunosByDiario(diarioId);
+      setAlunos(alunosData || []);
+    } catch (error) {
+      console.error('Erro ao carregar alunos:', error);
+      setAlunos([]);
+    }
   };
 
   const loadNotasAvaliacao = async (avaliacaoId: number) => {
+    try {
+      const notasData = await supabaseService.getNotasByAvaliacao(avaliacaoId);
+      const notasMap: { [alunoId: number]: string } = {};
 
-    const notasData = await supabaseService.getNotasByAvaliacao(avaliacaoId);
-    const notasMap: { [alunoId: number]: string } = {};
+      (alunos || []).forEach(aluno => {
+        const nota = (notasData || []).find(n => (n.alunoId || n.avaliacaoId) === aluno.id);
+        notasMap[aluno.id] = nota ? nota.valor.toString() : '';
+      });
 
-    alunos.forEach(aluno => {
-      const nota = notasData.find(n => n.alunoId === aluno.id);
-      notasMap[aluno.id] = nota ? nota.valor.toString() : '';
-    });
-
-    setNotas(notasMap);
+      setNotas(notasMap);
+    } catch (error) {
+      console.error('Erro ao carregar notas:', error);
+    }
   };
 
-  const filteredAvaliacoes = avaliacoes.filter(avaliacao =>
-    avaliacao.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    avaliacao.tipo.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredAvaliacoes = (avaliacoes || []).filter(avaliacao =>
+    (avaliacao.titulo?.toLowerCase() ?? '').includes(searchTerm.toLowerCase()) ||
+    (avaliacao.tipo?.toLowerCase() ?? '').includes(searchTerm.toLowerCase())
   );
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (editingAvaliacao) {
-      supabaseService.updateAvaliacao(editingAvaliacao.id, {
-        ...formData,
-        peso: parseFloat(formData.peso)
-      });
-    } else {
-      supabaseService.createAvaliacao({
-        ...formData,
-        peso: parseFloat(formData.peso),
-        diarioId
-      });
-    }
+    try {
+      if (editingAvaliacao) {
+        await supabaseService.updateAvaliacao(editingAvaliacao.id, {
+          titulo: formData.titulo,
+          tipo: formData.tipo,
+          data: formData.data,
+          peso: parseFloat(formData.peso)
+        });
+      } else {
+        await supabaseService.createAvaliacao({
+          titulo: formData.titulo,
+          tipo: formData.tipo,
+          data: formData.data,
+          peso: parseFloat(formData.peso),
+          diarioId
+        });
+      }
 
-    void loadAvaliacoes();
-    setIsDialogOpen(false);
-    resetForm();
+      await loadAvaliacoes();
+      setIsDialogOpen(false);
+      resetForm();
+    } catch (error) {
+      console.error('Erro ao salvar avaliação:', error);
+    }
   };
 
-  const handleSaveNotas = () => {
+  const handleSaveNotas = async () => {
     if (!selectedAvaliacao) return;
 
-    const notasToSave = alunos
-      .filter(aluno => notas[aluno.id] && notas[aluno.id].trim() !== '')
-      .map(aluno => ({
-        avaliacaoId: selectedAvaliacao.id,
-        alunoId: aluno.id,
-        valor: parseFloat(notas[aluno.id])
-      }));
+    try {
+      const notasToSave = (alunos || [])
+        .filter(aluno => notas[aluno.id] && notas[aluno.id].trim() !== '')
+        .map(aluno => ({
+          avaliacaoId: selectedAvaliacao.id,
+          alunoId: aluno.id,
+          valor: parseFloat(notas[aluno.id])
+        }));
 
-    supabaseService.saveNotas(notasToSave);
-    setIsNotasDialogOpen(false);
-    setSelectedAvaliacao(null);
-    setNotas({});
+      await supabaseService.saveNotas(notasToSave);
+      setIsNotasDialogOpen(false);
+      setSelectedAvaliacao(null);
+      setNotas({});
+    } catch (error) {
+      console.error('Erro ao salvar notas:', error);
+    }
   };
 
   const handleEdit = (avaliacao: Avaliacao) => {
@@ -121,22 +136,25 @@ export function AvaliacoesTab({ diarioId, readOnly = false }: AvaliacoesTabProps
       tipo: avaliacao.tipo,
       data: avaliacao.data,
       peso: avaliacao.peso?.toString() || '',
-      descricao: avaliacao.descricao || ''
+      descricao: ''
     });
     setIsDialogOpen(true);
   };
 
-  const handleEditNotas = (avaliacao: Avaliacao) => {
+  const handleEditNotas = async (avaliacao: Avaliacao) => {
     setSelectedAvaliacao(avaliacao);
-    void loadNotasAvaliacao(avaliacao.id);
-
+    await loadNotasAvaliacao(avaliacao.id);
     setIsNotasDialogOpen(true);
   };
 
-  const handleDelete = (avaliacaoId: number) => {
+  const handleDelete = async (avaliacaoId: number) => {
     if (confirm('Tem certeza que deseja excluir esta avaliação?')) {
-      supabaseService.deleteAvaliacao(avaliacaoId);
-      void loadAvaliacoes();
+      try {
+        await supabaseService.deleteAvaliacao(avaliacaoId);
+        await loadAvaliacoes();
+      } catch (error) {
+        console.error('Erro ao excluir avaliação:', error);
+      }
     }
   };
 
@@ -163,7 +181,7 @@ export function AvaliacoesTab({ diarioId, readOnly = false }: AvaliacoesTabProps
   };
 
   const getTipoBadgeVariant = (tipo: string) => {
-    switch (tipo.toLowerCase()) {
+    switch (tipo?.toLowerCase()) {
       case 'prova':
         return 'destructive';
       case 'trabalho':
@@ -175,16 +193,20 @@ export function AvaliacoesTab({ diarioId, readOnly = false }: AvaliacoesTabProps
     }
   };
 
-  const getNotasCount = (avaliacaoId: number) => {
-    const notasData = supabaseService.getNotasByAvaliacao(avaliacaoId);
-    return notasData.length;
+  const getNotasCount = async (avaliacaoId: number) => {
+    try {
+      const notasData = await supabaseService.getNotasByAvaliacao(avaliacaoId);
+      return (notasData || []).length;
+    } catch {
+      return 0;
+    }
   };
 
   return (
     <Card>
       <CardHeader>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div class="space-y-2">
+          <div className="space-y-2">
             <CardTitle>Avaliações</CardTitle>
             <CardDescription>
               Gerencie as avaliações e notas dos alunos
@@ -214,7 +236,6 @@ export function AvaliacoesTab({ diarioId, readOnly = false }: AvaliacoesTabProps
                       onChange={(e) => setFormData({ ...formData, titulo: e.target.value })}
                       placeholder="Ex: Prova Bimestral"
                       required
-                      className="input"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
@@ -245,7 +266,6 @@ export function AvaliacoesTab({ diarioId, readOnly = false }: AvaliacoesTabProps
                         onChange={(e) => setFormData({ ...formData, peso: e.target.value })}
                         placeholder="1.0"
                         required
-                        className="input"
                       />
                     </div>
                   </div>
@@ -257,24 +277,13 @@ export function AvaliacoesTab({ diarioId, readOnly = false }: AvaliacoesTabProps
                       value={formData.data}
                       onChange={(e) => setFormData({ ...formData, data: e.target.value })}
                       required
-                      className="input"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="descricao">Descrição</Label>
-                    <Textarea
-                      id="descricao"
-                      value={formData.descricao}
-                      onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
-                      placeholder="Descrição da avaliação..."
-                      className="min-h-[80px]"
                     />
                   </div>
                   <div className="flex justify-end gap-2">
                     <Button type="button" variant="outline" onClick={handleDialogClose}>
                       Cancelar
                     </Button>
-                    <Button type="submit" className="btn btn-primary">
+                    <Button type="submit">
                       {editingAvaliacao ? 'Salvar' : 'Criar'}
                     </Button>
                   </div>
@@ -287,7 +296,6 @@ export function AvaliacoesTab({ diarioId, readOnly = false }: AvaliacoesTabProps
       <CardContent>
         <div className="mb-4">
           <Input
-            className="input"
             placeholder="Buscar avaliações..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -309,16 +317,6 @@ export function AvaliacoesTab({ diarioId, readOnly = false }: AvaliacoesTabProps
                     {new Date(avaliacao.data).toLocaleDateString('pt-BR')}
                   </span>
                   <span>Peso: {avaliacao.peso}</span>
-                  <span className="flex items-center gap-1">
-                    <GraduationCap className="h-3 w-3" />
-                    {getNotasCount(avaliacao.id)} de {alunos.length} notas
-                  </span>
-                  {avaliacao.descricao && (
-                    <span className="flex items-center gap-1">
-                      <FileText className="h-3 w-3" />
-                      {avaliacao.descricao.substring(0, 30)}...
-                    </span>
-                  )}
                 </div>
               </div>
               {!readOnly && (
@@ -330,9 +328,8 @@ export function AvaliacoesTab({ diarioId, readOnly = false }: AvaliacoesTabProps
                     className="inline-flex items-center gap-1 whitespace-nowrap"
                   >
                     <GraduationCap className="h-4 w-4" />
-                  Nota
+                    Nota
                   </Button>
-
                   <Button
                     variant="outline"
                     size="sm"
@@ -340,7 +337,6 @@ export function AvaliacoesTab({ diarioId, readOnly = false }: AvaliacoesTabProps
                   >
                     <Edit className="h-4 w-4" />
                   </Button>
-                  
                   <Button
                     variant="destructive"
                     size="sm"
@@ -360,24 +356,20 @@ export function AvaliacoesTab({ diarioId, readOnly = false }: AvaliacoesTabProps
         </div>
       </CardContent>
 
-      {/* Dialog para Editar Notas */}
       <Dialog open={isNotasDialogOpen} onOpenChange={setIsNotasDialogOpen}>
         <DialogContent className="max-w-[95vw] lg:max-w-[800px] max-h-[95vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>
-              Notas - {selectedAvaliacao?.titulo}
-            </DialogTitle>
+            <DialogTitle>Notas - {selectedAvaliacao?.titulo}</DialogTitle>
             <p className="text-sm text-gray-600">
-              Peso: {selectedAvaliacao?.peso} | Data: {selectedAvaliacao?.data ? new Date(selectedAvaliacao.data).toLocaleDateString('pt-BR') : ''}
+              Peso: {selectedAvaliacao?.peso}
             </p>
           </DialogHeader>
           <div className="space-y-4">
             <div className="grid gap-4">
-              {alunos.map((aluno) => (
+              {(alunos || []).map((aluno) => (
                 <div key={aluno.id} className="flex items-center gap-4 p-3 border rounded-lg">
                   <div className="flex-1">
                     <p className="font-medium">{aluno.nome}</p>
-                    <p className="text-sm text-gray-600">Matrícula: {aluno.matricula}</p>
                   </div>
                   <div className="w-24">
                     <Input
@@ -398,7 +390,7 @@ export function AvaliacoesTab({ diarioId, readOnly = false }: AvaliacoesTabProps
               <Button type="button" variant="outline" onClick={handleNotasDialogClose}>
                 Cancelar
               </Button>
-              <Button onClick={handleSaveNotas} className="btn btn-primary">
+              <Button onClick={handleSaveNotas}>
                 Salvar Notas
               </Button>
             </div>
