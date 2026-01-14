@@ -242,25 +242,54 @@ class SupabaseService {
     usuario: Omit<Usuario, 'id' | 'created_at' | 'updated_at'>,
     senha?: string
   ): Promise<Usuario> {
-    const payload: any = {
-      nome: usuario.nome,
-      email: usuario.email,
-      papel: usuario.papel,
-      aluno_id: usuario.aluno_id ?? undefined,
-      professor_id: usuario.professor_id ?? undefined,
-      ativo: usuario.ativo ?? true
-    };
+    // Se não passou senha, gera uma aleatória
+    if (!senha) {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$%&*';
+      senha = '';
+      for (let i = 0; i < 12; i++) {
+        senha += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+    }
 
-    const { data, error } = await supabase
-      .from('usuarios')
-      .insert(payload)
-      .select('*')
-      .single();
+    try {
+      // 1) Criar usuário no Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+        email: usuario.email,
+        password: senha,
+        email_confirm: true,
+      });
 
-    if (error) throw error;
+      if (authError || !authData.user) {
+        throw new Error(`Erro ao criar conta: ${authError?.message || 'Desconhecido'}`);
+      }
 
-    this.dispatchDataUpdated('usuarios');
-    return data as Usuario;
+      const authUserId = authData.user.id;
+
+      // 2) Criar registro na tabela usuarios
+      const payload: any = {
+        nome: usuario.nome,
+        email: usuario.email,
+        papel: usuario.papel,
+        auth_user_id: authUserId,
+        aluno_id: usuario.aluno_id ?? undefined,
+        professor_id: usuario.professor_id ?? undefined,
+        ativo: usuario.ativo ?? true
+      };
+
+      const { data, error } = await supabase
+        .from('usuarios')
+        .insert(payload)
+        .select('*')
+        .single();
+
+      if (error) throw error;
+
+      this.dispatchDataUpdated('usuarios');
+      return data as Usuario;
+    } catch (error: any) {
+      console.error('Erro ao criar usuário:', error);
+      throw new Error(`Falha ao criar usuário: ${error.message}`);
+    }
   }
 
   async updateUsuario(id: number, updates: Partial<Usuario>): Promise<Usuario | null> {
