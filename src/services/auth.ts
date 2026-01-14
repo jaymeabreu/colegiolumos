@@ -44,19 +44,32 @@ class AuthService {
       const { data: usuario, error: queryError } = await supabase
         .from('usuarios')
         .select('*')
-        .eq('email', email)
+        .eq('email', email.toLowerCase())
         .single();
 
       if (queryError || !usuario) {
+        console.error('Usuário não encontrado:', email);
         return { success: false, error: 'Email ou senha inválidos' };
+      }
+
+      console.log('Usuário encontrado:', usuario.email);
+
+      // Se não tiver senha_hash, não consegue fazer login
+      if (!usuario.senha_hash) {
+        console.error('Usuário não tem senha configurada');
+        return { success: false, error: 'Usuário sem senha configurada. Contate o administrador.' };
       }
 
       // 2) Verifica a senha
+      console.log('Verificando senha...');
       const senhaCorreta = await verifyPassword(senha, usuario.senha_hash);
 
       if (!senhaCorreta) {
+        console.error('Senha incorreta');
         return { success: false, error: 'Email ou senha inválidos' };
       }
+
+      console.log('Senha correta! Fazendo login...');
 
       // 3) Cria objeto User
       const user: User = {
