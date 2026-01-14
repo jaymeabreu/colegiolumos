@@ -580,7 +580,9 @@ class SupabaseService {
 
     if (e1) throw e1;
 
-    const ids = (vinculos ?? []).map((v: any) => v.aluno_id).filter(Boolean);
+    console.log('🔍 DEBUG getAlunosByDiario:');
+console.log('  vinculos:', vinculos);
+console.log('  ids extraídos:', ids);
     if (ids.length === 0) return [];
 
     const { data: alunos, error: e2 } = await supabase
