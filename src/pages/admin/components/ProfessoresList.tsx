@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { Plus, Edit, Trash2, Users, Eye, EyeOff, Copy, Filter, Upload, X } from 'lucide-react';
+import { Plus, Edit, Trash2, Users, Eye, EyeOff, Copy, Filter, Upload, X, BookOpen } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
@@ -8,7 +8,7 @@ import { Label } from '../../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
 import { Textarea } from '../../../components/ui/textarea';
 import { supabaseService } from '../../../services/supabaseService';
-import type { Professor, Usuario } from '../../../services/supabaseService';
+import type { Professor, Usuario, Disciplina } from '../../../services/supabaseService';
 
 // Componente otimizado para avatar do professor
 const ProfessorAvatar = ({ professor }: { professor: Professor }) => {
@@ -101,6 +101,8 @@ const emptyForm: FormState = {
 export function ProfessoresList() {
   const [professores, setProfessores] = useState<Professor[]>([]);
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
+  const [disciplinas, setDisciplinas] = useState<Disciplina[]>([]);
+  const [disciplinasSelecionadas, setDisciplinasSelecionadas] = useState<number[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -120,12 +122,14 @@ export function ProfessoresList() {
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      const [professoresData, usuariosData] = await Promise.all([
+      const [professoresData, usuariosData, disciplinasData] = await Promise.all([
         supabaseService.getProfessores(),
-        supabaseService.getUsuarios()
+        supabaseService.getUsuarios(),
+        supabaseService.getDisciplinas()
       ]);
       setProfessores(professoresData);
       setUsuarios(usuariosData);
+      setDisciplinas(disciplinasData);
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
       alert('Erro ao carregar dados. Verifique sua conexão.');
@@ -219,6 +223,29 @@ export function ProfessoresList() {
         professor = await supabaseService.createProfessor(professorData);
       }
 
+      if (professor) {
+        // Remover vínculos antigos se editando
+        if (editingProfessor) {
+          const disciplinasAntigas = await supabaseService.getDisciplinasByProfessor(editingProfessor.id);
+          for (const discId of disciplinasAntigas) {
+            try {
+              await supabaseService.desvincularProfessorDisciplina(editingProfessor.id, discId);
+            } catch (err) {
+              console.error('Erro ao remover vínculo antigo:', err);
+            }
+          }
+        }
+
+        // Adicionar novos vínculos
+        for (const disciplinaId of disciplinasSelecionadas) {
+          try {
+            await supabaseService.vincularProfessorDisciplina(professor.id, disciplinaId);
+          } catch (err) {
+            console.error('Erro ao vincular disciplina:', err);
+          }
+        }
+      }
+
       if (formData.criarUsuario && professor && formData.senhaUsuario && !editingProfessor) {
         const usuarioData = {
           nome: formData.nome,
@@ -240,9 +267,9 @@ export function ProfessoresList() {
     } finally {
       setLoading(false);
     }
-  }, [formData, editingProfessor, selectedImage, loadData]);
+  }, [formData, editingProfessor, selectedImage, disciplinasSelecionadas, loadData]);
 
-  const handleEdit = useCallback((professor: Professor) => {
+  const handleEdit = useCallback(async (professor: Professor) => {
     setEditingProfessor(professor);
     setFormData({
       nome: professor.nome || '',
@@ -267,6 +294,16 @@ export function ProfessoresList() {
       senhaUsuario: '',
       foto: professor.foto || '',
     });
+    
+    // Carregar disciplinas do professor
+    try {
+      const discIds = await supabaseService.getDisciplinasByProfessor(professor.id);
+      setDisciplinasSelecionadas(discIds);
+    } catch (error) {
+      console.error('Erro ao carregar disciplinas do professor:', error);
+      setDisciplinasSelecionadas([]);
+    }
+    
     setSelectedImage(professor.foto || null);
     setIsDialogOpen(true);
   }, []);
@@ -295,6 +332,7 @@ export function ProfessoresList() {
     setFormData(emptyForm);
     setSelectedImage(null);
     setEditingProfessor(null);
+    setDisciplinasSelecionadas([]);
     setIsDialogOpen(false);
     setShowPassword(false);
     if (fileInputRef.current) {
@@ -635,6 +673,51 @@ export function ProfessoresList() {
                         disabled={loading}
                       />
                     </div>
+                  </div>
+
+                  {/* Disciplinas */}
+                  <div>
+                    <h4 className="text-lg font-medium mb-4">Disciplinas que Leciona</h4>
+                    <div className="space-y-3 max-h-64 overflow-y-auto border rounded-lg p-4 bg-gray-50">
+                      {disciplinas.length === 0 ? (
+                        <div className="flex items-center justify-center gap-2 text-gray-500">
+                          <BookOpen className="h-4 w-4" />
+                          <span>Nenhuma disciplina cadastrada</span>
+                        </div>
+                      ) : (
+                        disciplinas.map((disciplina) => (
+                          <div key={disciplina.id} className="flex items-center space-x-3">
+                            <input
+                              type="checkbox"
+                              id={`disciplina-${disciplina.id}`}
+                              checked={disciplinasSelecionadas.includes(disciplina.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setDisciplinasSelecionadas([...disciplinasSelecionadas, disciplina.id]);
+                                } else {
+                                  setDisciplinasSelecionadas(
+                                    disciplinasSelecionadas.filter(id => id !== disciplina.id)
+                                  );
+                                }
+                              }}
+                              className="rounded border-gray-300"
+                              disabled={loading}
+                            />
+                            <Label 
+                              htmlFor={`disciplina-${disciplina.id}`}
+                              className="flex-1 cursor-pointer font-normal"
+                            >
+                              {disciplina.nome}
+                            </Label>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                    {disciplinasSelecionadas.length > 0 && (
+                      <p className="text-xs text-gray-500 mt-2">
+                        {disciplinasSelecionadas.length} disciplina(s) selecionada(s)
+                      </p>
+                    )}
                   </div>
 
                   {/* Criar Usuário */}
