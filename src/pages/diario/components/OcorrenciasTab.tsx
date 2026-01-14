@@ -30,6 +30,7 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
   });
 
   useEffect(() => {
+    console.log('🔍 OcorrenciasTab - diarioId recebido:', diarioId);
     loadData();
   }, [diarioId]);
 
@@ -42,6 +43,7 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
 
   const loadData = async () => {
     try {
+      console.log('📥 loadData iniciado com diarioId:', diarioId);
       await loadAlunos();
 
       const ocorrenciasData = await supabaseService.getOcorrencias();
@@ -50,18 +52,19 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
       });
       setOcorrencias(filtered);
     } catch (error) {
-      console.error('Erro ao carregar dados:', error);
+      console.error('❌ Erro ao carregar dados:', error);
       setOcorrencias([]);
     }
   };
 
   const loadAlunos = async () => {
     try {
+      console.log('📥 loadAlunos - diarioId:', diarioId);
       const alunosData = await supabaseService.getAlunosByDiario(diarioId);
-      console.log('Alunos carregados:', alunosData);
+      console.log('✅ Alunos carregados:', alunosData, 'total:', alunosData?.length);
       setAlunos(alunosData || []);
     } catch (error) {
-      console.error('Erro ao carregar alunos:', error);
+      console.error('❌ Erro ao carregar alunos:', error);
       setAlunos([]);
     }
   };
