@@ -28,14 +28,27 @@ export function ProfessorPage() {
   const loadedRef = useRef(false);
   const tabContentRef = useRef<HTMLDivElement>(null);
 
-  // Carregar diários uma única vez
   useEffect(() => {
     if (loadedRef.current || !user?.id) return;
 
     const carregarDiarios = async () => {
       try {
-        const dados = await supabaseService.getDiariosByProfessor(user.id);
-        setDiarios(dados);
+        console.log('=== DEBUG PROFESSOR PAGE ===');
+        console.log('user:', user);
+        console.log('user.id:', user.id);
+        console.log('user.professor_id:', user.professor_id);
+        
+        // Tenta com professor_id primeiro
+        if (user.professor_id) {
+          console.log('Carregando diários com professor_id:', user.professor_id);
+          const dados = await supabaseService.getDiariosByProfessor(user.professor_id);
+          console.log('Diários retornados:', dados);
+          setDiarios(dados);
+        } else {
+          console.log('professor_id não encontrado no user!');
+          setDiarios([]);
+        }
+        
         loadedRef.current = true;
       } catch (error) {
         console.error('Erro ao carregar diários:', error);
@@ -46,7 +59,7 @@ export function ProfessorPage() {
     };
 
     carregarDiarios();
-  }, [user?.id]);
+  }, [user?.id, user?.professor_id]);
 
   const currentDiario = useMemo(() => {
     return diarios.find(d => d.id === selectedDiario) || null;
@@ -81,7 +94,6 @@ export function ProfessorPage() {
     }
   }, [activeTab, selectedDiario]);
 
-  // Tela de carregamento
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -93,7 +105,6 @@ export function ProfessorPage() {
     );
   }
 
-  // Tela de seleção de diários (quando nenhum está selecionado)
   if (!selectedDiario) {
     return (
       <ErrorBoundary>
@@ -115,6 +126,7 @@ export function ProfessorPage() {
                   <CardHeader className="text-center py-12">
                     <BookOpen className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                     <CardTitle>Nenhum diário encontrado</CardTitle>
+                    <p className="text-sm text-muted-foreground mt-2">professor_id: {user?.professor_id}</p>
                   </CardHeader>
                 </Card>
               ) : (
@@ -163,7 +175,6 @@ export function ProfessorPage() {
     );
   }
 
-  // Tela de visualização do diário
   return (
     <ErrorBoundary>
       <div className="min-h-screen flex flex-col bg-background">
