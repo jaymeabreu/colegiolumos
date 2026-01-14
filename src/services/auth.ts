@@ -1,9 +1,9 @@
 import { safeStorage } from '@/lib/safeStorage';
 import { supabase } from '@/lib/supabaseClient';
+import { verifyPassword } from '@/lib/hashUtils';
 
 export interface User {
-  id: number; // id interno da tabela public.usuarios
-  authUserId: string; // uuid do auth.users
+  id: number;
   nome: string;
   email: string;
   papel: 'COORDENADOR' | 'PROFESSOR' | 'ALUNO';
@@ -22,12 +22,11 @@ class AuthService {
 
   getAuthState(): AuthState {
     if (this.cachedAuthState) return this.cachedAuthState;
-
     try {
       const stored = safeStorage.getItem(this.storageKey);
       if (stored) {
         const user = JSON.parse(stored);
-        if (user && user.id && user.email && user.papel && user.authUserId) {
+        if (user && user.id && user.email && user.papel) {
           this.cachedAuthState = { user, isAuthenticated: true };
           return this.cachedAuthState;
         }
@@ -35,41 +34,33 @@ class AuthService {
     } catch {
       safeStorage.removeItem(this.storageKey);
     }
-
     this.cachedAuthState = { user: null, isAuthenticated: false };
     return this.cachedAuthState;
   }
 
   async login(email: string, senha: string): Promise<{ success: boolean; user?: User; error?: string }> {
     try {
-      // 1) Login via Supabase Auth
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password: senha,
-      });
+      // 1) Busca usuário no banco por email
+      const { data: usuario, error: queryError } = await supabase
+        .from('usuarios')
+        .select('*')
+        .eq('email', email)
+        .single();
 
-      if (error || !data.user) {
+      if (queryError || !usuario) {
         return { success: false, error: 'Email ou senha inválidos' };
       }
 
-      const authUserId = data.user.id;
+      // 2) Verifica a senha
+      const senhaCorreta = await verifyPassword(senha, usuario.senha_hash);
 
-      // 2) Busca perfil no seu domínio (public.usuarios)
-      const { data: usuario, error: perfilError } = await supabase
-        .from('usuarios')
-        .select('*')
-        .eq('auth_user_id', authUserId)
-        .single();
-
-      if (perfilError || !usuario) {
-        // Usuário autenticou, mas não tem perfil/role cadastrado
-        await supabase.auth.signOut();
-        return { success: false, error: 'Usuário sem perfil cadastrado no sistema' };
+      if (!senhaCorreta) {
+        return { success: false, error: 'Email ou senha inválidos' };
       }
 
+      // 3) Cria objeto User
       const user: User = {
         id: usuario.id,
-        authUserId,
         nome: usuario.nome,
         email: usuario.email,
         papel: usuario.papel,
@@ -77,8 +68,10 @@ class AuthService {
         professorId: usuario.professor_id ?? undefined,
       };
 
+      // 4) Salva no localStorage
       safeStorage.setItem(this.storageKey, JSON.stringify(user));
       this.cachedAuthState = { user, isAuthenticated: true };
+
       return { success: true, user };
     } catch (e) {
       console.error('Erro no login:', e);
