@@ -18,9 +18,16 @@ export interface AuthState {
 class AuthService {
   private storageKey = 'gestao_escolar_auth';
   private cachedAuthState: AuthState | null = null;
+  private navigateCallback: ((path: string, options?: any) => void) | null = null;
+
+  // Método para registrar o navigate do React Router
+  setNavigate(navigate: (path: string, options?: any) => void) {
+    this.navigateCallback = navigate;
+  }
 
   getAuthState(): AuthState {
     if (this.cachedAuthState) return this.cachedAuthState;
+
     try {
       const stored = safeStorage.getItem(this.storageKey);
       if (stored) {
@@ -33,6 +40,7 @@ class AuthService {
     } catch {
       safeStorage.removeItem(this.storageKey);
     }
+
     this.cachedAuthState = { user: null, isAuthenticated: false };
     return this.cachedAuthState;
   }
@@ -68,7 +76,6 @@ class AuthService {
       // Salva no localStorage
       safeStorage.setItem(this.storageKey, JSON.stringify(user));
       this.cachedAuthState = { user, isAuthenticated: true };
-
       return { success: true, user };
     } catch (e) {
       console.error('Erro no login:', e);
@@ -82,6 +89,11 @@ class AuthService {
     } finally {
       safeStorage.removeItem(this.storageKey);
       this.cachedAuthState = null;
+
+      // Redireciona para login se navigate foi registrado
+      if (this.navigateCallback) {
+        this.navigateCallback('/', { replace: true });
+      }
     }
   }
 
