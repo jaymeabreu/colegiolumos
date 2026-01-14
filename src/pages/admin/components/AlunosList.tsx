@@ -179,18 +179,20 @@ export function AlunosList() {
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!formData.nome.trim() || !formData.matricula.trim()) {
+      alert('Nome e matrícula são obrigatórios!');
+      return;
+    }
+
     if (formData.criarUsuario && !editingAluno && !formData.senhaUsuario) {
       alert('Senha é obrigatória para criar usuário!');
       return;
     }
 
-    const alunoData = {
-      nome: formData.nome,
-      matricula: formData.matricula,
-      telefone: formData.contato,
-      email: formData.email,
-      data_nascimento: formData.dataNascimento,
-      cpf: formData.cpf,
+    const alunoData: any = {
+      nome: formData.nome.trim(),
+      matricula: formData.matricula.trim(),
+      email: formData.email.trim() || null,
       turma_id: formData.turmaId ? Number(formData.turmaId) : null
     };
 
@@ -206,7 +208,7 @@ export function AlunosList() {
       if (formData.criarUsuario && aluno && formData.senhaUsuario && !editingAluno) {
         const usuarioData = {
           nome: formData.nome,
-          email: formData.email,
+          email: formData.email || `aluno${aluno.id}@colegio.com`,
           papel: 'ALUNO' as const,
           aluno_id: aluno.id,
           ativo: true
@@ -449,60 +451,72 @@ export function AlunosList() {
                     <h4 className="text-lg font-medium mb-4">Dados Básicos</h4>
                     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
                       <div>
+                        <Label>Nome Completo *</Label>
                         <Input
                           id="nome"
                           value={formData.nome}
                           onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
                           placeholder="Nome Completo"
                           required
+                          disabled={loading}
                         />
                       </div>
                       <div>
+                        <Label>Matrícula *</Label>
                         <Input
                           id="matricula"
                           value={formData.matricula}
                           onChange={(e) => setFormData({ ...formData, matricula: e.target.value })}
                           placeholder="Matrícula"
                           required
+                          disabled={loading}
                         />
                       </div>
                       <div>
+                        <Label>E-mail</Label>
                         <Input
                           id="email"
                           type="email"
                           value={formData.email}
                           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                           placeholder="E-mail"
-                          required
+                          disabled={loading}
                         />
                       </div>
                       <div>
+                        <Label>Data de Nascimento</Label>
                         <Input
                           id="dataNascimento"
                           type="date"
                           value={formData.dataNascimento}
                           onChange={(e) => setFormData({ ...formData, dataNascimento: e.target.value })}
                           placeholder="Data de Nascimento"
+                          disabled={loading}
                         />
                       </div>
                       <div>
+                        <Label>CPF</Label>
                         <Input
                           id="cpf"
                           value={formData.cpf}
                           onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
                           placeholder="CPF"
+                          disabled={loading}
                         />
                       </div>
                       <div>
+                        <Label>RG</Label>
                         <Input
                           id="rg"
                           value={formData.rg}
                           onChange={(e) => setFormData({ ...formData, rg: e.target.value })}
                           placeholder="RG"
+                          disabled={loading}
                         />
                       </div>
                       <div>
-                        <Select value={formData.sexo} onValueChange={(value) => setFormData({ ...formData, sexo: value })}>
+                        <Label>Sexo</Label>
+                        <Select value={formData.sexo} onValueChange={(value) => setFormData({ ...formData, sexo: value })} disabled={loading}>
                           <SelectTrigger>
                             <SelectValue placeholder="Sexo" />
                           </SelectTrigger>
@@ -513,135 +527,13 @@ export function AlunosList() {
                         </Select>
                       </div>
                       <div>
+                        <Label>Telefone</Label>
                         <Input
                           id="contato"
                           value={formData.contato}
                           onChange={(e) => setFormData({ ...formData, contato: e.target.value })}
                           placeholder="Telefone"
-                          required
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Endereço */}
-                  <div>
-                    <h4 className="text-lg font-medium mb-4">Endereço</h4>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-                      <div className="lg:col-span-2">
-                        <Input
-                          id="endereco"
-                          value={formData.endereco}
-                          onChange={(e) => setFormData({ ...formData, endereco: e.target.value })}
-                          placeholder="Endereço"
-                        />
-                      </div>
-                      <div>
-                        <Input
-                          id="bairro"
-                          value={formData.bairro}
-                          onChange={(e) => setFormData({ ...formData, bairro: e.target.value })}
-                          placeholder="Bairro"
-                        />
-                      </div>
-                      <div>
-                        <Input
-                          id="cidade"
-                          value={formData.cidade}
-                          onChange={(e) => setFormData({ ...formData, cidade: e.target.value })}
-                          placeholder="Cidade"
-                        />
-                      </div>
-                      <div>
-                        <Select value={formData.estado} onValueChange={(value) => setFormData({ ...formData, estado: value })}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Estado" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="AC">AC</SelectItem>
-<SelectItem value="AL">AL</SelectItem>
-<SelectItem value="AP">AP</SelectItem>
-<SelectItem value="AM">AM</SelectItem>
-<SelectItem value="BA">BA</SelectItem>
-<SelectItem value="CE">CE</SelectItem>
-<SelectItem value="DF">DF</SelectItem>
-<SelectItem value="ES">ES</SelectItem>
-<SelectItem value="GO">GO</SelectItem>
-<SelectItem value="MA">MA</SelectItem>
-<SelectItem value="MT">MT</SelectItem>
-<SelectItem value="MS">MS</SelectItem>
-<SelectItem value="MG">MG</SelectItem>
-<SelectItem value="PA">PA</SelectItem>
-<SelectItem value="PB">PB</SelectItem>
-<SelectItem value="PR">PR</SelectItem>
-<SelectItem value="PE">PE</SelectItem>
-<SelectItem value="PI">PI</SelectItem>
-<SelectItem value="RJ">RJ</SelectItem>
-<SelectItem value="RN">RN</SelectItem>
-<SelectItem value="RS">RS</SelectItem>
-<SelectItem value="RO">RO</SelectItem>
-<SelectItem value="RR">RR</SelectItem>
-<SelectItem value="SC">SC</SelectItem>
-<SelectItem value="SP">SP</SelectItem>
-<SelectItem value="SE">SE</SelectItem>
-<SelectItem value="TO">TO</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Input
-                          id="cep"
-                          value={formData.cep}
-                          onChange={(e) => setFormData({ ...formData, cep: e.target.value })}
-                          placeholder="CEP"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Dados do Responsável */}
-                  <div>
-                    <h4 className="text-lg font-medium mb-4">Dados do Responsável</h4>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                      <div>
-                        <Input
-                          id="nomeResponsavel"
-                          value={formData.nomeResponsavel}
-                          onChange={(e) => setFormData({ ...formData, nomeResponsavel: e.target.value })}
-                          placeholder="Nome do Responsável"
-                        />
-                      </div>
-                      <div>
-                        <Select value={formData.parentesco} onValueChange={(value) => setFormData({ ...formData, parentesco: value })}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Parentesco" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Pai">Pai</SelectItem>
-                            <SelectItem value="Mãe">Mãe</SelectItem>
-                            <SelectItem value="Avô">Avô</SelectItem>
-                            <SelectItem value="Avó">Avó</SelectItem>
-                            <SelectItem value="Tio">Tio</SelectItem>
-                            <SelectItem value="Tia">Tia</SelectItem>
-                            <SelectItem value="Responsável Legal">Responsável Legal</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Input
-                          id="contatoResponsavel"
-                          value={formData.contatoResponsavel}
-                          onChange={(e) => setFormData({ ...formData, contatoResponsavel: e.target.value })}
-                          placeholder="Telefone do Responsável"
-                        />
-                      </div>
-                      <div>
-                        <Input
-                          id="emailResponsavel"
-                          type="email"
-                          value={formData.emailResponsavel}
-                          onChange={(e) => setFormData({ ...formData, emailResponsavel: e.target.value })}
-                          placeholder="E-mail do Responsável"
+                          disabled={loading}
                         />
                       </div>
                     </div>
@@ -652,7 +544,8 @@ export function AlunosList() {
                     <h4 className="text-lg font-medium mb-4">Dados Acadêmicos</h4>
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                       <div>
-                        <Select value={formData.turmaId} onValueChange={(value) => setFormData({ ...formData, turmaId: value })}>
+                        <Label>Turma</Label>
+                        <Select value={formData.turmaId} onValueChange={(value) => setFormData({ ...formData, turmaId: value })} disabled={loading}>
                           <SelectTrigger>
                             <SelectValue placeholder="Turma" />
                           </SelectTrigger>
@@ -666,15 +559,18 @@ export function AlunosList() {
                         </Select>
                       </div>
                       <div>
+                        <Label>Ano Letivo</Label>
                         <Input
                           id="anoLetivo"
                           value={formData.anoLetivo}
                           onChange={(e) => setFormData({ ...formData, anoLetivo: e.target.value })}
                           placeholder="Ano Letivo"
+                          disabled={loading}
                         />
                       </div>
                       <div>
-                        <Select value={formData.situacao} onValueChange={(value) => setFormData({ ...formData, situacao: value })}>
+                        <Label>Situação</Label>
+                        <Select value={formData.situacao} onValueChange={(value) => setFormData({ ...formData, situacao: value })} disabled={loading}>
                           <SelectTrigger>
                             <SelectValue placeholder="Situação" />
                           </SelectTrigger>
@@ -688,16 +584,17 @@ export function AlunosList() {
                       </div>
                     </div>
                     <div className="mt-4">
+                      <Label>Observações</Label>
                       <Textarea
                         id="observacoes"
                         value={formData.observacoes}
                         onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
                         placeholder="Observações gerais sobre o aluno..."
                         rows={3}
+                        disabled={loading}
                       />
                     </div>
                   </div>
-
 
                   {/* Criar Usuário */}
                   {!editingAluno && (
@@ -711,19 +608,22 @@ export function AlunosList() {
                             checked={formData.criarUsuario}
                             onChange={(e) => setFormData({ ...formData, criarUsuario: e.target.checked })}
                             className="rounded border-gray-300"
+                            disabled={loading}
                           />
                           <Label htmlFor="criarUsuario">Criar usuário de acesso ao sistema</Label>
                         </div>
                         {formData.criarUsuario && (
                           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                             <div>
+                              <Label>Email de Login</Label>
                               <Input
-                                value={formData.email}
+                                value={formData.email || `aluno@colegio.com`}
                                 disabled
                                 placeholder="Email de Login"
                               />
                             </div>
                             <div>
+                              <Label>Senha Inicial</Label>
                               <div className="flex gap-2">
                                 <div className="relative flex-1">
                                   <Input
@@ -734,6 +634,7 @@ export function AlunosList() {
                                     placeholder="Senha inicial"
                                     className="pr-20"
                                     required
+                                    disabled={loading}
                                   />
                                   <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
                                     <Button
@@ -742,6 +643,7 @@ export function AlunosList() {
                                       size="none"
                                       className="h-6 w-6 p-0"
                                       onClick={() => setShowPassword(!showPassword)}
+                                      disabled={loading}
                                     >
                                       {showPassword ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
                                     </Button>
@@ -751,13 +653,13 @@ export function AlunosList() {
                                       size="none"
                                       className="h-6 w-6 p-0"
                                       onClick={copiarSenha}
-                                      disabled={!formData.senhaUsuario}
+                                      disabled={!formData.senhaUsuario || loading}
                                     >
                                       <Copy className="h-3 w-3" />
                                     </Button>
                                   </div>
                                 </div>
-                                <Button type="button" variant="outline" onClick={gerarSenha}>
+                                <Button type="button" variant="outline" onClick={gerarSenha} disabled={loading}>
                                   Gerar
                                 </Button>
                               </div>
@@ -767,71 +669,9 @@ export function AlunosList() {
                       </div>
                     </div>
                   )}
-                  {/* Foto do Perfil */}
-                  <div>
-                    <h4 className="text-lg font-medium mb-4">Foto do Perfil</h4>
-                    <div className="flex flex-col items-center gap-4">
-                      <div className="relative">
-                        {selectedImage ? (
-                          <div className="relative">
-                            <img
-                              src={selectedImage}
-                              alt="Foto do aluno"
-                              className="w-32 h-32 rounded-full object-cover border-4 border-gray-200"
-                            />
-                            <Button
-                              type="button"
-                              variant="destructive"
-                              size="sm"
-                              className="absolute -top-2 -right-2 h-6 w-6 rounded-full p-0"
-                              onClick={removeImage}
-                            >
-                              <X className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        ) : (
-                          <div className="w-32 h-32 rounded-full bg-gray-100 border-4 border-gray-200 flex items-center justify-center">
-                            <Users className="h-12 w-12 text-gray-400" />
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => fileInputRef.current?.click()}
-                          className="flex items-center gap-2"
-                        >
-                          <Upload className="h-4 w-4" />
-                          Fazer upload de foto
-                        </Button>
-                        {selectedImage && (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={removeImage}
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            Remover foto
-                          </Button>
-                        )}
-                      </div>
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/jpeg,image/jpg,image/png,image/webp"
-                        onChange={handleImageUpload}
-                        className="hidden"
-                      />
-                      <p className="text-xs text-gray-500 text-center">
-                        Formatos aceitos: JPG, PNG, WEBP. Máximo 5MB.<br/>
-                        A imagem será automaticamente otimizada.
-                      </p>
-                    </div>
-                  </div>
                 </div>
                 <DialogFooter className="mt-6">
-                  <Button type="button" variant="outline" onClick={resetForm}>
+                  <Button type="button" variant="outline" onClick={resetForm} disabled={loading}>
                     Cancelar
                   </Button>
                   <Button type="submit" disabled={loading}>
@@ -851,6 +691,7 @@ export function AlunosList() {
               placeholder="Buscar alunos..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              disabled={loading}
             />
           </div>
           <Dialog open={isFilterOpen} onOpenChange={setIsFilterOpen}>
@@ -858,6 +699,7 @@ export function AlunosList() {
               <Button 
                 variant="outline" 
                 className={`flex items-center gap-2 whitespace-nowrap ${hasActiveFilters ? 'bg-blue-50 border-blue-200 text-blue-700' : ''}`}
+                disabled={loading}
               >
                 <Filter className="h-4 w-4" />
                 Filtros
@@ -901,24 +743,9 @@ export function AlunosList() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Todos os turnos</SelectItem>
-                      <SelectItem value="MATUTINO">Matutino</SelectItem>
-                      <SelectItem value="VESPERTINO">Vespertino</SelectItem>
-                      <SelectItem value="NOTURNO">Noturno</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label htmlFor="filterAnoLetivo">Ano Letivo</Label>
-                  <Select value={filters.anoLetivo} onValueChange={(value) => setFilters({ ...filters, anoLetivo: value })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Todos os anos" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos os anos</SelectItem>
-                      <SelectItem value="2025">2025</SelectItem>
-                      <SelectItem value="2024">2024</SelectItem>
-                      <SelectItem value="2023">2023</SelectItem>
+                      <SelectItem value="MANHA">Matutino</SelectItem>
+                      <SelectItem value="TARDE">Vespertino</SelectItem>
+                      <SelectItem value="NOITE">Noturno</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -991,7 +818,6 @@ export function AlunosList() {
                       </div>
                       <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-1 text-sm text-gray-600">
                         <span>Matrícula: {aluno.matricula}</span>
-                        <span>Contato: {aluno.telefone || '-'}</span>
                         {aluno.email && <span>Email: {aluno.email}</span>}
                         {turmaNome && <span>Turma: {turmaNome}</span>}
                       </div>
@@ -1001,27 +827,30 @@ export function AlunosList() {
                     <Button
                       variant="outline"
                       size="none"
-                    className="h-8 w-8 p-0 inline-flex items-center justify-center"
+                      className="h-8 w-8 p-0 inline-flex items-center justify-center"
                       onClick={() => handleViewBoletim(aluno)}
                       title="Ver Boletim"
+                      disabled={loading}
                     >
                       <FileText className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="outline"
                       size="none"
-                    className="h-8 w-8 p-0 inline-flex items-center justify-center"
+                      className="h-8 w-8 p-0 inline-flex items-center justify-center"
                       onClick={() => handleEdit(aluno)}
                       title="Editar"
+                      disabled={loading}
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="destructive"
                       size="none"
-                    className="h-8 w-8 p-0 inline-flex items-center justify-center"
+                      className="h-8 w-8 p-0 inline-flex items-center justify-center"
                       onClick={() => handleDelete(aluno.id)}
                       title="Excluir"
+                      disabled={loading}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -1050,3 +879,5 @@ export function AlunosList() {
     </div>
   );
 }
+
+export default AlunosList;
