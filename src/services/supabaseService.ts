@@ -1355,6 +1355,52 @@ class SupabaseService {
   coordenadorPodeGerenciarDiario(diario: Diario): boolean {
     return true;
   }
+
+  // PROFESSOR-DISCIPLINA
+  async getVinculosProfessorDisciplina(): Promise<Array<{ professor_id: number; disciplina_id: number }>> {
+    const { data, error } = await supabase
+      .from('professor_disciplinas')
+      .select('professor_id, disciplina_id')
+      .order('professor_id', { ascending: true });
+
+    if (error) throw error;
+    return (data ?? []) as Array<{ professor_id: number; disciplina_id: number }>;
+  }
+
+  async vincularProfessorDisciplina(professorId: number, disciplinaId: number): Promise<void> {
+    const payload = {
+      professor_id: professorId,
+      disciplina_id: disciplinaId
+    };
+
+    const { error } = await supabase
+      .from('professor_disciplinas')
+      .insert(payload);
+
+    if (error) throw error;
+    this.dispatchDataUpdated('professor_disciplinas');
+  }
+
+  async desvincularProfessorDisciplina(professorId: number, disciplinaId: number): Promise<void> {
+    const { error } = await supabase
+      .from('professor_disciplinas')
+      .delete()
+      .eq('professor_id', professorId)
+      .eq('disciplina_id', disciplinaId);
+
+    if (error) throw error;
+    this.dispatchDataUpdated('professor_disciplinas');
+  }
+
+  async getDisciplinasByProfessor(professorId: number): Promise<number[]> {
+    const { data, error } = await supabase
+      .from('professor_disciplinas')
+      .select('disciplina_id')
+      .eq('professor_id', professorId);
+
+    if (error) throw error;
+    return (data ?? []).map((row: any) => row.disciplina_id);
+  }
 }
 
 export const supabaseService = new SupabaseService();
