@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from 'react';
-import { Eye, Users, GraduationCap, Mail, FileText } from 'lucide-react';
+import { Users, GraduationCap, Mail, FileText } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
 import { Badge } from '../../../components/ui/badge';
@@ -8,7 +7,6 @@ import { Avatar, AvatarImage, AvatarFallback } from '../../../components/ui/avat
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../../components/ui/card';
 import { supabaseService } from '../../../services/supabaseService';
 import type { Aluno } from '../../../services/supabaseService';
-import { BoletimModal } from '../../../components/shared/BoletimModal';
 
 interface AlunosTabProps {
   diarioId: number;
@@ -18,49 +16,28 @@ interface AlunosTabProps {
 export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
   const [alunos, setAlunos] = useState<Aluno[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedAluno, setSelectedAluno] = useState<Aluno | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadAlunos();
   }, [diarioId]);
 
-  const loadAlunos = () => {
-    const alunosData = supabaseService.getAlunosByDiario(diarioId);
-    setAlunos(alunosData);
-  };
-
-  const getStatusBadgeVariant = (status: string) => {
-    if (!status) return 'default';
-    
-    switch (status.toLowerCase()) {
-      case 'ativo':
-        return 'default';
-      case 'inativo':
-        return 'secondary';
-      case 'transferido':
-        return 'destructive';
-      default:
-        return 'default';
+  const loadAlunos = async () => {
+    try {
+      const alunosData = await supabaseService.getAlunosByDiario(diarioId);
+      setAlunos(alunosData || []);
+    } catch (error) {
+      console.error('Erro ao carregar alunos:', error);
+      setAlunos([]);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const filteredAlunos = alunos.filter(aluno =>
-    aluno.nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    aluno.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    aluno.matricula?.includes(searchTerm)
+  const filteredAlunos = (alunos || []).filter(aluno =>
+    (aluno.nome?.toLowerCase() ?? '').includes(searchTerm.toLowerCase()) ||
+    (aluno.email?.toLowerCase() ?? '').includes(searchTerm.toLowerCase())
   );
-
-  const handleViewDetails = (aluno: Aluno) => {
-    setSelectedAluno(aluno);
-    setIsDialogOpen(true);
-  };
-
-  // Novo handler para atender ao botão "Ver Boletim"
-  const handleViewBoletim = (aluno: Aluno) => {
-    setSelectedAluno(aluno);
-    setIsDialogOpen(true);
-  };
 
   const getInitials = (nome: string) => {
     return nome
@@ -71,14 +48,27 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
       .slice(0, 2);
   };
 
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Carregando alunos...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardHeader>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div class="space-y-2">
+          <div className="space-y-2">
             <CardTitle>Alunos da Turma</CardTitle>
             <CardDescription>
-              Visualize informações e desempenho dos alunos
+              Visualize informações dos alunos
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
@@ -92,7 +82,6 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
       <CardContent>
         <div className="mb-4">
           <Input
-            className="input"
             placeholder="Buscar alunos..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -103,13 +92,6 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
             <div key={aluno.id} className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 p-4 border rounded-lg">
               <div className="flex items-center gap-3 flex-1">
                 <Avatar className="h-12 w-12">
-                  {aluno.foto ? (
-                    <AvatarImage 
-                      src={aluno.foto} 
-                      alt={aluno.nome}
-                      className="object-cover"
-                    />
-                  ) : null}
                   <AvatarFallback className="bg-blue-100 text-blue-600 font-medium">
                     {getInitials(aluno.nome)}
                   </AvatarFallback>
@@ -117,14 +99,11 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <h3 className="font-medium">{aluno.nome}</h3>
-                    <Badge variant={getStatusBadgeVariant(aluno.situacao || 'ativo')}>
-                      {aluno.situacao || 'Ativo'}
-                    </Badge>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-1 text-sm text-gray-600">
                     <span className="flex items-center gap-1">
                       <GraduationCap className="h-3 w-3" />
-                      Matrícula: {aluno.matricula}
+                      Matrícula: {aluno.id}
                     </span>
                     {aluno.email && (
                       <span className="flex items-center gap-1">
@@ -132,25 +111,8 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
                         {aluno.email}
                       </span>
                     )}
-                    {aluno.contato && (
-                      <span>Tel: {aluno.contato}</span>
-                    )}
                   </div>
                 </div>
-              </div>
-              
-
-              {/* Botão adicional "Ver Boletim" conforme modificação */}
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleViewBoletim(aluno)}
-                  className="inline-flex items-center gap-1 whitespace-nowrap"
-                >
-                  <FileText className="h-4 w-4" />
-                  Ver Boletim
-                </Button>
               </div>
             </div>
           ))}
@@ -159,15 +121,6 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
             <div className="text-center py-8 text-muted-foreground">
               {searchTerm ? 'Nenhum aluno encontrado.' : 'Nenhum aluno matriculado.'}
             </div>
-          )}
-
-          {/* Modal do Boletim */}
-          {isDialogOpen && selectedAluno && (
-            <BoletimModal 
-              aluno={selectedAluno} 
-              diarioId={diarioId.toString()}
-              onClose={() => setIsDialogOpen(false)}
-            />
           )}
         </div>
       </CardContent>
