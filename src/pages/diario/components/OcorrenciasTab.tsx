@@ -26,7 +26,8 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
     alunoId: '',
     tipo: '',
     data: '',
-    descricao: ''
+    descricao: '',
+    acaoTomada: ''
   });
 
   useEffect(() => {
@@ -48,9 +49,11 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
 
       const ocorrenciasData = await supabaseService.getOcorrencias();
       const filtered = (ocorrenciasData || []).filter(o => {
-        return (alunos || []).some(a => a.id === (o.alunoId || o.aluno_id));
+        const oDiarioId = o.diario_id ?? o.diarioId;
+        return oDiarioId === diarioId;
       });
       setOcorrencias(filtered);
+      console.log('✅ Ocorrências carregadas:', filtered);
     } catch (error) {
       console.error('❌ Erro ao carregar dados:', error);
       setOcorrencias([]);
@@ -82,32 +85,48 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
     e.preventDefault();
 
     if (!formData.alunoId || !formData.tipo || !formData.data || !formData.descricao) {
-      alert('Preencha todos os campos!');
+      alert('Preencha todos os campos obrigatórios!');
       return;
     }
 
     try {
+      console.log('📝 Salvando ocorrência com dados:', {
+        aluno_id: parseInt(formData.alunoId),
+        diario_id: diarioId,
+        tipo: formData.tipo.toLowerCase(),
+        data: formData.data,
+        descricao: formData.descricao,
+        acao_tomada: formData.acaoTomada || null
+      });
+
       if (editingOcorrencia) {
         await supabaseService.updateOcorrencia(editingOcorrencia.id, {
-          alunoId: parseInt(formData.alunoId),
-          tipo: formData.tipo,
+          aluno_id: parseInt(formData.alunoId),
+          diario_id: diarioId,
+          tipo: formData.tipo.toLowerCase(),
           data: formData.data,
-          descricao: formData.descricao
+          descricao: formData.descricao,
+          acao_tomada: formData.acaoTomada || null
         });
+        console.log('✅ Ocorrência atualizada');
       } else {
         await supabaseService.createOcorrencia({
-          alunoId: parseInt(formData.alunoId),
-          tipo: formData.tipo,
+          aluno_id: parseInt(formData.alunoId),
+          diario_id: diarioId,
+          tipo: formData.tipo.toLowerCase(),
           data: formData.data,
-          descricao: formData.descricao
+          descricao: formData.descricao,
+          acao_tomada: formData.acaoTomada || null
         });
+        console.log('✅ Ocorrência criada');
       }
 
       await loadData();
       setIsDialogOpen(false);
       resetForm();
+      alert('Ocorrência salva com sucesso!');
     } catch (error) {
-      console.error('Erro ao salvar ocorrência:', error);
+      console.error('❌ Erro ao salvar ocorrência:', error);
       alert('Erro ao salvar ocorrência');
     }
   };
@@ -116,9 +135,10 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
     setEditingOcorrencia(ocorrencia);
     setFormData({
       alunoId: (ocorrencia.alunoId || ocorrencia.aluno_id).toString(),
-      tipo: ocorrencia.tipo,
+      tipo: ocorrencia.tipo.charAt(0).toUpperCase() + ocorrencia.tipo.slice(1),
       data: ocorrencia.data,
-      descricao: ocorrencia.descricao
+      descricao: ocorrencia.descricao,
+      acaoTomada: ocorrencia.acao_tomada || ocorrencia.acaoTomada || ''
     });
     setIsDialogOpen(true);
   };
@@ -128,6 +148,7 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
       try {
         await supabaseService.deleteOcorrencia(ocorrenciaId);
         await loadData();
+        alert('Ocorrência excluída com sucesso!');
       } catch (error) {
         console.error('Erro ao excluir ocorrência:', error);
         alert('Erro ao excluir ocorrência');
@@ -140,7 +161,8 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
       alunoId: '',
       tipo: '',
       data: '',
-      descricao: ''
+      descricao: '',
+      acaoTomada: ''
     });
     setEditingOcorrencia(null);
   };
@@ -151,14 +173,13 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
   };
 
   const getTipoBadgeVariant = (tipo: string) => {
-    switch ((tipo || '').toLowerCase()) {
+    const tipoLower = (tipo || '').toLowerCase();
+    switch (tipoLower) {
       case 'disciplinar':
         return 'destructive';
-      case 'comportamental':
+      case 'pedagogica':
         return 'secondary';
-      case 'pedagógica':
-        return 'default';
-      case 'positiva':
+      case 'elogio':
         return 'default';
       default:
         return 'default';
@@ -233,9 +254,8 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="Disciplinar">Disciplinar</SelectItem>
-                          <SelectItem value="Comportamental">Comportamental</SelectItem>
-                          <SelectItem value="Pedagógica">Pedagógica</SelectItem>
-                          <SelectItem value="Positiva">Positiva</SelectItem>
+                          <SelectItem value="Pedagogica">Pedagógica</SelectItem>
+                          <SelectItem value="Elogio">Elogio</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -259,6 +279,16 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
                       placeholder="Descreva a ocorrência..."
                       required
                       className="min-h-[100px]"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="acaoTomada">Ação Tomada (Opcional)</Label>
+                    <Textarea
+                      id="acaoTomada"
+                      value={formData.acaoTomada}
+                      onChange={(e) => setFormData({ ...formData, acaoTomada: e.target.value })}
+                      placeholder="Descreva a ação tomada..."
+                      className="min-h-[80px]"
                     />
                   </div>
                   <div className="flex justify-end gap-2">
@@ -290,7 +320,7 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
                 <div className="flex items-center gap-2 mb-1">
                   <h3 className="font-medium">{getAlunoNome(ocorrencia.alunoId || ocorrencia.aluno_id)}</h3>
                   <Badge variant={getTipoBadgeVariant(ocorrencia.tipo)}>
-                    {ocorrencia.tipo}
+                    {ocorrencia.tipo.charAt(0).toUpperCase() + ocorrencia.tipo.slice(1)}
                   </Badge>
                 </div>
                 <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-1 text-sm text-gray-600">
