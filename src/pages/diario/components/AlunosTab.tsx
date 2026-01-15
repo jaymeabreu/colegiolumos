@@ -21,6 +21,7 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
   const [diario, setDiario] = useState<Diario | null>(null);
   const [selectedAluno, setSelectedAluno] = useState<Aluno | null>(null);
   const [isBoletimOpen, setIsBoletimOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('resumo');
 
   useEffect(() => {
     loadAlunos();
@@ -105,6 +106,7 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
 
   const handleVerBoletim = (aluno: Aluno) => {
     setSelectedAluno(aluno);
+    setActiveTab('resumo');
     setIsBoletimOpen(true);
   };
 
@@ -201,77 +203,100 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
       {/* Modal Boletim */}
       <Dialog open={isBoletimOpen} onOpenChange={setIsBoletimOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+          <DialogHeader className="border-b pb-4">
+            <div className="flex items-center gap-3">
               <Avatar className="h-10 w-10">
-                <AvatarFallback className="bg-blue-100 text-blue-600 font-medium">
+                <AvatarFallback className="bg-blue-100 text-blue-600 font-medium text-sm">
                   {selectedAluno ? getInitials(selectedAluno.nome) : ''}
                 </AvatarFallback>
               </Avatar>
               <div>
-                <div className="text-lg font-semibold">{selectedAluno?.nome}</div>
-                <div className="text-sm text-gray-500">Boletim Escolar</div>
+                <DialogTitle className="text-lg">{selectedAluno?.nome}</DialogTitle>
+                <p className="text-sm text-gray-500">Boletim Escolar</p>
               </div>
-            </DialogTitle>
+              <button 
+                onClick={() => setIsBoletimOpen(false)}
+                className="ml-auto text-gray-400 hover:text-gray-600"
+              >
+                ✕
+              </button>
+            </div>
           </DialogHeader>
 
-          <div className="space-y-6">
+          <div className="space-y-4">
             {/* Tabs */}
-            <div className="flex gap-4 border-b">
-              <button className="px-4 py-2 border-b-2 border-blue-500 text-blue-600 font-medium">
-                Resumo
-              </button>
-              <button className="px-4 py-2 text-gray-600 hover:text-gray-900">
-                Boletim Completo
-              </button>
-              <button className="px-4 py-2 text-gray-600 hover:text-gray-900">
-                Por Disciplina
-              </button>
-              <button className="px-4 py-2 text-gray-600 hover:text-gray-900">
-                Avaliações
-              </button>
-              <button className="px-4 py-2 text-gray-600 hover:text-gray-900">
-                Ocorrências
-              </button>
+            <div className="flex gap-0 border-b bg-gray-50">
+              {['resumo', 'completo', 'disciplina', 'avaliacoes', 'ocorrencias'].map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`px-4 py-2 font-medium transition ${
+                    activeTab === tab
+                      ? 'text-blue-600 border-b-2 border-blue-600 bg-white'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  {tab === 'resumo' && 'Resumo'}
+                  {tab === 'completo' && 'Boletim Completo'}
+                  {tab === 'disciplina' && 'Por Disciplina'}
+                  {tab === 'avaliacoes' && 'Avaliações'}
+                  {tab === 'ocorrencias' && 'Ocorrências'}
+                </button>
+              ))}
             </div>
 
-            {/* Resumo */}
-            <div className="grid grid-cols-4 gap-4">
-              <div className="p-4 bg-gray-50 rounded-lg text-center">
-                <div className="text-2xl font-bold text-gray-900">-</div>
-                <div className="text-sm text-gray-600 mt-1">Média Geral</div>
-                <div className="text-xs text-gray-500 mt-1">Sem notas</div>
-              </div>
-              <div className="p-4 bg-gray-50 rounded-lg text-center">
-                <div className="text-2xl font-bold text-gray-900">-</div>
-                <div className="text-sm text-gray-600 mt-1">Frequência</div>
-              </div>
-              <div className="p-4 bg-yellow-50 rounded-lg text-center">
-                <div className="text-2xl font-bold text-yellow-700">Sem Dados</div>
-                <div className="text-sm text-gray-600 mt-1">Situação</div>
-                <div className="text-xs text-gray-500 mt-1">Status atual no período</div>
-              </div>
-              <div className="p-4 bg-gray-50 rounded-lg text-center">
-                <div className="text-2xl font-bold text-gray-900">0</div>
-                <div className="text-sm text-gray-600 mt-1">Ocorrências</div>
-                <div className="text-xs text-gray-500 mt-1">Registros no período</div>
-              </div>
-            </div>
+            {/* Conteúdo Resumo */}
+            {activeTab === 'resumo' && (
+              <>
+                {/* Cards */}
+                <div className="grid grid-cols-4 gap-4">
+                  <div className="p-4 bg-gray-50 rounded-lg text-center">
+                    <div className="text-3xl font-bold text-gray-400">-</div>
+                    <div className="text-sm font-medium text-gray-700 mt-2">Média Geral</div>
+                    <div className="text-xs text-gray-500 mt-1">Sem notas</div>
+                  </div>
+                  <div className="p-4 bg-gray-50 rounded-lg text-center">
+                    <div className="text-3xl font-bold text-gray-400">-</div>
+                    <div className="text-sm font-medium text-gray-700 mt-2">Frequência</div>
+                  </div>
+                  <div className="p-4 bg-yellow-50 rounded-lg text-center">
+                    <div className="inline-block px-3 py-1 bg-yellow-300 text-yellow-900 rounded-full text-xs font-medium">
+                      Sem Dados
+                    </div>
+                    <div className="text-sm font-medium text-gray-700 mt-2">Situação</div>
+                    <div className="text-xs text-gray-500 mt-1">Status atual no período</div>
+                  </div>
+                  <div className="p-4 bg-gray-50 rounded-lg text-center">
+                    <div className="text-3xl font-bold text-gray-900">1</div>
+                    <div className="text-sm font-medium text-gray-700 mt-2">Ocorrências</div>
+                    <div className="text-xs text-gray-500 mt-1">Registros no período</div>
+                  </div>
+                </div>
 
-            {/* Performance por Disciplina */}
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Performance por Disciplina</h3>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                  <span className="font-medium">Ciências</span>
-                  <span className="text-gray-600">Em Andamento</span>
+                {/* Performance */}
+                <div>
+                  <h3 className="text-base font-semibold text-gray-900">Performance por Disciplina</h3>
+                  <p className="text-sm text-gray-600 mb-4">Visão geral do desempenho</p>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                      <span className="font-medium text-gray-900">Ciências</span>
+                      <span className="text-sm text-gray-600">Em Andamento</span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                      <span className="font-medium text-gray-900">Geografia</span>
+                      <span className="text-sm text-gray-600">Em Andamento</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                  <span className="font-medium">Geografia</span>
-                  <span className="text-gray-600">Em Andamento</span>
-                </div>
+              </>
+            )}
+
+            {/* Outros Tabs - Placeholder */}
+            {activeTab !== 'resumo' && (
+              <div className="text-center py-8 text-gray-500">
+                Conteúdo em desenvolvimento
               </div>
-            </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
