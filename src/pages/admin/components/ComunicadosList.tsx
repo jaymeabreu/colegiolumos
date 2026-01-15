@@ -97,7 +97,7 @@ export function ComunicadosList() {
           titulo: formData.titulo.trim(),
           mensagem: formData.mensagem.trim(),
           autor: formData.autor.trim(),
-          autor_id: 1,
+          autor_id: 9,
           data_publicacao: new Date().toISOString().split('T')[0]
         });
         console.log('Comunicado criado:', novoComunicado);
