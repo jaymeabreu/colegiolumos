@@ -606,7 +606,16 @@ class SupabaseService {
       rg: aluno.rg ?? null,
       sexo: aluno.sexo ?? null,
       contato: aluno.contato ?? null,
-      observacoes: aluno.observacoes ?? null
+      observacoes: aluno.observacoes ?? null,
+      endereco: aluno.endereco ?? null,
+      bairro: aluno.bairro ?? null,
+      cidade: aluno.cidade ?? null,
+      estado: aluno.estado ?? null,
+      cep: aluno.cep ?? null,
+      nome_responsavel: aluno.nomeResponsavel ?? aluno.nome_responsavel ?? null,
+      telefone_responsavel: aluno.contatoResponsavel ?? aluno.telefone_responsavel ?? null,
+      email_responsavel: aluno.emailResponsavel ?? aluno.email_responsavel ?? null,
+      parentesco: aluno.parentesco ?? null
     };
 
     const { data, error } = await supabase
@@ -634,6 +643,18 @@ class SupabaseService {
     if (updates.sexo !== undefined) payload.sexo = updates.sexo;
     if (updates.contato !== undefined) payload.contato = updates.contato;
     if (updates.observacoes !== undefined) payload.observacoes = updates.observacoes;
+    if (updates.endereco !== undefined) payload.endereco = updates.endereco;
+    if (updates.bairro !== undefined) payload.bairro = updates.bairro;
+    if (updates.cidade !== undefined) payload.cidade = updates.cidade;
+    if (updates.estado !== undefined) payload.estado = updates.estado;
+    if (updates.cep !== undefined) payload.cep = updates.cep;
+    if (updates.nomeResponsavel !== undefined) payload.nome_responsavel = updates.nomeResponsavel;
+    if (updates.nome_responsavel !== undefined) payload.nome_responsavel = updates.nome_responsavel;
+    if (updates.contatoResponsavel !== undefined) payload.telefone_responsavel = updates.contatoResponsavel;
+    if (updates.telefone_responsavel !== undefined) payload.telefone_responsavel = updates.telefone_responsavel;
+    if (updates.emailResponsavel !== undefined) payload.email_responsavel = updates.emailResponsavel;
+    if (updates.email_responsavel !== undefined) payload.email_responsavel = updates.email_responsavel;
+    if (updates.parentesco !== undefined) payload.parentesco = updates.parentesco;
     
     payload.updated_at = nowIso();
 
