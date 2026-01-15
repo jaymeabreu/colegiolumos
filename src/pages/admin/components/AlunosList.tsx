@@ -208,7 +208,9 @@ export function AlunosList() {
       nomeResponsavel: formData.nomeResponsavel || null,
       contatoResponsavel: formData.contatoResponsavel || null,
       emailResponsavel: formData.emailResponsavel || null,
-      parentesco: formData.parentesco || null
+      parentesco: formData.parentesco || null,
+      anoLetivo: formData.anoLetivo || null,
+      situacao: formData.situacao || null
     };
     
     console.log('📤 Enviando dados do aluno:', alunoData);
@@ -270,8 +272,8 @@ export function AlunosList() {
       emailResponsavel: aluno.email_responsavel || '',
       parentesco: aluno.parentesco || '',
       turmaId: aluno.turma_id?.toString() || '',
-      anoLetivo: '',
-      situacao: '',
+      anoLetivo: '2025',
+      situacao: 'Ativo',
       observacoes: aluno.observacoes || '',
       criarUsuario: false,
       senhaUsuario: '',
