@@ -616,8 +616,11 @@ class SupabaseService {
       telefone_responsavel: aluno.contatoResponsavel ?? aluno.telefone_responsavel ?? null,
       email_responsavel: aluno.emailResponsavel ?? aluno.email_responsavel ?? null,
       parentesco: aluno.parentesco ?? null,
-      foto: aluno.foto ?? null
+      ano_letivo: aluno.anoLetivo ?? aluno.ano_letivo ?? null,
+      situacao: aluno.situacao ?? null
     };
+
+    console.log('🚀 createAluno payload:', payload);
 
     const { data, error } = await supabase
       .from('alunos')
@@ -625,8 +628,12 @@ class SupabaseService {
       .select('*')
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('❌ Erro ao criar aluno:', error);
+      throw error;
+    }
 
+    console.log('✅ Aluno criado:', data);
     this.dispatchDataUpdated('alunos');
     return withCamel(data) as Aluno;
   }
@@ -656,9 +663,13 @@ class SupabaseService {
     if (updates.emailResponsavel !== undefined) payload.email_responsavel = updates.emailResponsavel;
     if (updates.email_responsavel !== undefined) payload.email_responsavel = updates.email_responsavel;
     if (updates.parentesco !== undefined) payload.parentesco = updates.parentesco;
-    if (updates.foto !== undefined) payload.foto = updates.foto;
+    if (updates.anoLetivo !== undefined) payload.ano_letivo = updates.anoLetivo;
+    if (updates.ano_letivo !== undefined) payload.ano_letivo = updates.ano_letivo;
+    if (updates.situacao !== undefined) payload.situacao = updates.situacao;
     
     payload.updated_at = nowIso();
+
+    console.log('🔄 updateAluno payload:', payload);
 
     const { data, error } = await supabase
       .from('alunos')
@@ -667,8 +678,12 @@ class SupabaseService {
       .select('*')
       .maybeSingle();
 
-    if (error) throw error;
+    if (error) {
+      console.error('❌ Erro ao atualizar aluno:', error);
+      throw error;
+    }
 
+    console.log('✅ Aluno atualizado:', data);
     this.dispatchDataUpdated('alunos');
     return data ? (withCamel(data) as Aluno) : null;
   }
