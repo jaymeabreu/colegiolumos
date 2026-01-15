@@ -208,7 +208,8 @@ export function AlunosList() {
       nomeResponsavel: formData.nomeResponsavel || null,
       contatoResponsavel: formData.contatoResponsavel || null,
       emailResponsavel: formData.emailResponsavel || null,
-      parentesco: formData.parentesco || null
+      parentesco: formData.parentesco || null,
+      foto: formData.foto || null
     };
 
     try {
@@ -273,9 +274,9 @@ export function AlunosList() {
       observacoes: aluno.observacoes || '',
       criarUsuario: false,
       senhaUsuario: '',
-      foto: ''
+      foto: aluno.foto || ''
     });
-    setSelectedImage(null);
+    setSelectedImage(aluno.foto || null);
     setIsDialogOpen(true);
   }, []);
 
@@ -463,6 +464,55 @@ export function AlunosList() {
               <form onSubmit={handleSubmit}>
                 <div className="space-y-6">
                   
+
+                  {/* Foto do Perfil */}
+                  <div>
+                    <h4 className="text-lg font-medium mb-4">Foto do Perfil</h4>
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="w-32 h-32 rounded-full overflow-hidden border-2 border-gray-200 bg-gray-100 flex items-center justify-center">
+                        {selectedImage ? (
+                          <img src={selectedImage} alt="Preview" className="w-full h-full object-cover" />
+                        ) : (
+                          <Users className="h-16 w-16 text-gray-400" />
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={loading}
+                          className="flex items-center gap-2"
+                        >
+                          <Upload className="h-4 w-4" />
+                          Fazer upload de foto
+                        </Button>
+                        {selectedImage && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={removeImage}
+                            disabled={loading}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-500 text-center">
+                        Formatos aceitos: JPG, PNG, WEBP. Máximo 5MB.<br />
+                        A imagem será automaticamente otimizada.
+                      </p>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/jpeg,image/jpg,image/png,image/webp"
+                        onChange={handleImageUpload}
+                        className="hidden"
+                        disabled={loading}
+                      />
+                    </div>
+                  </div>
 
                   {/* Dados Básicos */}
                   <div>
