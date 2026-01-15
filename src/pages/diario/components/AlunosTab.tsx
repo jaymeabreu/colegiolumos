@@ -43,20 +43,38 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
       const alunosDaTurma = await supabaseService.getAlunosByTurma(turmaId);
       console.log('👥 Alunos da turma:', alunosDaTurma);
       
-      // 3. Vincular automaticamente os alunos ao diário (se ainda não estiverem)
+      // 3. Carregar alunos já vinculados ao diário
+      let alunosVinculados: number[] = [];
+      try {
+        const diarioAlunos = await supabaseService.getDiarioAlunos();
+        alunosVinculados = diarioAlunos
+          .filter(da => da.diario_id === diarioId || da.diarioId === diarioId)
+          .map(da => da.aluno_id ?? da.alunoId)
+          .filter((id): id is number => id !== null && id !== undefined);
+        console.log('📌 Alunos já vinculados:', alunosVinculados);
+      } catch (error) {
+        console.log('⚠️ Erro ao carregar alunos vinculados:', error);
+      }
+
+      // 4. Vincular apenas os alunos que NÃO estão vinculados
       if (alunosDaTurma && alunosDaTurma.length > 0) {
         for (const aluno of alunosDaTurma) {
+          // Pula se já está vinculado
+          if (alunosVinculados.includes(aluno.id)) {
+            console.log(`⏭️ Aluno ${aluno.nome} já vinculado, pulando...`);
+            continue;
+          }
+
           try {
             await supabaseService.vincularAlunoAoDiario(diarioId, aluno.id);
             console.log(`✅ Aluno ${aluno.nome} vinculado ao diário`);
           } catch (error) {
-            // Já pode estar vinculado, ignore o erro
-            console.log(`⚠️ Aluno ${aluno.nome} já vinculado ou erro:`, error);
+            console.error(`❌ Erro ao vincular ${aluno.nome}:`, error);
           }
         }
       }
       
-      // 4. Carregar alunos do diário (agora que foram vinculados)
+      // 5. Carregar alunos do diário (agora que foram vinculados)
       const alunosDoDiario = await supabaseService.getAlunosByDiario(diarioId);
       setAlunos(alunosDoDiario || []);
       console.log('📋 Alunos do diário:', alunosDoDiario);
