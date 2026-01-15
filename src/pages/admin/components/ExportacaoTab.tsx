@@ -6,7 +6,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Label } from '../../../components/ui/label';
 import { Separator } from '../../../components/ui/separator';
 import { supabaseService } from '../../../services/supabaseService';
-import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 export function ExportacaoTab() {
