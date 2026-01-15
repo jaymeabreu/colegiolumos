@@ -49,8 +49,8 @@ export function ComunicadosList() {
       setComunicados(
         comunicadosData.sort(
           (a, b) =>
-            new Date(b.dataPublicacao).getTime() -
-            new Date(a.dataPublicacao).getTime()
+            new Date(b.data_publicacao).getTime() -
+            new Date(a.data_publicacao).getTime()
         )
       );
     } catch (error) {
@@ -72,6 +72,7 @@ export function ComunicadosList() {
 
     try {
       console.log('Dados do formulário:', formData);
+      console.log('User atual:', user);
 
       if (editingComunicado) {
         console.log('Editando comunicado:', editingComunicado.id);
@@ -96,8 +97,8 @@ export function ComunicadosList() {
           titulo: formData.titulo.trim(),
           mensagem: formData.mensagem.trim(),
           autor: formData.autor.trim(),
-          autorId: user?.id || 1,
-          dataPublicacao: new Date().toISOString().split('T')[0]
+          autor_id: 1,
+          data_publicacao: new Date().toISOString().split('T')[0]
         });
         console.log('Comunicado criado:', novoComunicado);
         
@@ -314,7 +315,7 @@ export function ComunicadosList() {
                       </div>
                       <div className="flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
-                        <span>{formatDate(comunicado.dataPublicacao)}</span>
+                        <span>{formatDate(comunicado.data_publicacao)}</span>
                       </div>
                     </div>
                   </div>
