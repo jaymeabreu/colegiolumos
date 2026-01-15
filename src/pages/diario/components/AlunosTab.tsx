@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, GraduationCap, Mail, TrendingUp, Calendar, Info, AlertCircle, BookOpen, X } from 'lucide-react';
+import { Users, GraduationCap, Mail, TrendingUp, Calendar, Info, AlertCircle } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
 import { Badge } from '../../../components/ui/badge';
@@ -126,14 +126,14 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
         </CardContent>
       </Card>
 
-      {/* Modal Boletim */}
+      {/* Modal Boletim - CORREÇÃO DE LARGURA E BOTÃO DUPLICADO */}
       <Dialog open={isBoletimOpen} onOpenChange={setIsBoletimOpen}>
         <DialogContent 
           className="sm:max-w-[1100px] w-[95vw] p-0 overflow-hidden border-none shadow-2xl rounded-2xl bg-white"
-          style={{ maxWidth: '1100px' }}
+          style={{ maxWidth: '1100px' }} // Forçando via style caso o Tailwind seja sobrescrito
         >
-          {/* Header */}
-          <div className="px-10 py-8 flex items-center justify-between border-b border-gray-200">
+          {/* Header - REMOVIDO O BOTÃO X MANUAL PARA EVITAR DUPLICIDADE */}
+          <div className="px-10 py-8 flex items-center justify-between">
             <div className="flex items-center gap-5">
               <Avatar className="h-14 w-14 border border-gray-100 shadow-sm">
                 <AvatarFallback className="bg-slate-50 text-slate-400 text-base font-bold">
@@ -145,17 +145,12 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
                 <p className="text-base font-medium text-gray-400">{selectedAluno?.nome}</p>
               </div>
             </div>
-            <button 
-              onClick={() => setIsBoletimOpen(false)}
-              className="text-gray-400 hover:text-gray-600"
-            >
-              ×
-            </button>
+            {/* O botão de fechar padrão do DialogContent aparecerá automaticamente no canto superior direito */}
           </div>
 
-          {/* Navigation Tabs - ESTILO SIMPLES COM UNDERLINE (SEM FUNDO CINZENTO) */}
-          <div className="px-10 border-b border-gray-200 bg-gray-50">
-            <div className="flex items-center gap-8">
+          {/* Navigation Tabs */}
+          <div className="px-10 mb-2">
+            <div className="flex items-center p-1.5 bg-[#f1f5f9] rounded-xl w-full">
               {[
                 { id: 'resumo', label: 'Resumo' },
                 { id: 'completo', label: 'Boletim Completo' },
@@ -166,10 +161,10 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`py-4 text-sm font-medium border-b-2 transition-colors ${
+                  className={`flex-1 py-2.5 text-[14px] font-bold rounded-lg transition-all duration-200 ${
                     activeTab === tab.id
-                      ? 'text-gray-900 border-blue-600'
-                      : 'text-gray-500 border-transparent hover:text-gray-700'
+                      ? 'bg-white text-gray-800 shadow-sm'
+                      : 'text-gray-400 hover:text-gray-600'
                   }`}
                 >
                   {tab.label}
@@ -179,10 +174,10 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
           </div>
 
           {/* Content Area */}
-          <div className="p-10 pt-4">
+          <div className="p-10 pt-6">
             {activeTab === 'resumo' && (
               <div className="space-y-12">
-                {/* Summary Cards Grid */}
+                {/* Summary Cards Grid - 4 colunas fixas */}
                 <div className="grid grid-cols-4 gap-6">
                   {/* Média Geral */}
                   <div className="bg-white border border-gray-100 rounded-2xl p-7 shadow-[0_4px_20px_rgba(0,0,0,0.03)] flex flex-col min-h-[160px]">
@@ -262,121 +257,6 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
                     </div>
                   </div>
                 </div>
-              </div>
-            )}
-
-            {activeTab === 'completo' && (
-              <div className="space-y-8">
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-2">
-                    <BookOpen className="h-6 w-6 text-gray-800" />
-                    <h3 className="text-2xl font-bold text-gray-800">Boletim Escolar Completo</h3>
-                  </div>
-                  <p className="text-base font-medium text-gray-400">Notas e frequência por bimestre de todas as disciplinas</p>
-                </div>
-                
-                <div className="overflow-x-auto border border-gray-200 rounded-2xl">
-                  <table className="w-full text-sm">
-                    <thead className="bg-gray-50 border-b border-gray-200">
-                      <tr>
-                        <th className="px-6 py-4 text-left font-bold text-gray-800">Disciplina</th>
-                        <th className="px-6 py-4 text-left font-bold text-gray-800">1º Bim</th>
-                        <th className="px-6 py-4 text-left font-bold text-gray-800">2º Bim</th>
-                        <th className="px-6 py-4 text-left font-bold text-gray-800">3º Bim</th>
-                        <th className="px-6 py-4 text-left font-bold text-gray-800">4º Bim</th>
-                        <th className="px-6 py-4 text-left font-bold text-gray-800">Média Final</th>
-                        <th className="px-6 py-4 text-left font-bold text-gray-800">Frequência</th>
-                        <th className="px-6 py-4 text-left font-bold text-gray-800">Aulas</th>
-                        <th className="px-6 py-4 text-left font-bold text-gray-800">Situação</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                      <tr className="hover:bg-gray-50">
-                        <td className="px-6 py-4 font-medium text-gray-900">Ciências</td>
-                        <td className="px-6 py-4 text-gray-600">-</td>
-                        <td className="px-6 py-4 text-gray-600">-</td>
-                        <td className="px-6 py-4 text-gray-600">-</td>
-                        <td className="px-6 py-4 text-gray-600">-</td>
-                        <td className="px-6 py-4 text-gray-600">-</td>
-                        <td className="px-6 py-4 text-gray-600">-</td>
-                        <td className="px-6 py-4 text-gray-600">0P / 0F</td>
-                        <td className="px-6 py-4"><Badge className="bg-gray-100 text-gray-800 text-xs font-medium">Em Andamento</Badge></td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'avaliacoes' && (
-              <div className="grid grid-cols-2 gap-6">
-                {/* Notas das Avaliações */}
-                <div className="bg-white border border-gray-100 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] overflow-hidden">
-                  <div className="p-7 border-b border-gray-50">
-                    <div className="flex items-center gap-2 mb-1">
-                      <BookOpen className="h-5 w-5 text-gray-800" />
-                      <h3 className="text-xl font-bold text-gray-800">Notas das Avaliações</h3>
-                    </div>
-                    <p className="text-sm font-medium text-gray-400">Notas das avaliações realizadas</p>
-                  </div>
-                  <div className="p-7">
-                    <div className="border border-gray-100 rounded-xl p-5 flex justify-between items-center">
-                      <div className="space-y-1">
-                        <h4 className="font-bold text-gray-800">asda</h4>
-                        <p className="text-xs font-medium text-gray-400">Ciências • 31/12/1991 • Peso: 10</p>
-                      </div>
-                      <span className="text-xl font-bold text-green-500">10.0</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Próximas Avaliações */}
-                <div className="bg-white border border-gray-100 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] overflow-hidden">
-                  <div className="p-7 border-b border-gray-50">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Calendar className="h-5 w-5 text-gray-800" />
-                      <h3 className="text-xl font-bold text-gray-800">Próximas Avaliações</h3>
-                    </div>
-                    <p className="text-sm font-medium text-gray-400">Avaliações agendadas</p>
-                  </div>
-                  <div className="p-7 flex flex-col items-center justify-center min-h-[200px] space-y-4">
-                    <div className="p-4 bg-slate-50 rounded-2xl">
-                      <Calendar className="h-10 w-10 text-slate-200" />
-                    </div>
-                    <p className="text-sm font-medium text-slate-300">Nenhuma avaliação agendada</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'ocorrencias' && (
-              <div className="space-y-8">
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-2">
-                    <AlertCircle className="h-6 w-6 text-gray-800" />
-                    <h3 className="text-2xl font-bold text-gray-800">Ocorrências Registradas</h3>
-                  </div>
-                  <p className="text-base font-medium text-gray-400">Histórico de ocorrências disciplinares e pedagógicas</p>
-                </div>
-
-                <div className="flex flex-col items-center justify-center py-16 space-y-4">
-                  <div className="p-4 bg-gray-100 rounded-full">
-                    <AlertCircle className="h-12 w-12 text-gray-300" />
-                  </div>
-                  <div className="text-center space-y-2">
-                    <p className="text-base font-medium text-gray-500">Nenhuma ocorrência registrada</p>
-                    <p className="text-sm text-gray-400">Parabéns! Não há ocorrências registradas.</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'disciplina' && (
-              <div className="flex flex-col items-center justify-center py-20 space-y-4">
-                <div className="p-4 bg-slate-50 rounded-full">
-                  <Info className="h-8 w-8 text-slate-300" />
-                </div>
-                <p className="text-sm font-medium text-slate-400">Conteúdo em desenvolvimento</p>
               </div>
             )}
           </div>
