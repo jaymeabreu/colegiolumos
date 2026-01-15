@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Users, GraduationCap, Mail, TrendingUp, Calendar, Info, AlertCircle } from 'lucide-react';
+import { Users, GraduationCap, Mail, FileText, Eye, TrendingUp, BarChart3, AlertTriangle } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
 import { Badge } from '../../../components/ui/badge';
-import { Avatar, AvatarFallback } from '../../../components/ui/avatar';
+import { Avatar, AvatarImage, AvatarFallback } from '../../../components/ui/avatar';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../../components/ui/card';
-import { Dialog, DialogContent } from '../../../components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../../components/ui/dialog';
 import { supabaseService } from '../../../services/supabaseService';
 import type { Aluno, Diario } from '../../../services/supabaseService';
 
@@ -30,16 +30,52 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
   const loadAlunos = async () => {
     try {
       setLoading(true);
+      
       const diarioData = await supabaseService.getDiarioById(diarioId);
       if (!diarioData) {
+        console.error('Diário não encontrado');
         setAlunos([]);
         return;
       }
+      
       setDiario(diarioData);
+      console.log('📚 Diário carregado:', diarioData);
+      
       const turmaId = diarioData.turma_id ?? diarioData.turmaId;
       const alunosDaTurma = await supabaseService.getAlunosByTurma(turmaId);
+      console.log('👥 Alunos da turma:', alunosDaTurma);
+      
+      let alunosVinculados: number[] = [];
+      try {
+        const diarioAlunos = await supabaseService.getDiarioAlunos();
+        alunosVinculados = diarioAlunos
+          .filter(da => da.diario_id === diarioId || da.diarioId === diarioId)
+          .map(da => da.aluno_id ?? da.alunoId)
+          .filter((id): id is number => id !== null && id !== undefined);
+        console.log('📌 Alunos já vinculados:', alunosVinculados);
+      } catch (error) {
+        console.log('⚠️ Erro ao carregar alunos vinculados:', error);
+      }
+
+      if (alunosDaTurma && alunosDaTurma.length > 0) {
+        for (const aluno of alunosDaTurma) {
+          if (alunosVinculados.includes(aluno.id)) {
+            console.log(`⏭️ Aluno ${aluno.nome} já vinculado, pulando...`);
+            continue;
+          }
+
+          try {
+            await supabaseService.vincularAlunoAoDiario(diarioId, aluno.id);
+            console.log(`✅ Aluno ${aluno.nome} vinculado ao diário`);
+          } catch (error) {
+            console.error(`❌ Erro ao vincular ${aluno.nome}:`, error);
+          }
+        }
+      }
+      
       const alunosDoDiario = await supabaseService.getAlunosByDiario(diarioId);
       setAlunos(alunosDoDiario || []);
+      console.log('📋 Alunos do diário:', alunosDoDiario);
     } catch (error) {
       console.error('Erro ao carregar alunos:', error);
       setAlunos([]);
@@ -54,7 +90,12 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
   );
 
   const getInitials = (nome: string) => {
-    return nome.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+    return nome
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
   };
 
   const handleVerBoletim = (aluno: Aluno) => {
@@ -67,7 +108,10 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
     return (
       <Card>
         <CardContent className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Carregando alunos...</p>
+          </div>
         </CardContent>
       </Card>
     );
@@ -80,77 +124,105 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="space-y-2">
               <CardTitle>Alunos da Turma</CardTitle>
-              <CardDescription>Visualize informações e desempenho dos alunos</CardDescription>
+              <CardDescription>
+                Visualize informações dos alunos
+              </CardDescription>
             </div>
-            <Badge variant="outline" className="flex items-center gap-1 text-xs font-normal text-gray-500 border-none">
-              <Users className="h-3 w-3" />
-              {alunos.length} alunos
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="flex items-center gap-1">
+                <Users className="h-3 w-3" />
+                {alunos.length} alunos
+              </Badge>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="mb-6">
+          <div className="mb-4">
             <Input
               placeholder="Buscar alunos..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="max-w-md"
             />
           </div>
           <div className="space-y-4">
             {filteredAlunos.map((aluno) => (
               <div key={aluno.id} className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 p-4 border rounded-lg">
                 <div className="flex items-center gap-3 flex-1">
-                  <Avatar className="h-10 w-10">
-                    <AvatarFallback className="bg-slate-100 text-slate-500 text-xs font-semibold">
+                  <Avatar className="h-12 w-12">
+                    <AvatarFallback className="bg-blue-100 text-blue-600 font-medium">
                       {getInitials(aluno.nome)}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-medium text-sm text-gray-900">{aluno.nome}</h3>
-                      <Badge className="bg-blue-600 hover:bg-blue-700 text-[10px] h-4 px-1.5">Ativo</Badge>
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-medium">{aluno.nome}</h3>
                     </div>
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-0.5 text-xs text-gray-500">
-                      <span className="flex items-center gap-1"><GraduationCap className="h-3 w-3" /> Matrícula: {aluno.id}</span>
-                      {aluno.email && <span className="flex items-center gap-1"><Mail className="h-3 w-3" /> {aluno.email}</span>}
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-1 text-sm text-gray-600">
+                      <span className="flex items-center gap-1">
+                        <GraduationCap className="h-3 w-3" />
+                        Matrícula: {aluno.id}
+                      </span>
+                      {aluno.email && (
+                        <span className="flex items-center gap-1">
+                          <Mail className="h-3 w-3" />
+                          {aluno.email}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
-                <Button variant="outline" size="sm" onClick={() => handleVerBoletim(aluno)} className="flex items-center gap-2 text-xs font-medium border-gray-300">
-                  <TrendingUp className="h-3.5 w-3.5" /> Ver Boletim
-                </Button>
+                <div className="flex-shrink-0">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleVerBoletim(aluno)}
+                    className="flex items-center gap-2"
+                  >
+                    <Eye className="h-4 w-4" />
+                    Ver Boletim
+                  </Button>
+                </div>
               </div>
             ))}
+
+            {filteredAlunos.length === 0 && (
+              <div className="text-center py-8 text-muted-foreground">
+                {searchTerm ? 'Nenhum aluno encontrado.' : 'Nenhum aluno matriculado.'}
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
 
-      {/* Modal Boletim - CORREÇÃO DE LARGURA E BOTÃO DUPLICADO */}
+      {/* Modal Boletim */}
       <Dialog open={isBoletimOpen} onOpenChange={setIsBoletimOpen}>
-        <DialogContent 
-          className="sm:max-w-[1100px] w-[95vw] p-0 overflow-hidden border-none shadow-2xl rounded-2xl bg-white"
-          style={{ maxWidth: '1100px' }} // Forçando via style caso o Tailwind seja sobrescrito
-        >
-          {/* Header - REMOVIDO O BOTÃO X MANUAL PARA EVITAR DUPLICIDADE */}
-          <div className="px-10 py-8 flex items-center justify-between">
-            <div className="flex items-center gap-5">
-              <Avatar className="h-14 w-14 border border-gray-100 shadow-sm">
-                <AvatarFallback className="bg-slate-50 text-slate-400 text-base font-bold">
-                  {selectedAluno ? getInitials(selectedAluno.nome) : ''}
-                </AvatarFallback>
-              </Avatar>
-              <div className="space-y-1">
-                <h2 className="text-2xl font-bold text-gray-800 tracking-tight">Boletim Escolar</h2>
-                <p className="text-base font-medium text-gray-400">{selectedAluno?.nome}</p>
+        <DialogContent className="w-[90vw] max-w-6xl p-0">
+          {/* Header */}
+          <div className="border-b p-6">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-3">
+                <Avatar className="h-12 w-12">
+                  <AvatarFallback className="bg-blue-100 text-blue-600 font-medium">
+                    {selectedAluno ? getInitials(selectedAluno.nome) : ''}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-900">Boletim Escolar</h2>
+                  <p className="text-sm text-gray-500">{selectedAluno?.nome}</p>
+                </div>
               </div>
+              <button 
+                onClick={() => setIsBoletimOpen(false)}
+                className="text-gray-400 hover:text-gray-600 text-2xl"
+              >
+                ×
+              </button>
             </div>
-            {/* O botão de fechar padrão do DialogContent aparecerá automaticamente no canto superior direito */}
           </div>
 
-          {/* Navigation Tabs */}
-          <div className="px-10 mb-2">
-            <div className="flex items-center p-1.5 bg-[#f1f5f9] rounded-xl w-full">
+          {/* Tabs */}
+          <div className="border-b bg-gray-100 px-6">
+            <div className="flex gap-0">
               {[
                 { id: 'resumo', label: 'Resumo' },
                 { id: 'completo', label: 'Boletim Completo' },
@@ -161,10 +233,10 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex-1 py-2.5 text-[14px] font-bold rounded-lg transition-all duration-200 ${
+                  className={`px-6 py-3 font-medium text-sm transition border-b-2 ${
                     activeTab === tab.id
-                      ? 'bg-white text-gray-800 shadow-sm'
-                      : 'text-gray-400 hover:text-gray-600'
+                      ? 'text-gray-900 border-blue-600 bg-white'
+                      : 'text-gray-500 border-transparent hover:text-gray-700'
                   }`}
                 >
                   {tab.label}
@@ -173,90 +245,91 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
             </div>
           </div>
 
-          {/* Content Area */}
-          <div className="p-10 pt-6">
+          {/* Conteúdo */}
+          <div className="p-6">
             {activeTab === 'resumo' && (
-              <div className="space-y-12">
-                {/* Summary Cards Grid - 4 colunas fixas */}
-                <div className="grid grid-cols-4 gap-6">
+              <div className="space-y-6">
+                {/* Cards de Resumo */}
+                <div className="grid grid-cols-4 gap-4">
                   {/* Média Geral */}
-                  <div className="bg-white border border-gray-100 rounded-2xl p-7 shadow-[0_4px_20px_rgba(0,0,0,0.03)] flex flex-col min-h-[160px]">
-                    <div className="flex justify-center items-center mb-auto">
-                      <span className="text-[14px] font-bold text-gray-800">Média Geral</span>
-                      <TrendingUp className="h-4 w-4 text-gray-300 ml-2" />
+                  <div className="border rounded-lg p-6 bg-white hover:shadow-sm transition">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <p className="text-sm font-medium text-gray-700">Média Geral</p>
+                      </div>
+                      <TrendingUp className="h-5 w-5 text-gray-400" />
                     </div>
-                    <div className="mt-4">
-                      <span className="text-3xl font-bold text-red-500 leading-none">-</span>
-                      <div className="text-[12px] font-medium text-gray-300 mt-3">Sem notas</div>
-                    </div>
+                    <div className="text-3xl font-bold text-red-600 mb-2">-</div>
+                    <p className="text-xs text-gray-500">Sem notas</p>
                   </div>
 
                   {/* Frequência */}
-                  <div className="bg-white border border-gray-100 rounded-2xl p-7 shadow-[0_4px_20px_rgba(0,0,0,0.03)] flex flex-col min-h-[160px]">
-                    <div className="flex justify-center items-center mb-auto">
-                      <span className="text-[14px] font-bold text-gray-800">Frequência</span>
-                      <Calendar className="h-4 w-4 text-gray-300 ml-2" />
+                  <div className="border rounded-lg p-6 bg-white hover:shadow-sm transition">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <p className="text-sm font-medium text-gray-700">Frequência</p>
+                      </div>
+                      <BarChart3 className="h-5 w-5 text-gray-400" />
                     </div>
-                    <div className="mt-4">
-                      <span className="text-3xl font-bold text-red-500 leading-none">-</span>
-                    </div>
+                    <div className="text-3xl font-bold text-red-600 mb-2">-</div>
                   </div>
 
                   {/* Situação */}
-                  <div className="bg-white border border-gray-100 rounded-2xl p-7 shadow-[0_4px_20px_rgba(0,0,0,0.03)] flex flex-col min-h-[160px]">
-                    <div className="flex justify-center items-center mb-auto">
-                      <span className="text-[14px] font-bold text-gray-800">Situação</span>
-                      <Info className="h-4 w-4 text-gray-300 ml-2" />
+                  <div className="border rounded-lg p-6 bg-yellow-50 hover:shadow-sm transition">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <p className="text-sm font-medium text-gray-700">Situação</p>
+                      </div>
+                      <AlertTriangle className="h-5 w-5 text-gray-400" />
                     </div>
-                    <div className="mt-4 flex flex-col items-start gap-3">
-                      <Badge className="bg-orange-400 hover:bg-orange-400 text-white text-[12px] font-bold px-4 py-1 rounded-full border-none">
+                    <div className="mb-3">
+                      <span className="inline-block px-3 py-1 bg-yellow-300 text-yellow-900 rounded-full text-xs font-medium">
                         Sem Dados
-                      </Badge>
-                      <span className="text-[12px] font-medium text-gray-300">Status atual no período</span>
+                      </span>
                     </div>
+                    <p className="text-xs text-gray-600">Status atual no período</p>
                   </div>
 
                   {/* Ocorrências */}
-                  <div className="bg-white border border-gray-100 rounded-2xl p-7 shadow-[0_4px_20px_rgba(0,0,0,0.03)] flex flex-col min-h-[160px]">
-                    <div className="flex justify-center items-center mb-auto">
-                      <span className="text-[14px] font-bold text-gray-800">Ocorrências</span>
-                      <AlertCircle className="h-4 w-4 text-gray-300 ml-2" />
+                  <div className="border rounded-lg p-6 bg-white hover:shadow-sm transition">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <p className="text-sm font-medium text-gray-700">Ocorrências</p>
+                      </div>
+                      <AlertTriangle className="h-5 w-5 text-gray-400" />
                     </div>
-                    <div className="mt-4">
-                      <span className="text-3xl font-bold text-slate-800 leading-none">1</span>
-                      <div className="text-[12px] font-medium text-gray-300 mt-3">Registros no período</div>
-                    </div>
+                    <div className="text-3xl font-bold text-gray-900 mb-2">1</div>
+                    <p className="text-xs text-gray-500">Registros no período</p>
                   </div>
                 </div>
 
-                {/* Performance Section */}
-                <div className="space-y-8">
-                  <div className="space-y-1.5">
-                    <h3 className="text-2xl font-bold text-gray-800 tracking-tight">Performance por Disciplina</h3>
-                    <p className="text-base font-medium text-gray-400">Visão geral do desempenho</p>
-                  </div>
-                  
-                  <div className="divide-y divide-gray-50 border-t border-gray-50">
-                    <div className="flex justify-between items-center py-6">
-                      <span className="text-[15px] font-bold text-gray-800">Ciências</span>
-                      <div className="flex items-center gap-8">
-                        <span className="text-base font-bold text-red-500">-</span>
-                        <Badge variant="outline" className="bg-white text-gray-800 text-[12px] font-bold px-4 py-1.5 rounded-full border-gray-200 shadow-sm">
-                          Em Andamento
-                        </Badge>
+                {/* Performance por Disciplina */}
+                <div className="border-t pt-6">
+                  <h3 className="text-base font-semibold text-gray-900 mb-1">Performance por Disciplina</h3>
+                  <p className="text-sm text-gray-500 mb-4">Visão geral do desempenho</p>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+                      <span className="font-medium text-gray-900">Ciências</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-red-600 font-bold">-</span>
+                        <span className="text-sm text-gray-600">Em Andamento</span>
                       </div>
                     </div>
-                    <div className="flex justify-between items-center py-6">
-                      <span className="text-[15px] font-bold text-gray-800">Geografia</span>
-                      <div className="flex items-center gap-8">
-                        <span className="text-base font-bold text-red-500">-</span>
-                        <Badge variant="outline" className="bg-white text-gray-800 text-[12px] font-bold px-4 py-1.5 rounded-full border-gray-200 shadow-sm">
-                          Em Andamento
-                        </Badge>
+                    <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+                      <span className="font-medium text-gray-900">Geografia</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-red-600 font-bold">-</span>
+                        <span className="text-sm text-gray-600">Em Andamento</span>
                       </div>
                     </div>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {activeTab !== 'resumo' && (
+              <div className="text-center py-8 text-gray-500">
+                Conteúdo em desenvolvimento
               </div>
             )}
           </div>
