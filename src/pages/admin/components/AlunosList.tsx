@@ -193,7 +193,22 @@ export function AlunosList() {
       nome: formData.nome.trim(),
       matricula: formData.matricula.trim(),
       email: formData.email.trim() || null,
-      turma_id: formData.turmaId ? Number(formData.turmaId) : null
+      turma_id: formData.turmaId ? Number(formData.turmaId) : null,
+      dataNascimento: formData.dataNascimento || null,
+      cpf: formData.cpf || null,
+      rg: formData.rg || null,
+      sexo: formData.sexo || null,
+      contato: formData.contato || null,
+      observacoes: formData.observacoes || null,
+      endereco: formData.endereco || null,
+      bairro: formData.bairro || null,
+      cidade: formData.cidade || null,
+      estado: formData.estado || null,
+      cep: formData.cep || null,
+      nomeResponsavel: formData.nomeResponsavel || null,
+      contatoResponsavel: formData.contatoResponsavel || null,
+      emailResponsavel: formData.emailResponsavel || null,
+      parentesco: formData.parentesco || null
     };
 
     try {
@@ -219,7 +234,7 @@ export function AlunosList() {
 
       await loadData();
       
-      // ✅ CORREÇÃO: Fechar modal PRIMEIRO, depois resetar formulário
+      // ✅ Fechar modal PRIMEIRO, depois resetar formulário
       setIsDialogOpen(false);
       resetForm();
       
@@ -237,25 +252,25 @@ export function AlunosList() {
     setFormData({
       nome: aluno.nome || '',
       matricula: aluno.matricula || '',
-      contato: aluno.telefone || '',
+      contato: aluno.contato || aluno.telefone || '',
       email: aluno.email || '',
       dataNascimento: aluno.data_nascimento || '',
       cpf: aluno.cpf || '',
-      rg: '',
-      sexo: '',
-      endereco: '',
-      bairro: '',
-      cidade: '',
-      cep: '',
-      estado: '',
-      nomeResponsavel: '',
-      contatoResponsavel: '',
-      emailResponsavel: '',
-      parentesco: '',
+      rg: aluno.rg || '',
+      sexo: aluno.sexo || '',
+      endereco: aluno.endereco || '',
+      bairro: aluno.bairro || '',
+      cidade: aluno.cidade || '',
+      cep: aluno.cep || '',
+      estado: aluno.estado || '',
+      nomeResponsavel: aluno.nome_responsavel || '',
+      contatoResponsavel: aluno.telefone_responsavel || '',
+      emailResponsavel: aluno.email_responsavel || '',
+      parentesco: aluno.parentesco || '',
       turmaId: aluno.turma_id?.toString() || '',
       anoLetivo: '',
       situacao: '',
-      observacoes: '',
+      observacoes: aluno.observacoes || '',
       criarUsuario: false,
       senhaUsuario: '',
       foto: ''
@@ -596,6 +611,147 @@ export function AlunosList() {
                         rows={3}
                         disabled={loading}
                       />
+                    </div>
+                  </div>
+
+                  {/* Endereço */}
+                  <div>
+                    <h4 className="text-lg font-medium mb-4">Endereço</h4>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      <div className="lg:col-span-2">
+                        <Label>Endereço</Label>
+                        <Input
+                          id="endereco"
+                          value={formData.endereco}
+                          onChange={(e) => setFormData({ ...formData, endereco: e.target.value })}
+                          placeholder="Rua, número"
+                          disabled={loading}
+                        />
+                      </div>
+                      <div>
+                        <Label>Bairro</Label>
+                        <Input
+                          id="bairro"
+                          value={formData.bairro}
+                          onChange={(e) => setFormData({ ...formData, bairro: e.target.value })}
+                          placeholder="Bairro"
+                          disabled={loading}
+                        />
+                      </div>
+                      <div>
+                        <Label>Cidade</Label>
+                        <Input
+                          id="cidade"
+                          value={formData.cidade}
+                          onChange={(e) => setFormData({ ...formData, cidade: e.target.value })}
+                          placeholder="Cidade"
+                          disabled={loading}
+                        />
+                      </div>
+                      <div>
+                        <Label>Estado</Label>
+                        <Select value={formData.estado} onValueChange={(value) => setFormData({ ...formData, estado: value })} disabled={loading}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Estado" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="AC">Acre</SelectItem>
+                            <SelectItem value="AL">Alagoas</SelectItem>
+                            <SelectItem value="AP">Amapá</SelectItem>
+                            <SelectItem value="AM">Amazonas</SelectItem>
+                            <SelectItem value="BA">Bahia</SelectItem>
+                            <SelectItem value="CE">Ceará</SelectItem>
+                            <SelectItem value="DF">Distrito Federal</SelectItem>
+                            <SelectItem value="ES">Espírito Santo</SelectItem>
+                            <SelectItem value="GO">Goiás</SelectItem>
+                            <SelectItem value="MA">Maranhão</SelectItem>
+                            <SelectItem value="MT">Mato Grosso</SelectItem>
+                            <SelectItem value="MS">Mato Grosso do Sul</SelectItem>
+                            <SelectItem value="MG">Minas Gerais</SelectItem>
+                            <SelectItem value="PA">Pará</SelectItem>
+                            <SelectItem value="PB">Paraíba</SelectItem>
+                            <SelectItem value="PR">Paraná</SelectItem>
+                            <SelectItem value="PE">Pernambuco</SelectItem>
+                            <SelectItem value="PI">Piauí</SelectItem>
+                            <SelectItem value="RJ">Rio de Janeiro</SelectItem>
+                            <SelectItem value="RN">Rio Grande do Norte</SelectItem>
+                            <SelectItem value="RS">Rio Grande do Sul</SelectItem>
+                            <SelectItem value="RO">Rondônia</SelectItem>
+                            <SelectItem value="RR">Roraima</SelectItem>
+                            <SelectItem value="SC">Santa Catarina</SelectItem>
+                            <SelectItem value="SP">São Paulo</SelectItem>
+                            <SelectItem value="SE">Sergipe</SelectItem>
+                            <SelectItem value="TO">Tocantins</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label>CEP</Label>
+                        <Input
+                          id="cep"
+                          value={formData.cep}
+                          onChange={(e) => setFormData({ ...formData, cep: e.target.value })}
+                          placeholder="CEP"
+                          disabled={loading}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Dados do Responsável */}
+                  <div>
+                    <h4 className="text-lg font-medium mb-4">Dados do Responsável</h4>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      <div>
+                        <Label>Nome do Responsável</Label>
+                        <Input
+                          id="nomeResponsavel"
+                          value={formData.nomeResponsavel}
+                          onChange={(e) => setFormData({ ...formData, nomeResponsavel: e.target.value })}
+                          placeholder="Nome do Responsável"
+                          disabled={loading}
+                        />
+                      </div>
+                      <div>
+                        <Label>Parentesco</Label>
+                        <Select value={formData.parentesco} onValueChange={(value) => setFormData({ ...formData, parentesco: value })} disabled={loading}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Parentesco" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Pai">Pai</SelectItem>
+                            <SelectItem value="Mãe">Mãe</SelectItem>
+                            <SelectItem value="Avó">Avó</SelectItem>
+                            <SelectItem value="Avô">Avô</SelectItem>
+                            <SelectItem value="Tio">Tio</SelectItem>
+                            <SelectItem value="Tia">Tia</SelectItem>
+                            <SelectItem value="Primo">Primo</SelectItem>
+                            <SelectItem value="Prima">Prima</SelectItem>
+                            <SelectItem value="Outros">Outros</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label>Telefone do Responsável</Label>
+                        <Input
+                          id="contatoResponsavel"
+                          value={formData.contatoResponsavel}
+                          onChange={(e) => setFormData({ ...formData, contatoResponsavel: e.target.value })}
+                          placeholder="Telefone do Responsável"
+                          disabled={loading}
+                        />
+                      </div>
+                      <div>
+                        <Label>E-mail do Responsável</Label>
+                        <Input
+                          id="emailResponsavel"
+                          type="email"
+                          value={formData.emailResponsavel}
+                          onChange={(e) => setFormData({ ...formData, emailResponsavel: e.target.value })}
+                          placeholder="E-mail do Responsável"
+                          disabled={loading}
+                        />
+                      </div>
                     </div>
                   </div>
 
