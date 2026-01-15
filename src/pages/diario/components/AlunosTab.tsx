@@ -6,7 +6,7 @@ import { Badge } from '../../../components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '../../../components/ui/avatar';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../../components/ui/card';
 import { supabaseService } from '../../../services/supabaseService';
-import type { Aluno } from '../../../services/supabaseService';
+import type { Aluno, Diario } from '../../../services/supabaseService';
 
 interface AlunosTabProps {
   diarioId: number;
@@ -17,6 +17,7 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
   const [alunos, setAlunos] = useState<Aluno[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
+  const [diario, setDiario] = useState<Diario | null>(null);
 
   useEffect(() => {
     loadAlunos();
@@ -24,8 +25,41 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
 
   const loadAlunos = async () => {
     try {
-      const alunosData = await supabaseService.getAlunosByDiario(diarioId);
-      setAlunos(alunosData || []);
+      setLoading(true);
+      
+      // 1. Carregar o diário para pegar a turma_id
+      const diarioData = await supabaseService.getDiarioById(diarioId);
+      if (!diarioData) {
+        console.error('Diário não encontrado');
+        setAlunos([]);
+        return;
+      }
+      
+      setDiario(diarioData);
+      console.log('📚 Diário carregado:', diarioData);
+      
+      // 2. Buscar alunos da turma (não do diário)
+      const turmaId = diarioData.turma_id ?? diarioData.turmaId;
+      const alunosDaTurma = await supabaseService.getAlunosByTurma(turmaId);
+      console.log('👥 Alunos da turma:', alunosDaTurma);
+      
+      // 3. Vincular automaticamente os alunos ao diário (se ainda não estiverem)
+      if (alunosDaTurma && alunosDaTurma.length > 0) {
+        for (const aluno of alunosDaTurma) {
+          try {
+            await supabaseService.vincularAlunoAoDiario(diarioId, aluno.id);
+            console.log(`✅ Aluno ${aluno.nome} vinculado ao diário`);
+          } catch (error) {
+            // Já pode estar vinculado, ignore o erro
+            console.log(`⚠️ Aluno ${aluno.nome} já vinculado ou erro:`, error);
+          }
+        }
+      }
+      
+      // 4. Carregar alunos do diário (agora que foram vinculados)
+      const alunosDoDiario = await supabaseService.getAlunosByDiario(diarioId);
+      setAlunos(alunosDoDiario || []);
+      console.log('📋 Alunos do diário:', alunosDoDiario);
     } catch (error) {
       console.error('Erro ao carregar alunos:', error);
       setAlunos([]);
