@@ -208,9 +208,10 @@ export function AlunosList() {
       nomeResponsavel: formData.nomeResponsavel || null,
       contatoResponsavel: formData.contatoResponsavel || null,
       emailResponsavel: formData.emailResponsavel || null,
-      parentesco: formData.parentesco || null,
-      foto: formData.foto || null
+      parentesco: formData.parentesco || null
     };
+    
+    console.log('📤 Enviando dados do aluno:', alunoData);
 
     try {
       setLoading(true);
