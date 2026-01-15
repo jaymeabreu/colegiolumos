@@ -615,7 +615,8 @@ class SupabaseService {
       nome_responsavel: aluno.nomeResponsavel ?? aluno.nome_responsavel ?? null,
       telefone_responsavel: aluno.contatoResponsavel ?? aluno.telefone_responsavel ?? null,
       email_responsavel: aluno.emailResponsavel ?? aluno.email_responsavel ?? null,
-      parentesco: aluno.parentesco ?? null
+      parentesco: aluno.parentesco ?? null,
+      foto: aluno.foto ?? null
     };
 
     const { data, error } = await supabase
@@ -655,6 +656,7 @@ class SupabaseService {
     if (updates.emailResponsavel !== undefined) payload.email_responsavel = updates.emailResponsavel;
     if (updates.email_responsavel !== undefined) payload.email_responsavel = updates.email_responsavel;
     if (updates.parentesco !== undefined) payload.parentesco = updates.parentesco;
+    if (updates.foto !== undefined) payload.foto = updates.foto;
     
     payload.updated_at = nowIso();
 
