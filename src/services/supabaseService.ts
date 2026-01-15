@@ -155,11 +155,13 @@ export interface Ocorrencia {
   id: number;
   aluno_id: number;
   alunoId?: number;
-  professor_id?: number;
-  professorId?: number;
-  data: string;
+  diario_id: number;
+  diarioId?: number;
   tipo: string;
+  data: string;
   descricao: string;
+  acao_tomada?: string;
+  acaoTomada?: string;
   created_at: string;
   updated_at: string;
 }
@@ -219,6 +221,7 @@ function withCamel<T extends Record<string, any>>(row: T): T {
   if (r.data_envio !== undefined) r.dataEnvio = r.data_envio;
   if (r.hora_inicio !== undefined) r.horaInicio = r.hora_inicio;
   if (r.hora_fim !== undefined) r.horaFim = r.hora_fim;
+  if (r.acao_tomada !== undefined) r.acaoTomada = r.acao_tomada;
 
   if (r.professor_nome !== undefined) r.professorNome = r.professor_nome;
   if (r.turma_nome !== undefined) r.turmaNome = r.turma_nome;
@@ -1062,10 +1065,11 @@ class SupabaseService {
   ): Promise<Ocorrencia> {
     const payload: any = {
       aluno_id: ocorrencia.aluno_id ?? ocorrencia.alunoId,
-      professor_id: ocorrencia.professor_id ?? ocorrencia.professorId ?? null,
-      data: ocorrencia.data,
+      diario_id: ocorrencia.diario_id ?? ocorrencia.diarioId ?? null,
       tipo: ocorrencia.tipo,
-      descricao: ocorrencia.descricao
+      data: ocorrencia.data,
+      descricao: ocorrencia.descricao,
+      acao_tomada: ocorrencia.acao_tomada ?? ocorrencia.acaoTomada ?? null
     };
 
     const { data, error } = await supabase
@@ -1084,11 +1088,13 @@ class SupabaseService {
     const payload: any = {};
     if (updates.aluno_id !== undefined) payload.aluno_id = updates.aluno_id;
     if (updates.alunoId !== undefined) payload.aluno_id = updates.alunoId;
-    if (updates.professor_id !== undefined) payload.professor_id = updates.professor_id;
-    if (updates.professorId !== undefined) payload.professor_id = updates.professorId;
+    if (updates.diario_id !== undefined) payload.diario_id = updates.diario_id;
+    if (updates.diarioId !== undefined) payload.diario_id = updates.diarioId;
     if (updates.data !== undefined) payload.data = updates.data;
     if (updates.tipo !== undefined) payload.tipo = updates.tipo;
     if (updates.descricao !== undefined) payload.descricao = updates.descricao;
+    if (updates.acao_tomada !== undefined) payload.acao_tomada = updates.acao_tomada;
+    if (updates.acaoTomada !== undefined) payload.acao_tomada = updates.acaoTomada;
 
     payload.updated_at = nowIso();
 
