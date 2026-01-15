@@ -595,12 +595,18 @@ class SupabaseService {
     return (alunos ?? []).map(withCamel) as Aluno[];
   }
 
-  async createAluno(aluno: Omit<Aluno, 'id' | 'created_at' | 'updated_at'>): Promise<Aluno> {
+  async createAluno(aluno: any): Promise<Aluno> {
     const payload: any = {
       nome: aluno.nome,
       matricula: aluno.matricula,
       email: aluno.email ?? null,
-      turma_id: aluno.turma_id ?? aluno.turmaId
+      turma_id: aluno.turma_id ?? aluno.turmaId ?? null,
+      data_nascimento: aluno.dataNascimento ?? aluno.data_nascimento ?? null,
+      cpf: aluno.cpf ?? null,
+      rg: aluno.rg ?? null,
+      sexo: aluno.sexo ?? null,
+      contato: aluno.contato ?? null,
+      observacoes: aluno.observacoes ?? null
     };
 
     const { data, error } = await supabase
@@ -615,12 +621,20 @@ class SupabaseService {
     return withCamel(data) as Aluno;
   }
 
-  async updateAluno(id: number, updates: Partial<Aluno>): Promise<Aluno | null> {
+  async updateAluno(id: number, updates: Partial<any>): Promise<Aluno | null> {
     const payload: any = {};
     if (updates.nome !== undefined) payload.nome = updates.nome;
     if (updates.email !== undefined) payload.email = updates.email;
     if (updates.turma_id !== undefined) payload.turma_id = updates.turma_id;
     if (updates.turmaId !== undefined) payload.turma_id = updates.turmaId;
+    if (updates.data_nascimento !== undefined) payload.data_nascimento = updates.data_nascimento;
+    if (updates.dataNascimento !== undefined) payload.data_nascimento = updates.dataNascimento;
+    if (updates.cpf !== undefined) payload.cpf = updates.cpf;
+    if (updates.rg !== undefined) payload.rg = updates.rg;
+    if (updates.sexo !== undefined) payload.sexo = updates.sexo;
+    if (updates.contato !== undefined) payload.contato = updates.contato;
+    if (updates.observacoes !== undefined) payload.observacoes = updates.observacoes;
+    
     payload.updated_at = nowIso();
 
     const { data, error } = await supabase
