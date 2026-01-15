@@ -196,24 +196,24 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
 
       {/* Modal Boletim */}
       <Dialog open={isBoletimOpen} onOpenChange={setIsBoletimOpen}>
-        <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto p-0">
+        <DialogContent className="w-[90vw] max-w-6xl p-0">
           {/* Header */}
-          <div className="border-b p-4 sm:p-6">
-            <div className="flex items-center justify-between">
+          <div className="border-b p-6">
+            <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
-                <Avatar className="h-10 w-10 sm:h-12 sm:w-12">
-                  <AvatarFallback className="bg-blue-100 text-blue-600 font-medium text-sm sm:text-base">
+                <Avatar className="h-12 w-12">
+                  <AvatarFallback className="bg-blue-100 text-blue-600 font-medium">
                     {selectedAluno ? getInitials(selectedAluno.nome) : ''}
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Boletim Escolar</h2>
+                  <h2 className="text-xl font-semibold text-gray-900">Boletim Escolar</h2>
                   <p className="text-sm text-gray-500">{selectedAluno?.nome}</p>
                 </div>
               </div>
               <button 
                 onClick={() => setIsBoletimOpen(false)}
-                className="text-gray-400 hover:text-gray-600 text-2xl leading-none p-1"
+                className="text-gray-400 hover:text-gray-600 text-2xl"
               >
                 ×
               </button>
@@ -221,8 +221,8 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
           </div>
 
           {/* Tabs */}
-          <div className="border-b bg-gray-50 overflow-x-auto">
-            <div className="flex min-w-max">
+          <div className="border-b bg-gray-100 px-6">
+            <div className="flex gap-0">
               {[
                 { id: 'resumo', label: 'Resumo' },
                 { id: 'completo', label: 'Boletim Completo' },
@@ -233,7 +233,7 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`px-4 sm:px-6 py-3 font-medium text-sm whitespace-nowrap transition border-b-2 ${
+                  className={`px-6 py-3 font-medium text-sm transition border-b-2 ${
                     activeTab === tab.id
                       ? 'text-gray-900 border-blue-600 bg-white'
                       : 'text-gray-500 border-transparent hover:text-gray-700'
@@ -246,54 +246,60 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
           </div>
 
           {/* Conteúdo */}
-          <div className="p-4 sm:p-6">
+          <div className="p-6">
             {activeTab === 'resumo' && (
               <div className="space-y-6">
-                {/* Cards de Resumo - Grid horizontal com scroll */}
-                <div className="overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
-                  <div className="grid grid-cols-4 gap-3 sm:gap-4 min-w-[560px]">
-                    {/* Média Geral */}
-                    <div className="border rounded-lg p-3 sm:p-4 bg-white">
-                      <div className="flex justify-between items-start mb-2 sm:mb-3">
-                        <p className="text-xs sm:text-sm font-medium text-gray-700">Média Geral</p>
-                        <TrendingUp className="h-4 w-4 text-gray-400 hidden sm:block" />
+                {/* Cards de Resumo */}
+                <div className="grid grid-cols-4 gap-4">
+                  {/* Média Geral */}
+                  <div className="border rounded-lg p-6 bg-white hover:shadow-sm transition">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <p className="text-sm font-medium text-gray-700">Média Geral</p>
                       </div>
-                      <div className="text-xl sm:text-2xl font-bold text-red-600 mb-1">-</div>
-                      <p className="text-xs text-gray-500">Sem notas</p>
+                      <TrendingUp className="h-5 w-5 text-gray-400" />
                     </div>
+                    <div className="text-3xl font-bold text-red-600 mb-2">-</div>
+                    <p className="text-xs text-gray-500">Sem notas</p>
+                  </div>
 
-                    {/* Frequência */}
-                    <div className="border rounded-lg p-3 sm:p-4 bg-white">
-                      <div className="flex justify-between items-start mb-2 sm:mb-3">
-                        <p className="text-xs sm:text-sm font-medium text-gray-700">Frequência</p>
-                        <BarChart3 className="h-4 w-4 text-gray-400 hidden sm:block" />
+                  {/* Frequência */}
+                  <div className="border rounded-lg p-6 bg-white hover:shadow-sm transition">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <p className="text-sm font-medium text-gray-700">Frequência</p>
                       </div>
-                      <div className="text-xl sm:text-2xl font-bold text-red-600 mb-1">-</div>
+                      <BarChart3 className="h-5 w-5 text-gray-400" />
                     </div>
+                    <div className="text-3xl font-bold text-red-600 mb-2">-</div>
+                  </div>
 
-                    {/* Situação */}
-                    <div className="border rounded-lg p-3 sm:p-4 bg-yellow-50">
-                      <div className="flex justify-between items-start mb-2 sm:mb-3">
-                        <p className="text-xs sm:text-sm font-medium text-gray-700">Situação</p>
-                        <AlertTriangle className="h-4 w-4 text-gray-400 hidden sm:block" />
+                  {/* Situação */}
+                  <div className="border rounded-lg p-6 bg-yellow-50 hover:shadow-sm transition">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <p className="text-sm font-medium text-gray-700">Situação</p>
                       </div>
-                      <div className="mb-2">
-                        <span className="inline-block px-2 py-1 bg-yellow-300 text-yellow-900 rounded-full text-xs font-medium">
-                          Sem Dados
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-600 hidden sm:block">Status atual no período</p>
+                      <AlertTriangle className="h-5 w-5 text-gray-400" />
                     </div>
+                    <div className="mb-3">
+                      <span className="inline-block px-3 py-1 bg-yellow-300 text-yellow-900 rounded-full text-xs font-medium">
+                        Sem Dados
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-600">Status atual no período</p>
+                  </div>
 
-                    {/* Ocorrências */}
-                    <div className="border rounded-lg p-3 sm:p-4 bg-white">
-                      <div className="flex justify-between items-start mb-2 sm:mb-3">
-                        <p className="text-xs sm:text-sm font-medium text-gray-700">Ocorrências</p>
-                        <AlertTriangle className="h-4 w-4 text-gray-400 hidden sm:block" />
+                  {/* Ocorrências */}
+                  <div className="border rounded-lg p-6 bg-white hover:shadow-sm transition">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <p className="text-sm font-medium text-gray-700">Ocorrências</p>
                       </div>
-                      <div className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">1</div>
-                      <p className="text-xs text-gray-500">Registros no período</p>
+                      <AlertTriangle className="h-5 w-5 text-gray-400" />
                     </div>
+                    <div className="text-3xl font-bold text-gray-900 mb-2">1</div>
+                    <p className="text-xs text-gray-500">Registros no período</p>
                   </div>
                 </div>
 
@@ -302,18 +308,18 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
                   <h3 className="text-base font-semibold text-gray-900 mb-1">Performance por Disciplina</h3>
                   <p className="text-sm text-gray-500 mb-4">Visão geral do desempenho</p>
                   <div className="space-y-3">
-                    <div className="flex justify-between items-center p-3 sm:p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+                    <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
                       <span className="font-medium text-gray-900">Ciências</span>
                       <div className="flex items-center gap-2">
                         <span className="text-red-600 font-bold">-</span>
-                        <span className="text-xs sm:text-sm text-gray-600">Em Andamento</span>
+                        <span className="text-sm text-gray-600">Em Andamento</span>
                       </div>
                     </div>
-                    <div className="flex justify-between items-center p-3 sm:p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+                    <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
                       <span className="font-medium text-gray-900">Geografia</span>
                       <div className="flex items-center gap-2">
                         <span className="text-red-600 font-bold">-</span>
-                        <span className="text-xs sm:text-sm text-gray-600">Em Andamento</span>
+                        <span className="text-sm text-gray-600">Em Andamento</span>
                       </div>
                     </div>
                   </div>
