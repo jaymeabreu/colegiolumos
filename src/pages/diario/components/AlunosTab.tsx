@@ -153,7 +153,7 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
             </button>
           </div>
 
-          {/* Navigation Tabs - ESTILO EXATO DO COORDENADOR (SEM FUNDO CINZENTO) */}
+          {/* Navigation Tabs - ESTILO SIMPLES COM UNDERLINE (SEM FUNDO CINZENTO) */}
           <div className="px-10 border-b border-gray-200 bg-gray-50">
             <div className="flex items-center gap-8">
               {[
@@ -371,7 +371,7 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
               </div>
             )}
 
-            {activeTab !== 'resumo' && activeTab !== 'avaliacoes' && activeTab !== 'ocorrencias' && activeTab !== 'completo' && (
+            {activeTab === 'disciplina' && (
               <div className="flex flex-col items-center justify-center py-20 space-y-4">
                 <div className="p-4 bg-slate-50 rounded-full">
                   <Info className="h-8 w-8 text-slate-300" />
