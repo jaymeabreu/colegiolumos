@@ -165,8 +165,11 @@ export interface Comunicado {
   id: number;
   titulo: string;
   mensagem: string;
-  data_envio: string;
-  dataEnvio?: string;
+  autor: string;
+  autor_id: number;
+  autorId?: number;
+  data_publicacao: string;
+  dataPublicacao?: string;
   created_at: string;
   updated_at: string;
 }
@@ -205,10 +208,11 @@ function withCamel<T extends Record<string, any>>(row: T): T {
   if (r.diario_id !== undefined) r.diarioId = r.diario_id;
   if (r.avaliacao_id !== undefined) r.avaliacaoId = r.avaliacao_id;
   if (r.aula_id !== undefined) r.aulaId = r.aula_id;
+  if (r.autor_id !== undefined) r.autorId = r.autor_id;
 
   if (r.data_inicio !== undefined) r.dataInicio = r.data_inicio;
   if (r.data_termino !== undefined) r.dataTermino = r.data_termino;
-
+  if (r.data_publicacao !== undefined) r.dataPublicacao = r.data_publicacao;
   if (r.data_envio !== undefined) r.dataEnvio = r.data_envio;
 
   if (r.professor_nome !== undefined) r.professorNome = r.professor_nome;
@@ -1115,8 +1119,12 @@ class SupabaseService {
     const payload: any = {
       titulo: comunicado.titulo,
       mensagem: comunicado.mensagem,
-      data_envio: comunicado.data_envio ?? comunicado.dataEnvio ?? nowIso()
+      autor: comunicado.autor ?? null,
+      autor_id: comunicado.autor_id ?? comunicado.autorId ?? 1,
+      data_publicacao: comunicado.data_publicacao ?? comunicado.dataPublicacao ?? new Date().toISOString().split('T')[0]
     };
+
+    console.log('🚀 createComunicado payload:', payload);
 
     const { data, error } = await supabase
       .from('comunicados')
@@ -1124,8 +1132,12 @@ class SupabaseService {
       .select('*')
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('❌ Erro ao criar comunicado:', error);
+      throw error;
+    }
 
+    console.log('✅ Comunicado criado:', data);
     this.dispatchDataUpdated('comunicados');
     return withCamel(data) as Comunicado;
   }
@@ -1134,10 +1146,15 @@ class SupabaseService {
     const payload: any = {};
     if (updates.titulo !== undefined) payload.titulo = updates.titulo;
     if (updates.mensagem !== undefined) payload.mensagem = updates.mensagem;
-    if (updates.data_envio !== undefined) payload.data_envio = updates.data_envio;
-    if (updates.dataEnvio !== undefined) payload.data_envio = updates.dataEnvio;
+    if (updates.autor !== undefined) payload.autor = updates.autor;
+    if (updates.autor_id !== undefined) payload.autor_id = updates.autor_id;
+    if (updates.autorId !== undefined) payload.autor_id = updates.autorId;
+    if (updates.data_publicacao !== undefined) payload.data_publicacao = updates.data_publicacao;
+    if (updates.dataPublicacao !== undefined) payload.data_publicacao = updates.dataPublicacao;
 
     payload.updated_at = nowIso();
+
+    console.log('🔄 updateComunicado payload:', payload);
 
     const { data, error } = await supabase
       .from('comunicados')
@@ -1146,8 +1163,12 @@ class SupabaseService {
       .select('*')
       .maybeSingle();
 
-    if (error) throw error;
+    if (error) {
+      console.error('❌ Erro ao atualizar comunicado:', error);
+      throw error;
+    }
 
+    console.log('✅ Comunicado atualizado:', data);
     this.dispatchDataUpdated('comunicados');
     return data ? (withCamel(data) as Comunicado) : null;
   }
