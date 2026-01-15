@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, GraduationCap, Mail, TrendingUp, Calendar, Info, AlertCircle, X } from 'lucide-react';
+import { Users, GraduationCap, Mail, TrendingUp, Calendar, Info, AlertCircle } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
 import { Badge } from '../../../components/ui/badge';
@@ -126,10 +126,13 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
         </CardContent>
       </Card>
 
-      {/* Modal Boletim Corrigido - LARGURA AMPLIADA */}
+      {/* Modal Boletim - CORREÇÃO DE LARGURA E BOTÃO DUPLICADO */}
       <Dialog open={isBoletimOpen} onOpenChange={setIsBoletimOpen}>
-        <DialogContent className="max-w-[1100px] w-[95vw] p-0 overflow-hidden border-none shadow-2xl rounded-2xl bg-white">
-          {/* Header */}
+        <DialogContent 
+          className="sm:max-w-[1100px] w-[95vw] p-0 overflow-hidden border-none shadow-2xl rounded-2xl bg-white"
+          style={{ maxWidth: '1100px' }} // Forçando via style caso o Tailwind seja sobrescrito
+        >
+          {/* Header - REMOVIDO O BOTÃO X MANUAL PARA EVITAR DUPLICIDADE */}
           <div className="px-10 py-8 flex items-center justify-between">
             <div className="flex items-center gap-5">
               <Avatar className="h-14 w-14 border border-gray-100 shadow-sm">
@@ -142,12 +145,10 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
                 <p className="text-base font-medium text-gray-400">{selectedAluno?.nome}</p>
               </div>
             </div>
-            <button onClick={() => setIsBoletimOpen(false)} className="p-2 hover:bg-gray-50 rounded-full transition-colors group">
-              <X className="h-6 w-6 text-gray-300 group-hover:text-gray-600" />
-            </button>
+            {/* O botão de fechar padrão do DialogContent aparecerá automaticamente no canto superior direito */}
           </div>
 
-          {/* Navigation Tabs - Estilo Segmentado */}
+          {/* Navigation Tabs */}
           <div className="px-10 mb-2">
             <div className="flex items-center p-1.5 bg-[#f1f5f9] rounded-xl w-full">
               {[
@@ -176,7 +177,7 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
           <div className="p-10 pt-6">
             {activeTab === 'resumo' && (
               <div className="space-y-12">
-                {/* Summary Cards Grid - Forçando 4 colunas horizontais */}
+                {/* Summary Cards Grid - 4 colunas fixas */}
                 <div className="grid grid-cols-4 gap-6">
                   {/* Média Geral */}
                   <div className="bg-white border border-gray-100 rounded-2xl p-7 shadow-[0_4px_20px_rgba(0,0,0,0.03)] flex flex-col min-h-[160px]">
