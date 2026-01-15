@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, GraduationCap, Mail, FileText, Eye } from 'lucide-react';
+import { Users, GraduationCap, Mail, FileText, Eye, TrendingUp, BarChart3, AlertTriangle } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
 import { Badge } from '../../../components/ui/badge';
@@ -31,7 +31,6 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
     try {
       setLoading(true);
       
-      // 1. Carregar o diário para pegar a turma_id
       const diarioData = await supabaseService.getDiarioById(diarioId);
       if (!diarioData) {
         console.error('Diário não encontrado');
@@ -42,12 +41,10 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
       setDiario(diarioData);
       console.log('📚 Diário carregado:', diarioData);
       
-      // 2. Buscar alunos da turma (não do diário)
       const turmaId = diarioData.turma_id ?? diarioData.turmaId;
       const alunosDaTurma = await supabaseService.getAlunosByTurma(turmaId);
       console.log('👥 Alunos da turma:', alunosDaTurma);
       
-      // 3. Carregar alunos já vinculados ao diário
       let alunosVinculados: number[] = [];
       try {
         const diarioAlunos = await supabaseService.getDiarioAlunos();
@@ -60,10 +57,8 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
         console.log('⚠️ Erro ao carregar alunos vinculados:', error);
       }
 
-      // 4. Vincular apenas os alunos que NÃO estão vinculados
       if (alunosDaTurma && alunosDaTurma.length > 0) {
         for (const aluno of alunosDaTurma) {
-          // Pula se já está vinculado
           if (alunosVinculados.includes(aluno.id)) {
             console.log(`⏭️ Aluno ${aluno.nome} já vinculado, pulando...`);
             continue;
@@ -78,7 +73,6 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
         }
       }
       
-      // 5. Carregar alunos do diário (agora que foram vinculados)
       const alunosDoDiario = await supabaseService.getAlunosByDiario(diarioId);
       setAlunos(alunosDoDiario || []);
       console.log('📋 Alunos do diário:', alunosDoDiario);
@@ -202,96 +196,136 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
 
       {/* Modal Boletim */}
       <Dialog open={isBoletimOpen} onOpenChange={setIsBoletimOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader className="border-b pb-4">
-            <div className="flex items-center gap-3">
-              <Avatar className="h-10 w-10">
-                <AvatarFallback className="bg-blue-100 text-blue-600 font-medium text-sm">
-                  {selectedAluno ? getInitials(selectedAluno.nome) : ''}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <DialogTitle className="text-lg">{selectedAluno?.nome}</DialogTitle>
-                <p className="text-sm text-gray-500">Boletim Escolar</p>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto p-0">
+          <div className="border-b p-6">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-3">
+                <Avatar className="h-12 w-12">
+                  <AvatarFallback className="bg-blue-100 text-blue-600 font-medium">
+                    {selectedAluno ? getInitials(selectedAluno.nome) : ''}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-900">Boletim Escolar</h2>
+                  <p className="text-sm text-gray-500">{selectedAluno?.nome}</p>
+                </div>
               </div>
               <button 
                 onClick={() => setIsBoletimOpen(false)}
-                className="ml-auto text-gray-400 hover:text-gray-600"
+                className="text-gray-400 hover:text-gray-600 text-2xl"
               >
-                ✕
+                ×
               </button>
             </div>
-          </DialogHeader>
+          </div>
 
-          <div className="space-y-4">
-            {/* Tabs */}
-            <div className="flex gap-0 border-b bg-gray-50">
-              {['resumo', 'completo', 'disciplina', 'avaliacoes', 'ocorrencias'].map((tab) => (
+          {/* Tabs */}
+          <div className="border-b bg-gray-100 px-6">
+            <div className="flex gap-0">
+              {[
+                { id: 'resumo', label: 'Resumo' },
+                { id: 'completo', label: 'Boletim Completo' },
+                { id: 'disciplina', label: 'Por Disciplina' },
+                { id: 'avaliacoes', label: 'Avaliações' },
+                { id: 'ocorrencias', label: 'Ocorrências' }
+              ].map((tab) => (
                 <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`px-4 py-2 font-medium transition ${
-                    activeTab === tab
-                      ? 'text-blue-600 border-b-2 border-blue-600 bg-white'
-                      : 'text-gray-600 hover:text-gray-900'
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`px-6 py-3 font-medium text-sm transition border-b-2 ${
+                    activeTab === tab.id
+                      ? 'text-gray-900 border-blue-600 bg-white'
+                      : 'text-gray-500 border-transparent hover:text-gray-700'
                   }`}
                 >
-                  {tab === 'resumo' && 'Resumo'}
-                  {tab === 'completo' && 'Boletim Completo'}
-                  {tab === 'disciplina' && 'Por Disciplina'}
-                  {tab === 'avaliacoes' && 'Avaliações'}
-                  {tab === 'ocorrencias' && 'Ocorrências'}
+                  {tab.label}
                 </button>
               ))}
             </div>
+          </div>
 
-            {/* Conteúdo Resumo */}
+          {/* Conteúdo */}
+          <div className="p-6">
             {activeTab === 'resumo' && (
-              <>
-                {/* Cards */}
+              <div className="space-y-6">
+                {/* Cards de Resumo */}
                 <div className="grid grid-cols-4 gap-4">
-                  <div className="p-4 bg-gray-50 rounded-lg text-center">
-                    <div className="text-3xl font-bold text-gray-400">-</div>
-                    <div className="text-sm font-medium text-gray-700 mt-2">Média Geral</div>
-                    <div className="text-xs text-gray-500 mt-1">Sem notas</div>
-                  </div>
-                  <div className="p-4 bg-gray-50 rounded-lg text-center">
-                    <div className="text-3xl font-bold text-gray-400">-</div>
-                    <div className="text-sm font-medium text-gray-700 mt-2">Frequência</div>
-                  </div>
-                  <div className="p-4 bg-yellow-50 rounded-lg text-center">
-                    <div className="inline-block px-3 py-1 bg-yellow-300 text-yellow-900 rounded-full text-xs font-medium">
-                      Sem Dados
+                  {/* Média Geral */}
+                  <div className="border rounded-lg p-6 bg-white hover:shadow-sm transition">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <p className="text-sm font-medium text-gray-700">Média Geral</p>
+                      </div>
+                      <TrendingUp className="h-5 w-5 text-gray-400" />
                     </div>
-                    <div className="text-sm font-medium text-gray-700 mt-2">Situação</div>
-                    <div className="text-xs text-gray-500 mt-1">Status atual no período</div>
+                    <div className="text-3xl font-bold text-red-600 mb-2">-</div>
+                    <p className="text-xs text-gray-500">Sem notas</p>
                   </div>
-                  <div className="p-4 bg-gray-50 rounded-lg text-center">
-                    <div className="text-3xl font-bold text-gray-900">1</div>
-                    <div className="text-sm font-medium text-gray-700 mt-2">Ocorrências</div>
-                    <div className="text-xs text-gray-500 mt-1">Registros no período</div>
+
+                  {/* Frequência */}
+                  <div className="border rounded-lg p-6 bg-white hover:shadow-sm transition">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <p className="text-sm font-medium text-gray-700">Frequência</p>
+                      </div>
+                      <BarChart3 className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <div className="text-3xl font-bold text-red-600 mb-2">-</div>
+                  </div>
+
+                  {/* Situação */}
+                  <div className="border rounded-lg p-6 bg-yellow-50 hover:shadow-sm transition">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <p className="text-sm font-medium text-gray-700">Situação</p>
+                      </div>
+                      <AlertTriangle className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <div className="mb-3">
+                      <span className="inline-block px-3 py-1 bg-yellow-300 text-yellow-900 rounded-full text-xs font-medium">
+                        Sem Dados
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-600">Status atual no período</p>
+                  </div>
+
+                  {/* Ocorrências */}
+                  <div className="border rounded-lg p-6 bg-white hover:shadow-sm transition">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <p className="text-sm font-medium text-gray-700">Ocorrências</p>
+                      </div>
+                      <AlertTriangle className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <div className="text-3xl font-bold text-gray-900 mb-2">1</div>
+                    <p className="text-xs text-gray-500">Registros no período</p>
                   </div>
                 </div>
 
-                {/* Performance */}
-                <div>
-                  <h3 className="text-base font-semibold text-gray-900">Performance por Disciplina</h3>
-                  <p className="text-sm text-gray-600 mb-4">Visão geral do desempenho</p>
+                {/* Performance por Disciplina */}
+                <div className="border-t pt-6">
+                  <h3 className="text-base font-semibold text-gray-900 mb-1">Performance por Disciplina</h3>
+                  <p className="text-sm text-gray-500 mb-4">Visão geral do desempenho</p>
                   <div className="space-y-3">
-                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                    <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
                       <span className="font-medium text-gray-900">Ciências</span>
-                      <span className="text-sm text-gray-600">Em Andamento</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-red-600 font-bold">-</span>
+                        <span className="text-sm text-gray-600">Em Andamento</span>
+                      </div>
                     </div>
-                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                    <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
                       <span className="font-medium text-gray-900">Geografia</span>
-                      <span className="text-sm text-gray-600">Em Andamento</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-red-600 font-bold">-</span>
+                        <span className="text-sm text-gray-600">Em Andamento</span>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </>
+              </div>
             )}
 
-            {/* Outros Tabs - Placeholder */}
             {activeTab !== 'resumo' && (
               <div className="text-center py-8 text-gray-500">
                 Conteúdo em desenvolvimento
