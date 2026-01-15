@@ -106,7 +106,10 @@ export interface Aula {
   diario_id: number;
   diarioId?: number;
   data: string;
-  horario?: string;
+  hora_inicio?: string;
+  horaInicio?: string;
+  hora_fim?: string;
+  horaFim?: string;
   conteudo?: string;
   observacoes?: string;
   created_at: string;
@@ -214,6 +217,8 @@ function withCamel<T extends Record<string, any>>(row: T): T {
   if (r.data_termino !== undefined) r.dataTermino = r.data_termino;
   if (r.data_publicacao !== undefined) r.dataPublicacao = r.data_publicacao;
   if (r.data_envio !== undefined) r.dataEnvio = r.data_envio;
+  if (r.hora_inicio !== undefined) r.horaInicio = r.hora_inicio;
+  if (r.hora_fim !== undefined) r.horaFim = r.hora_fim;
 
   if (r.professor_nome !== undefined) r.professorNome = r.professor_nome;
   if (r.turma_nome !== undefined) r.turmaNome = r.turma_nome;
@@ -812,7 +817,8 @@ class SupabaseService {
     const payload: any = {
       diario_id: aula.diario_id ?? aula.diarioId,
       data: aula.data,
-      horario: aula.horario ?? null,
+      hora_inicio: aula.hora_inicio ?? aula.horaInicio ?? null,
+      hora_fim: aula.hora_fim ?? aula.horaFim ?? null,
       conteudo: aula.conteudo ?? null,
       observacoes: aula.observacoes ?? null
     };
@@ -834,7 +840,10 @@ class SupabaseService {
     if (updates.diario_id !== undefined) payload.diario_id = updates.diario_id;
     if (updates.diarioId !== undefined) payload.diario_id = updates.diarioId;
     if (updates.data !== undefined) payload.data = updates.data;
-    if (updates.horario !== undefined) payload.horario = updates.horario;
+    if (updates.hora_inicio !== undefined) payload.hora_inicio = updates.hora_inicio;
+    if (updates.horaInicio !== undefined) payload.hora_inicio = updates.horaInicio;
+    if (updates.hora_fim !== undefined) payload.hora_fim = updates.hora_fim;
+    if (updates.horaFim !== undefined) payload.hora_fim = updates.horaFim;
     if (updates.conteudo !== undefined) payload.conteudo = updates.conteudo;
     if (updates.observacoes !== undefined) payload.observacoes = updates.observacoes;
 
