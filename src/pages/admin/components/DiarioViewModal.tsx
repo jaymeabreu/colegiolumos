@@ -1,12 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
-import { X, GraduationCap, TrendingUp, Calendar, AlertCircle, BookOpen, Award, User, RotateCcw, CheckCircle } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
-import { Badge } from '../ui/badge';
-import { Progress } from '../ui/progress';
-import { ScrollArea } from '../ui/scroll-area';
-import { Button } from '../ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { supabaseService, Aluno, Avaliacao, Nota, Disciplina, Diario, Aula, Presenca, Ocorrencia } from '../../services/supabaseService';
+import { useState, useEffect } from 'react';
+import { X, AlertCircle, RotateCcw, CheckCircle } from 'lucide-react';
+import { Badge } from '../../../components/ui/badge';
+import { Button } from '../../../components/ui/button';
+import { supabaseService } from '../../../services/supabaseService';
+import type { Diario } from '../../../services/supabaseService';
 
 interface DiarioViewModalProps {
   diario: Diario | null;
@@ -56,9 +53,9 @@ export function DiarioViewModal({
       const boletim: BoletimRow[] = (alunosData || []).map((aluno, index) => ({
         numero: index + 1,
         nome: aluno.nome,
-        media: null, // TODO: Buscar do banco
-        faltas: null, // TODO: Buscar do banco
-        acompanhamento: null // TODO: Buscar do banco
+        media: null,
+        faltas: null,
+        acompanhamento: null
       }));
       
       setAlunos(boletim);
