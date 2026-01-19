@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { X, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../../../components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../../../components/ui/dialog';
 import { Input } from '../../../components/ui/input';
 import { Label } from '../../../components/ui/label';
 import { Textarea } from '../../../components/ui/textarea';
@@ -47,7 +47,6 @@ export function CriarAulaModal({
     try {
       setLoading(true);
 
-      // Criar aula
       const novaAula = await supabaseService.createAula({
         diario_id: diarioId,
         data: formData.data,
@@ -66,7 +65,6 @@ export function CriarAulaModal({
         observacoes: ''
       });
 
-      // Mostrar opção de marcar presença
       setTimeout(() => {
         setIsMarcarPresencaOpen(true);
       }, 300);
@@ -88,14 +86,17 @@ export function CriarAulaModal({
 
   return (
     <>
+      {/* BOTÃO - sem DialogTrigger */}
+      <Button 
+        onClick={() => onOpenChange(true)}
+        className="bg-blue-600 hover:bg-blue-700"
+      >
+        <Plus className="h-4 w-4 mr-2" />
+        Nova Aula
+      </Button>
+
+      {/* DIALOG CONTROLADO EXTERNAMENTE */}
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogTrigger asChild>
-          <Button className="bg-blue-600 hover:bg-blue-700">
-            <Plus className="h-4 w-4 mr-2" />
-            Nova Aula
-          </Button>
-        </DialogTrigger>
-        
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Nova Aula</DialogTitle>
@@ -105,7 +106,6 @@ export function CriarAulaModal({
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* DATA */}
             <div>
               <Label htmlFor="data">Data da Aula</Label>
               <Input
@@ -117,7 +117,6 @@ export function CriarAulaModal({
               />
             </div>
 
-            {/* HORÁRIOS */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="horaInicio">Hora Início</Label>
@@ -139,7 +138,6 @@ export function CriarAulaModal({
               </div>
             </div>
 
-            {/* CONTEÚDO */}
             <div>
               <Label htmlFor="conteudo">Título do Conteúdo</Label>
               <Input
@@ -151,7 +149,6 @@ export function CriarAulaModal({
               />
             </div>
 
-            {/* OBSERVAÇÕES */}
             <div>
               <Label htmlFor="observacoes">Observações (opcional)</Label>
               <Textarea
@@ -183,7 +180,7 @@ export function CriarAulaModal({
         </DialogContent>
       </Dialog>
 
-      {/* Modal de Marcar Presença - aparece automaticamente após criar aula */}
+      {/* Modal de Marcar Presença */}
       {aulaCriada && (
         <MarcarPresencaModal
           aula={aulaCriada}
