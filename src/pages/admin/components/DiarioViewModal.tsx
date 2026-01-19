@@ -72,7 +72,7 @@ export function DiarioViewModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[98vw] h-[95vh] max-w-7xl p-0 flex flex-col">
+      <DialogContent className="w-[99vw] h-[96vh] max-w-full p-0 flex flex-col fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
         {/* Header */}
         <div className="border-b bg-gradient-to-r from-blue-50 to-indigo-50 p-8">
           <div className="flex items-start justify-between">
