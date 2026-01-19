@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef, memo } from 'react';
 import { BookOpen, Users, ClipboardList, AlertTriangle, ChevronRight, Calendar, ArrowLeft, CheckCircle, MessageSquare } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
-import { Button } from '../../components/ui/button';
+import { Button } from '../../components/ui/button'; 
 import { AuthHeader } from '../../components/auth/AuthHeader';
 import { ErrorBoundary } from '../../components/ErrorBoundary';
 import { authService } from '../../services/auth';
@@ -202,3 +202,4 @@ export function ProfessorPage() {
 }
 
 export default ProfessorPage;
+
