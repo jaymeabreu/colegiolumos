@@ -72,9 +72,9 @@ export function DiarioViewModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] max-w-6xl max-h-[90vh] p-0 flex flex-col">
+      <DialogContent className="w-[98vw] h-[95vh] max-w-7xl p-0 flex flex-col">
         {/* Header */}
-        <div className="border-b bg-gradient-to-r from-blue-50 to-indigo-50 p-6">
+        <div className="border-b bg-gradient-to-r from-blue-50 to-indigo-50 p-8">
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-2">
@@ -111,7 +111,7 @@ export function DiarioViewModal({
         {/* Tabs */}
         <div className="flex-1 overflow-y-auto">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
-            <TabsList className="w-full justify-start rounded-none border-b bg-gray-50 px-6 py-0">
+            <TabsList className="w-full justify-start rounded-none border-b bg-gray-50 px-8 py-0">
               <TabsTrigger 
                 value="aulas"
                 className="rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:bg-white"
@@ -142,7 +142,7 @@ export function DiarioViewModal({
               </TabsTrigger>
             </TabsList>
 
-            <div className="flex-1 overflow-y-auto p-6">
+            <div className="flex-1 overflow-y-auto p-8">
               <TabsContent value="aulas" className="m-0">
                 <AulasTab diarioId={diario.id} readOnly={isReadOnly} />
               </TabsContent>
@@ -160,7 +160,7 @@ export function DiarioViewModal({
         </div>
 
         {/* Footer com Botões de Ação */}
-        <div className="border-t bg-gray-50 px-6 py-4">
+        <div className="border-t bg-gray-50 px-8 py-6">
           <div className="flex items-center justify-between gap-4">
             <div>
               {isReadOnly && (
