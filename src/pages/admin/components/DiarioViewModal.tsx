@@ -1,210 +1,254 @@
-import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../../components/ui/dialog';
-import { Button } from '../../../components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/tabs';
-import { Badge } from '../../../components/ui/badge';
-import { AlertCircle, CheckCircle, RotateCcw, Eye, BookOpen, Users, AlertTriangle, X } from 'lucide-react';
-import { AulasTab } from '../../diario/components/AulasTab';
-import { AvaliacoesTab } from '../../diario/components/AvaliacoesTab';
-import { AlunosTab } from '../../diario/components/AlunosTab';
-import { OcorrenciasTab } from '../../diario/components/OcorrenciasTab';
-import type { Diario } from '../../../services/supabaseService';
+import { useState, useEffect, useCallback } from 'react';
+import { X, GraduationCap, TrendingUp, Calendar, AlertCircle, BookOpen, Award, User, RotateCcw, CheckCircle } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
+import { Badge } from '../ui/badge';
+import { Progress } from '../ui/progress';
+import { ScrollArea } from '../ui/scroll-area';
+import { Button } from '../ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+import { supabaseService, Aluno, Avaliacao, Nota, Disciplina, Diario, Aula, Presenca, Ocorrencia } from '../../services/supabaseService';
 
 interface DiarioViewModalProps {
   diario: Diario | null;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onDevolver: () => void;
-  onFinalizar: () => void;
+  onClose: () => void;
+  onDevolver?: () => void;
+  onFinalizar?: () => void;
   loading?: boolean;
   userRole?: 'COORDENADOR' | 'PROFESSOR' | 'ADMIN';
 }
 
-export function DiarioViewModal({
-  diario,
-  open,
-  onOpenChange,
+interface BoletimRow {
+  numero: number;
+  nome: string;
+  media: number | null;
+  faltas: number | null;
+  acompanhamento: string | null;
+}
+
+export function DiarioViewModal({ 
+  diario, 
+  onClose, 
   onDevolver,
   onFinalizar,
   loading = false,
   userRole = 'COORDENADOR'
 }: DiarioViewModalProps) {
-  const [activeTab, setActiveTab] = useState('aulas');
+  const [alunos, setAlunos] = useState<BoletimRow[]>([]);
+  const [carregando, setCarregando] = useState(true);
 
-  if (!diario) return null;
+  const isReadOnly = diario?.status === 'ENTREGUE' || diario?.status === 'FINALIZADO';
+  const canDevolver = userRole === 'COORDENADOR' && diario?.status === 'ENTREGUE';
+  const canFinalizar = userRole === 'COORDENADOR' && (diario?.status === 'DEVOLVIDO' || diario?.status === 'ENTREGUE');
 
-  // Determinar se é somente leitura
-  const isReadOnly = diario.status === 'ENTREGUE' || diario.status === 'FINALIZADO';
-  
-  // Determinar quais botões mostrar
-  const canDevolver = userRole === 'COORDENADOR' && diario.status === 'ENTREGUE';
-  const canFinalizar = userRole === 'COORDENADOR' && (diario.status === 'DEVOLVIDO' || diario.status === 'ENTREGUE');
+  useEffect(() => {
+    if (diario) {
+      carregarAlunos();
+    }
+  }, [diario?.id]);
+
+  const carregarAlunos = async () => {
+    if (!diario) return;
+    
+    try {
+      setCarregando(true);
+      const alunosData = await supabaseService.getAlunosByDiario(diario.id);
+      
+      const boletim: BoletimRow[] = (alunosData || []).map((aluno, index) => ({
+        numero: index + 1,
+        nome: aluno.nome,
+        media: null, // TODO: Buscar do banco
+        faltas: null, // TODO: Buscar do banco
+        acompanhamento: null // TODO: Buscar do banco
+      }));
+      
+      setAlunos(boletim);
+    } catch (error) {
+      console.error('Erro ao carregar alunos:', error);
+      setAlunos([]);
+    } finally {
+      setCarregando(false);
+    }
+  };
 
   const getStatusColor = (status?: string) => {
     switch (status) {
-      case 'PENDENTE':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'ENTREGUE':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'DEVOLVIDO':
-        return 'bg-orange-100 text-orange-800 border-orange-200';
-      case 'FINALIZADO':
-        return 'bg-green-100 text-green-800 border-green-200';
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'PENDENTE': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'ENTREGUE': return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'DEVOLVIDO': return 'bg-orange-100 text-orange-800 border-orange-200';
+      case 'FINALIZADO': return 'bg-green-100 text-green-800 border-green-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
   const getStatusLabel = (status?: string) => {
     switch (status) {
-      case 'PENDENTE':
-        return 'Pendente';
-      case 'ENTREGUE':
-        return 'Pendente de Revisão';
-      case 'DEVOLVIDO':
-        return 'Devolvido';
-      case 'FINALIZADO':
-        return 'Finalizado';
-      default:
-        return 'Desconhecido';
+      case 'PENDENTE': return 'Pendente';
+      case 'ENTREGUE': return 'Pendente de Revisão';
+      case 'DEVOLVIDO': return 'Devolvido';
+      case 'FINALIZADO': return 'Finalizado';
+      default: return 'Desconhecido';
     }
   };
 
+  if (!diario) return null;
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[99vw] h-[96vh] max-w-full p-0 flex flex-col fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4 backdrop-blur-sm">
+      <div 
+        className="bg-background rounded-xl !w-[95vw] !max-w-none h-[92vh] flex flex-col shadow-2xl overflow-hidden border"
+        style={{ width: '95vw', maxWidth: '95vw' }}
+      >
         {/* Header */}
-        <div className="border-b bg-gradient-to-r from-blue-50 to-indigo-50 p-8">
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-2">
-                <BookOpen className="h-6 w-6 text-blue-600" />
-                <h2 className="text-2xl font-bold text-gray-900">{diario.nome}</h2>
+        <div className="flex items-center justify-between p-6 border-b bg-gradient-to-r from-slate-50 to-white">
+          <div>
+            <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
+              {diario.nome}
+            </h2>
+            <div className="flex flex-wrap items-center gap-3 mt-3">
+              <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-semibold border ${getStatusColor(diario.status)}`}>
+                {getStatusLabel(diario.status)}
               </div>
-              <div className="flex flex-wrap items-center gap-2 mt-3">
-                <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(diario.status)}`}>
-                  {diario.status === 'FINALIZADO' && <CheckCircle className="h-4 w-4" />}
-                  {diario.status === 'ENTREGUE' && <Eye className="h-4 w-4" />}
-                  {diario.status === 'DEVOLVIDO' && <RotateCcw className="h-4 w-4" />}
-                  {getStatusLabel(diario.status)}
-                </div>
-                {diario.bimestre && (
-                  <Badge variant="outline" className="text-sm">{diario.bimestre}º Bimestre</Badge>
-                )}
-                {isReadOnly && (
-                  <Badge variant="secondary" className="text-xs">
-                    <AlertCircle className="h-3 w-3 mr-1" />
-                    Somente Leitura
-                  </Badge>
-                )}
-              </div>
+              {diario.bimestre && (
+                <Badge variant="outline" className="text-sm px-3 py-1">
+                  {diario.bimestre}º Bimestre
+                </Badge>
+              )}
+              {isReadOnly && (
+                <Badge variant="secondary" className="text-xs px-3 py-1 bg-blue-50 text-blue-700 border-blue-100">
+                  <AlertCircle className="h-3.5 w-3.5 mr-1.5" />
+                  Somente Leitura
+                </Badge>
+              )}
             </div>
-            <button
-              onClick={() => onOpenChange(false)}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <X className="h-6 w-6" />
-            </button>
+          </div>
+          <button 
+            onClick={onClose} 
+            className="p-2 hover:bg-slate-100 rounded-full transition-colors text-muted-foreground hover:text-foreground"
+          >
+            <X className="h-6 w-6" />
+          </button>
+        </div>
+
+        {/* Tabela de Boletim */}
+        <div className="flex-1 overflow-auto bg-white">
+          <div className="p-8">
+            {carregando ? (
+              <div className="flex items-center justify-center h-full text-gray-500">
+                <p>Carregando alunos...</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="bg-gray-100 border-2 border-gray-300">
+                      <th className="border border-gray-300 px-4 py-3 text-left font-semibold text-gray-700 w-16">
+                        N°
+                      </th>
+                      <th className="border border-gray-300 px-4 py-3 text-left font-semibold text-gray-700">
+                        Nome
+                      </th>
+                      <th className="border border-gray-300 px-4 py-3 text-center font-semibold text-gray-700 w-24">
+                        M (Média)
+                      </th>
+                      <th className="border border-gray-300 px-4 py-3 text-center font-semibold text-gray-700 w-24">
+                        F (Faltas)
+                      </th>
+                      <th className="border border-gray-300 px-4 py-3 text-center font-semibold text-gray-700 w-32">
+                        AC (Acompanhamento)
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {alunos.length > 0 ? (
+                      alunos.map((aluno, index) => (
+                        <tr 
+                          key={aluno.numero} 
+                          className={`border border-gray-200 hover:bg-blue-50 transition-colors ${
+                            index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+                          }`}
+                        >
+                          <td className="border border-gray-200 px-4 py-3 text-center font-medium text-gray-900">
+                            {aluno.numero}
+                          </td>
+                          <td className="border border-gray-200 px-4 py-3 text-gray-900">
+                            {aluno.nome}
+                          </td>
+                          <td className="border border-gray-200 px-4 py-3 text-center font-semibold text-blue-600">
+                            {aluno.media !== null ? aluno.media.toFixed(1) : '-'}
+                          </td>
+                          <td className="border border-gray-200 px-4 py-3 text-center font-medium text-gray-700">
+                            {aluno.faltas !== null ? aluno.faltas : '-'}
+                          </td>
+                          <td className="border border-gray-200 px-4 py-3 text-center">
+                            {aluno.acompanhamento ? (
+                              <Badge variant="outline">{aluno.acompanhamento}</Badge>
+                            ) : (
+                              <span className="text-gray-400">-</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={5} className="border border-gray-200 px-4 py-8 text-center text-gray-500">
+                          Nenhum aluno encontrado
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex-1 overflow-y-auto">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
-            <TabsList className="w-full justify-start rounded-none border-b bg-gray-50 px-8 py-0">
-              <TabsTrigger 
-                value="aulas"
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:bg-white"
-              >
-                <BookOpen className="h-4 w-4 mr-2" />
-                Aulas
-              </TabsTrigger>
-              <TabsTrigger 
-                value="avaliacoes"
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:bg-white"
-              >
-                <AlertTriangle className="h-4 w-4 mr-2" />
-                Avaliações
-              </TabsTrigger>
-              <TabsTrigger 
-                value="alunos"
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:bg-white"
-              >
-                <Users className="h-4 w-4 mr-2" />
-                Alunos
-              </TabsTrigger>
-              <TabsTrigger 
-                value="ocorrencias"
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:bg-white"
-              >
-                <AlertCircle className="h-4 w-4 mr-2" />
-                Ocorrências
-              </TabsTrigger>
-            </TabsList>
-
-            <div className="flex-1 overflow-y-auto p-8">
-              <TabsContent value="aulas" className="m-0">
-                <AulasTab diarioId={diario.id} readOnly={isReadOnly} />
-              </TabsContent>
-              <TabsContent value="avaliacoes" className="m-0">
-                <AvaliacoesTab diarioId={diario.id} readOnly={isReadOnly} />
-              </TabsContent>
-              <TabsContent value="alunos" className="m-0">
-                <AlunosTab diarioId={diario.id} readOnly={isReadOnly} />
-              </TabsContent>
-              <TabsContent value="ocorrencias" className="m-0">
-                <OcorrenciasTab diarioId={diario.id} readOnly={isReadOnly} />
-              </TabsContent>
-            </div>
-          </Tabs>
-        </div>
-
-        {/* Footer com Botões de Ação */}
-        <div className="border-t bg-gray-50 px-8 py-6">
+        {/* Footer */}
+        <div className="border-t bg-gray-50 px-8 py-5">
           <div className="flex items-center justify-between gap-4">
             <div>
               {isReadOnly && (
-                <p className="text-sm text-gray-600">
-                  <AlertCircle className="inline h-4 w-4 mr-1 text-blue-600" />
-                  Este diário está em modo somente leitura
+                <p className="text-sm text-gray-500 flex items-center font-medium">
+                  <AlertCircle className="h-4 w-4 mr-2 text-blue-500" />
+                  Modo de visualização (somente leitura)
                 </p>
               )}
             </div>
             <div className="flex items-center gap-3">
               <Button
                 variant="outline"
-                onClick={() => onOpenChange(false)}
+                onClick={onClose}
+                className="px-6"
               >
                 Fechar
               </Button>
               
-              {canDevolver && (
+              {canDevolver && onDevolver && (
                 <Button
                   variant="outline"
-                  className="border-orange-200 text-orange-700 hover:bg-orange-50"
+                  className="border-orange-200 text-orange-700 hover:bg-orange-50 px-6"
                   onClick={onDevolver}
                   disabled={loading}
                 >
                   <RotateCcw className="h-4 w-4 mr-2" />
-                  {loading ? 'Devolvendo...' : 'Devolver'}
+                  {loading ? 'Processando...' : 'Devolver'}
                 </Button>
               )}
 
-              {canFinalizar && (
+              {canFinalizar && onFinalizar && (
                 <Button
-                  className="bg-green-600 hover:bg-green-700"
+                  className="bg-green-600 hover:bg-green-700 px-8 shadow-sm"
                   onClick={onFinalizar}
                   disabled={loading}
                 >
                   <CheckCircle className="h-4 w-4 mr-2" />
-                  {loading ? 'Finalizando...' : 'Finalizar'}
+                  {loading ? 'Processando...' : 'Finalizar Diário'}
                 </Button>
               )}
             </div>
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </div>
   );
 }
 
