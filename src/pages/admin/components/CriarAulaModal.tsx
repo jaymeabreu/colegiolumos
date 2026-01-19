@@ -32,10 +32,10 @@ export function CriarAulaModal({
   const [formData, setFormData] = useState({
     data: new Date().toISOString().split('T')[0],
     conteudo: '',
-    quantidadeAulas: '1',
-    tipoAula: 'Teórica',
-    aulaAssíncrona: 'Não',
-    conteudoDetalhado: '',
+    quantidade_aulas: '1',
+    tipo_aula: 'Teórica',
+    aula_assincrona: false,
+    conteudo_detalhado: '',
     observacoes: ''
   });
 
@@ -53,9 +53,11 @@ export function CriarAulaModal({
       const novaAula = await supabaseService.createAula({
         diario_id: diarioId,
         data: formData.data,
-        hora_inicio: '',
-        hora_fim: '',
         conteudo: formData.conteudo,
+        quantidade_aulas: parseInt(formData.quantidade_aulas),
+        tipo_aula: formData.tipo_aula,
+        aula_assincrona: formData.aula_assincrona,
+        conteudo_detalhado: formData.conteudo_detalhado || undefined,
         observacoes: formData.observacoes || null
       });
 
@@ -63,10 +65,10 @@ export function CriarAulaModal({
       setFormData({
         data: new Date().toISOString().split('T')[0],
         conteudo: '',
-        quantidadeAulas: '1',
-        tipoAula: 'Teórica',
-        aulaAssíncrona: 'Não',
-        conteudoDetalhado: '',
+        quantidade_aulas: '1',
+        tipo_aula: 'Teórica',
+        aula_assincrona: false,
+        conteudo_detalhado: '',
         observacoes: ''
       });
 
@@ -138,10 +140,10 @@ export function CriarAulaModal({
             {/* LINHA 2: QUANTIDADE, TIPO E ASSÍNCRONA */}
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <Label htmlFor="quantidadeAulas">Quantidade de aulas</Label>
+                <Label htmlFor="quantidade_aulas">Quantidade de aulas</Label>
                 <Select 
-                  value={formData.quantidadeAulas}
-                  onValueChange={(value) => setFormData({ ...formData, quantidadeAulas: value })}
+                  value={formData.quantidade_aulas}
+                  onValueChange={(value) => setFormData({ ...formData, quantidade_aulas: value })}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -157,10 +159,10 @@ export function CriarAulaModal({
               </div>
 
               <div>
-                <Label htmlFor="tipoAula">Tipo de aula</Label>
+                <Label htmlFor="tipo_aula">Tipo de aula</Label>
                 <Select 
-                  value={formData.tipoAula}
-                  onValueChange={(value) => setFormData({ ...formData, tipoAula: value })}
+                  value={formData.tipo_aula}
+                  onValueChange={(value) => setFormData({ ...formData, tipo_aula: value })}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -174,10 +176,10 @@ export function CriarAulaModal({
               </div>
 
               <div>
-                <Label htmlFor="aulaAssíncrona">Aula assíncrona</Label>
+                <Label htmlFor="aula_assincrona">Aula assíncrona</Label>
                 <Select 
-                  value={formData.aulaAssíncrona}
-                  onValueChange={(value) => setFormData({ ...formData, aulaAssíncrona: value })}
+                  value={formData.aula_assincrona ? 'Sim' : 'Não'}
+                  onValueChange={(value) => setFormData({ ...formData, aula_assincrona: value === 'Sim' })}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -192,12 +194,12 @@ export function CriarAulaModal({
 
             {/* CONTEÚDO DETALHADO */}
             <div>
-              <Label htmlFor="conteudoDetalhado">Conteúdo detalhado da aula</Label>
+              <Label htmlFor="conteudo_detalhado">Conteúdo detalhado da aula</Label>
               <Textarea
-                id="conteudoDetalhado"
+                id="conteudo_detalhado"
                 placeholder="Descrição detalhada do conteúdo ministrado na aula. Ex: Introdução às Grandes Navegações - contexto histórico, causas econômicas e tecnológicas, principais navegadores portugueses e espanhóis, descobrimento do Brasil..."
-                value={formData.conteudoDetalhado}
-                onChange={(e) => setFormData({ ...formData, conteudoDetalhado: e.target.value })}
+                value={formData.conteudo_detalhado}
+                onChange={(e) => setFormData({ ...formData, conteudo_detalhado: e.target.value })}
                 rows={5}
                 className="resize-none"
               />
