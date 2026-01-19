@@ -9,6 +9,7 @@ import { Label } from '../../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
 import { Textarea } from '../../../components/ui/textarea';
 import { supabaseService } from '../../../services/supabaseService';
+import { DiarioViewModal } from './DiarioViewModal';
 import type { Diario, Turma, Disciplina, Usuario } from '../../../services/supabaseService';
 
 export function DiariosList() {
@@ -22,6 +23,7 @@ export function DiariosList() {
   const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false);
   const [isDevolverDialogOpen, setIsDevolverDialogOpen] = useState(false);
   const [isFinalizarDialogOpen, setIsFinalizarDialogOpen] = useState(false);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [editingDiario, setEditingDiario] = useState<Diario | null>(null);
   const [selectedDiario, setSelectedDiario] = useState<Diario | null>(null);
   const [observacaoDevolucao, setObservacaoDevolucao] = useState('');
@@ -215,6 +217,11 @@ export function DiariosList() {
     }
   }, [loadData]);
 
+  const handleViewDiario = useCallback((diario: Diario) => {
+    setSelectedDiario(diario);
+    setIsViewModalOpen(true);
+  }, []);
+
   const handleDevolverDiario = useCallback(async () => {
     if (!selectedDiario || !currentUser) return;
     
@@ -229,6 +236,7 @@ export function DiariosList() {
       if (sucesso) {
         await loadData();
         setIsDevolverDialogOpen(false);
+        setIsViewModalOpen(false);
         setObservacaoDevolucao('');
         setSelectedDiario(null);
         alert('Diário devolvido com sucesso!');
@@ -251,6 +259,7 @@ export function DiariosList() {
       if (sucesso) {
         await loadData();
         setIsFinalizarDialogOpen(false);
+        setIsViewModalOpen(false);
         setSelectedDiario(null);
         alert('Diário finalizado com sucesso!');
       }
@@ -376,478 +385,506 @@ export function DiariosList() {
   }, [filteredDiarios]);
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="space-y-2">
-            <h3 className="card-title">Diários</h3>
-            <p className="card-description">
-              Gerencie os diários de classe e controle o status de entrega
-            </p>
+    <>
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="space-y-2">
+              <h3 className="card-title">Diários</h3>
+              <p className="card-description">
+                Gerencie os diários de classe e controle o status de entrega
+              </p>
+            </div>
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button 
+                  onClick={resetForm}
+                  className="flex items-center gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span className="sm:hidden">Novo</span>
+                  <span className="hidden sm:inline">Novo Diário</span>
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-[95vw] lg:max-w-[800px] max-h-[95vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>
+                    {editingDiario ? 'Editar Diário' : 'Novo Diário'}
+                  </DialogTitle>
+                  <DialogDescription>
+                    Preencha as informações do diário de classe
+                  </DialogDescription>
+                </DialogHeader>
+                <form onSubmit={handleSubmit}>
+                  <div className="space-y-4">
+                    <div>
+                      <Input
+                        id="nome"
+                        value={formData.nome}
+                        onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+                        placeholder="Nome do Diário"
+                        required
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Select 
+                          value={formData.disciplinaId} 
+                          onValueChange={(value) => setFormData({ ...formData, disciplinaId: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Disciplina" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {disciplinas.map((disciplina) => (
+                              <SelectItem key={disciplina.id} value={disciplina.id.toString()}>
+                                {disciplina.nome}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div>
+                        <Select 
+                          value={formData.turmaId} 
+                          onValueChange={(value) => setFormData({ ...formData, turmaId: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Turma" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {turmas.map((turma) => (
+                              <SelectItem key={turma.id} value={turma.id.toString()}>
+                                {turma.nome} - {turma.turno}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Select 
+                          value={formData.professorId} 
+                          onValueChange={(value) => setFormData({ ...formData, professorId: value })}
+                          disabled={!formData.disciplinaId}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder={formData.disciplinaId ? "Professor" : "Selecione disciplina primeiro"} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {professoresFiltrados.length === 0 && formData.disciplinaId && (
+                              <div className="p-2 text-sm text-gray-500 text-center">
+                                Nenhum professor vinculado a esta disciplina
+                              </div>
+                            )}
+                            {professoresFiltrados.map((professor) => (
+                              <SelectItem key={professor.id} value={professor.professor_id?.toString() || ''}>
+                                {professor.nome}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {formData.disciplinaId && professoresFiltrados.length === 0 && (
+                          <p className="text-xs text-orange-600 mt-1">
+                            Vincule professores à disciplina em "Professores"
+                          </p>
+                        )}
+                      </div>
+
+                      <div>
+                        <Select 
+                          value={formData.bimestre} 
+                          onValueChange={(value) => setFormData({ ...formData, bimestre: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Bimestre" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="1">1º Bimestre</SelectItem>
+                            <SelectItem value="2">2º Bimestre</SelectItem>
+                            <SelectItem value="3">3º Bimestre</SelectItem>
+                            <SelectItem value="4">4º Bimestre</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="dataInicio">Data de Início</Label>
+                        <Input
+                          id="dataInicio"
+                          type="date"
+                          value={formData.dataInicio}
+                          onChange={(e) => setFormData({ ...formData, dataInicio: e.target.value })}
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="dataTermino">Data de Término</Label>
+                        <Input
+                          id="dataTermino"
+                          type="date"
+                          value={formData.dataTermino}
+                          onChange={(e) => setFormData({ ...formData, dataTermino: e.target.value })}
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <DialogFooter className="mt-6">
+                    <Button type="button" variant="outline" onClick={resetForm}>
+                      Cancelar
+                    </Button>
+                    <Button type="submit" disabled={loading}>
+                      {loading ? 'Salvando...' : (editingDiario ? 'Salvar Alterações' : 'Criar Diário')}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
           </div>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button 
-                onClick={resetForm}
-                className="flex items-center gap-2"
-              >
-                <Plus className="h-4 w-4" />
-                <span className="sm:hidden">Novo</span>
-                <span className="hidden sm:inline">Novo Diário</span>
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-[95vw] lg:max-w-[800px] max-h-[95vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>
-                  {editingDiario ? 'Editar Diário' : 'Novo Diário'}
-                </DialogTitle>
-                <DialogDescription>
-                  Preencha as informações do diário de classe
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleSubmit}>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-4 mb-4">
+            <div className="flex-1">
+              <Input
+                placeholder="Buscar diários..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <Dialog open={isFilterDialogOpen} onOpenChange={setIsFilterDialogOpen}>
+              <DialogTrigger asChild>
+                <Button 
+                  variant={getActiveFiltersCount > 0 ? "default" : "outline"}
+                  className="flex items-center gap-2"
+                >
+                  <Filter className="h-4 w-4" />
+                  <span className="hidden sm:inline">Filtros</span>
+                  {getActiveFiltersCount > 0 && (
+                    <span className="bg-white text-blue-600 rounded-full px-1.5 py-0.5 text-xs font-medium">
+                      {getActiveFiltersCount}
+                    </span>
+                  )}
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Filtrar Diários</DialogTitle>
+                  <DialogDescription>
+                    Use os filtros abaixo para refinar a lista de diários
+                  </DialogDescription>
+                </DialogHeader>
                 <div className="space-y-4">
                   <div>
-                    <Input
-                      id="nome"
-                      value={formData.nome}
-                      onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                      placeholder="Nome do Diário"
-                      required
-                    />
+                    <Label htmlFor="filterStatusDiario">Status do Diário</Label>
+                    <Select 
+                      value={filters.statusDiario} 
+                      onValueChange={(value) => setFilters({ ...filters, statusDiario: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Todos os status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos os status</SelectItem>
+                        <SelectItem value="PENDENTE">Pendente</SelectItem>
+                        <SelectItem value="ENTREGUE">Pendente de Revisão</SelectItem>
+                        <SelectItem value="DEVOLVIDO">Devolvido</SelectItem>
+                        <SelectItem value="FINALIZADO">Finalizado</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Select 
-                        value={formData.disciplinaId} 
-                        onValueChange={(value) => setFormData({ ...formData, disciplinaId: value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Disciplina" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {disciplinas.map((disciplina) => (
-                            <SelectItem key={disciplina.id} value={disciplina.id.toString()}>
-                              {disciplina.nome}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div>
-                      <Select 
-                        value={formData.turmaId} 
-                        onValueChange={(value) => setFormData({ ...formData, turmaId: value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Turma" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {turmas.map((turma) => (
-                            <SelectItem key={turma.id} value={turma.id.toString()}>
-                              {turma.nome} - {turma.turno}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                  <div>
+                    <Label htmlFor="filterDisciplina">Disciplina</Label>
+                    <Select 
+                      value={filters.disciplina} 
+                      onValueChange={(value) => setFilters({ ...filters, disciplina: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Todas as disciplinas" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todas as disciplinas</SelectItem>
+                        {disciplinas.map((disciplina) => (
+                          <SelectItem key={disciplina.id} value={disciplina.id.toString()}>
+                            {disciplina.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Select 
-                        value={formData.professorId} 
-                        onValueChange={(value) => setFormData({ ...formData, professorId: value })}
-                        disabled={!formData.disciplinaId}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder={formData.disciplinaId ? "Professor" : "Selecione disciplina primeiro"} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {professoresFiltrados.length === 0 && formData.disciplinaId && (
-                            <div className="p-2 text-sm text-gray-500 text-center">
-                              Nenhum professor vinculado a esta disciplina
-                            </div>
-                          )}
-                          {professoresFiltrados.map((professor) => (
-                            <SelectItem key={professor.id} value={professor.professor_id?.toString() || ''}>
-                              {professor.nome}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {formData.disciplinaId && professoresFiltrados.length === 0 && (
-                        <p className="text-xs text-orange-600 mt-1">
-                          Vincule professores à disciplina em "Professores"
-                        </p>
-                      )}
-                    </div>
-
-                    <div>
-                      <Select 
-                        value={formData.bimestre} 
-                        onValueChange={(value) => setFormData({ ...formData, bimestre: value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Bimestre" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="1">1º Bimestre</SelectItem>
-                          <SelectItem value="2">2º Bimestre</SelectItem>
-                          <SelectItem value="3">3º Bimestre</SelectItem>
-                          <SelectItem value="4">4º Bimestre</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                  <div>
+                    <Label htmlFor="filterTurma">Turma</Label>
+                    <Select 
+                      value={filters.turma} 
+                      onValueChange={(value) => setFilters({ ...filters, turma: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Todas as turmas" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todas as turmas</SelectItem>
+                        {turmas.map((turma) => (
+                          <SelectItem key={turma.id} value={turma.id.toString()}>
+                            {turma.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="dataInicio">Data de Início</Label>
-                      <Input
-                        id="dataInicio"
-                        type="date"
-                        value={formData.dataInicio}
-                        onChange={(e) => setFormData({ ...formData, dataInicio: e.target.value })}
-                        required
-                      />
-                    </div>
+                  <div>
+                    <Label htmlFor="filterProfessor">Professor</Label>
+                    <Select 
+                      value={filters.professor} 
+                      onValueChange={(value) => setFilters({ ...filters, professor: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Todos os professores" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos os professores</SelectItem>
+                        {professores.map((professor) => (
+                          <SelectItem key={professor.id} value={professor.id.toString()}>
+                            {professor.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                    <div>
-                      <Label htmlFor="dataTermino">Data de Término</Label>
-                      <Input
-                        id="dataTermino"
-                        type="date"
-                        value={formData.dataTermino}
-                        onChange={(e) => setFormData({ ...formData, dataTermino: e.target.value })}
-                        required
-                      />
-                    </div>
+                  <div>
+                    <Label htmlFor="filterBimestre">Bimestre</Label>
+                    <Select 
+                      value={filters.bimestre} 
+                      onValueChange={(value) => setFilters({ ...filters, bimestre: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Todos os bimestres" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos os bimestres</SelectItem>
+                        <SelectItem value="1">1º Bimestre</SelectItem>
+                        <SelectItem value="2">2º Bimestre</SelectItem>
+                        <SelectItem value="3">3º Bimestre</SelectItem>
+                        <SelectItem value="4">4º Bimestre</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="filterStatus">Status</Label>
+                    <Select 
+                      value={filters.status} 
+                      onValueChange={(value) => setFilters({ ...filters, status: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Todos os status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos os status</SelectItem>
+                        <SelectItem value="ativo">Ativo</SelectItem>
+                        <SelectItem value="finalizado">Finalizado</SelectItem>
+                        <SelectItem value="futuro">Futuro</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
-                <DialogFooter className="mt-6">
-                  <Button type="button" variant="outline" onClick={resetForm}>
-                    Cancelar
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={handleClearFilters}>
+                    Limpar Filtros
                   </Button>
-                  <Button type="submit" disabled={loading}>
-                    {loading ? 'Salvando...' : (editingDiario ? 'Salvar Alterações' : 'Criar Diário')}
+                  <Button type="button" onClick={handleApplyFilters}>
+                    Aplicar
                   </Button>
                 </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="flex gap-4 mb-4">
-          <div className="flex-1">
-            <Input
-              placeholder="Buscar diários..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+              </DialogContent>
+            </Dialog>
           </div>
-          <Dialog open={isFilterDialogOpen} onOpenChange={setIsFilterDialogOpen}>
-            <DialogTrigger asChild>
-              <Button 
-                variant={getActiveFiltersCount > 0 ? "default" : "outline"}
-                className="flex items-center gap-2"
-              >
-                <Filter className="h-4 w-4" />
-                <span className="hidden sm:inline">Filtros</span>
-                {getActiveFiltersCount > 0 && (
-                  <span className="bg-white text-blue-600 rounded-full px-1.5 py-0.5 text-xs font-medium">
-                    {getActiveFiltersCount}
-                  </span>
-                )}
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle>Filtrar Diários</DialogTitle>
-                <DialogDescription>
-                  Use os filtros abaixo para refinar a lista de diários
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="filterStatusDiario">Status do Diário</Label>
-                  <Select 
-                    value={filters.statusDiario} 
-                    onValueChange={(value) => setFilters({ ...filters, statusDiario: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Todos os status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos os status</SelectItem>
-                      <SelectItem value="PENDENTE">Pendente</SelectItem>
-                      <SelectItem value="ENTREGUE">Pendente de Revisão</SelectItem>
-                      <SelectItem value="DEVOLVIDO">Devolvido</SelectItem>
-                      <SelectItem value="FINALIZADO">Finalizado</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
 
-                <div>
-                  <Label htmlFor="filterDisciplina">Disciplina</Label>
-                  <Select 
-                    value={filters.disciplina} 
-                    onValueChange={(value) => setFilters({ ...filters, disciplina: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Todas as disciplinas" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todas as disciplinas</SelectItem>
-                      {disciplinas.map((disciplina) => (
-                        <SelectItem key={disciplina.id} value={disciplina.id.toString()}>
-                          {disciplina.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label htmlFor="filterTurma">Turma</Label>
-                  <Select 
-                    value={filters.turma} 
-                    onValueChange={(value) => setFilters({ ...filters, turma: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Todas as turmas" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todas as turmas</SelectItem>
-                      {turmas.map((turma) => (
-                        <SelectItem key={turma.id} value={turma.id.toString()}>
-                          {turma.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label htmlFor="filterProfessor">Professor</Label>
-                  <Select 
-                    value={filters.professor} 
-                    onValueChange={(value) => setFilters({ ...filters, professor: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Todos os professores" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos os professores</SelectItem>
-                      {professores.map((professor) => (
-                        <SelectItem key={professor.id} value={professor.id.toString()}>
-                          {professor.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label htmlFor="filterBimestre">Bimestre</Label>
-                  <Select 
-                    value={filters.bimestre} 
-                    onValueChange={(value) => setFilters({ ...filters, bimestre: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Todos os bimestres" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos os bimestres</SelectItem>
-                      <SelectItem value="1">1º Bimestre</SelectItem>
-                      <SelectItem value="2">2º Bimestre</SelectItem>
-                      <SelectItem value="3">3º Bimestre</SelectItem>
-                      <SelectItem value="4">4º Bimestre</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label htmlFor="filterStatus">Status</Label>
-                  <Select 
-                    value={filters.status} 
-                    onValueChange={(value) => setFilters({ ...filters, status: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Todos os status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos os status</SelectItem>
-                      <SelectItem value="ativo">Ativo</SelectItem>
-                      <SelectItem value="finalizado">Finalizado</SelectItem>
-                      <SelectItem value="futuro">Futuro</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+          {/* SEÇÃO DESTACADA: Diários Entregues Pendentes de Revisão */}
+          {diasEntreguesPendentesRevisao.length > 0 && currentUser?.papel === 'COORDENADOR' && (
+            <div className="mb-6 p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
+              <div className="flex items-center gap-2 mb-3">
+                <Eye className="h-5 w-5 text-blue-600" />
+                <h4 className="font-semibold text-blue-900">
+                  {diasEntreguesPendentesRevisao.length} Diário(s) Pendente(s) de Revisão
+                </h4>
               </div>
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={handleClearFilters}>
-                  Limpar Filtros
-                </Button>
-                <Button type="button" onClick={handleApplyFilters}>
-                  Aplicar
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
-
-        {/* SEÇÃO DESTACADA: Diários Entregues Pendentes de Revisão */}
-        {diasEntreguesPendentesRevisao.length > 0 && currentUser?.papel === 'COORDENADOR' && (
-          <div className="mb-6 p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
-            <div className="flex items-center gap-2 mb-3">
-              <Eye className="h-5 w-5 text-blue-600" />
-              <h4 className="font-semibold text-blue-900">
-                {diasEntreguesPendentesRevisao.length} Diário(s) Pendente(s) de Revisão
-              </h4>
-            </div>
-            <div className="space-y-2">
-              {diasEntreguesPendentesRevisao.map(diario => (
-                <div key={diario.id} className="p-3 bg-white rounded border border-blue-100 flex items-center justify-between">
-                  <div className="flex-1">
-                    <p className="font-medium text-gray-800">{diario.nome}</p>
-                    <p className="text-sm text-gray-600">
-                      {getDisciplinaNome(diario.disciplina_id)} - {getTurmaNome(diario.turma_id)}
-                    </p>
+              <div className="space-y-2">
+                {diasEntreguesPendentesRevisao.map(diario => (
+                  <div key={diario.id} className="p-3 bg-white rounded border border-blue-100 flex items-center justify-between">
+                    <div className="flex-1">
+                      <p className="font-medium text-gray-800">{diario.nome}</p>
+                      <p className="text-sm text-gray-600">
+                        {getDisciplinaNome(diario.disciplina_id)} - {getTurmaNome(diario.turma_id)}
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() => handleViewDiario(diario)}
+                    >
+                      Revisar
+                    </Button>
                   </div>
-                  <Button
-                    size="sm"
-                    onClick={() => {
-                      setSelectedDiario(diario);
-                      setIsDevolverDialogOpen(true);
-                    }}
-                  >
-                    Revisar
-                  </Button>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
-        )}
-        
-        {loading && (
-          <div className="text-center py-8 text-gray-500">
-            <p>Carregando...</p>
-          </div>
-        )}
+          )}
+          
+          {loading && (
+            <div className="text-center py-8 text-gray-500">
+              <p>Carregando...</p>
+            </div>
+          )}
 
-        {!loading && (
-          <div className="space-y-4">
-            {filteredDiarios.map((diario) => {
-              const status = getStatusDiario(diario);
-              const statusDiario = getStatusDiarioInfo(diario.status);
-              const StatusIcon = statusDiario.icon;
-              const permissions = canManageDiario(diario);
-              
-              return (
-                <div key={diario.id} className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 p-4 border rounded-lg">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <h3 className="font-medium">{diario.nome || 'Sem nome'}</h3>
-                      {diario.bimestre && <Badge variant="outline">{diario.bimestre}º Bimestre</Badge>}
-                      <Badge variant={status.variant}>{status.label}</Badge>
-                      <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${statusDiario.color}`}>
-                        <StatusIcon className="h-3 w-3" />
-                        {statusDiario.label}
-                      </div>
-                    </div>
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-gray-600">
-                      <span>Disciplina: {getDisciplinaNome(diario.disciplina_id)}</span>
-                      <span>Turma: {getTurmaNome(diario.turma_id)}</span>
-                      <span>Professor: {getProfessorNome(diario.professor_id)}</span>
-                    </div>
-                    {diario.dataInicio && diario.dataTermino && (
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-1 text-sm text-gray-500">
-                        <span>Início: {new Date(diario.dataInicio).toLocaleDateString('pt-BR')}</span>
-                        <span>Término: {new Date(diario.dataTermino).toLocaleDateString('pt-BR')}</span>
-                      </div>
-                    )}
-                    {diario.solicitacao_devolucao && (
-                      <div className="mt-2 p-2 bg-orange-50 border border-orange-200 rounded text-sm">
-                        <div className="flex items-center gap-1 text-orange-800 font-medium">
-                          <AlertCircle className="h-4 w-4" />
-                          Solicitação de Devolução
+          {!loading && (
+            <div className="space-y-4">
+              {filteredDiarios.map((diario) => {
+                const status = getStatusDiario(diario);
+                const statusDiario = getStatusDiarioInfo(diario.status);
+                const StatusIcon = statusDiario.icon;
+                const permissions = canManageDiario(diario);
+                
+                return (
+                  <div key={diario.id} className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 p-4 border rounded-lg">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <h3 className="font-medium">{diario.nome || 'Sem nome'}</h3>
+                        {diario.bimestre && <Badge variant="outline">{diario.bimestre}º Bimestre</Badge>}
+                        <Badge variant={status.variant}>{status.label}</Badge>
+                        <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${statusDiario.color}`}>
+                          <StatusIcon className="h-3 w-3" />
+                          {statusDiario.label}
                         </div>
-                        <p className="text-orange-700 mt-1">{diario.solicitacao_devolucao.motivo || diario.solicitacao_devolucao.comentario}</p>
-                        <p className="text-orange-600 text-xs mt-1">
-                          Solicitado em: {new Date(diario.solicitacao_devolucao.at || diario.solicitacao_devolucao.dataSolicitacao).toLocaleDateString('pt-BR')}
-                        </p>
                       </div>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
-                    {currentUser?.papel === 'COORDENADOR' && (
-                      <>
-                        {permissions.canDevolver && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="inline-flex items-center gap-1 whitespace-nowrap"
-                            onClick={() => {
-                              setSelectedDiario(diario);
-                              setIsDevolverDialogOpen(true);
-                            }}
-                          >
-                            <RotateCcw className="h-4 w-4" />
-                            Devolver
-                          </Button>
-                        )}
-                        {permissions.canFinalizar && (
-                          <Button
-                            variant="default"
-                            size="sm"
-                            className="inline-flex items-center gap-1 whitespace-nowrap"
-                            onClick={() => {
-                              setSelectedDiario(diario);
-                              setIsFinalizarDialogOpen(true);
-                            }}
-                          >
-                            <CheckCircle className="h-4 w-4" />
-                            Finalizar
-                          </Button>
-                        )}
-                      </>
-                    )}
-                    
-                    <Button
-                      variant="outline"
-                      size="none"
-                      className="h-8 w-8 p-0 inline-flex items-center justify-center"
-                      onClick={() => handleEdit(diario)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="none"
-                      className="h-8 w-8 p-0 inline-flex items-center justify-center"
-                      onClick={() => handleDelete(diario.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              );
-            })}
-            
-            {filteredDiarios.length === 0 && (
-              <div className="text-center py-8 text-gray-500">
-                <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Nenhum diário encontrado</p>
-              </div>
-            )}
-          </div>
-        )}
-      </CardContent>
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-gray-600">
+                        <span>Disciplina: {getDisciplinaNome(diario.disciplina_id)}</span>
+                        <span>Turma: {getTurmaNome(diario.turma_id)}</span>
+                        <span>Professor: {getProfessorNome(diario.professor_id)}</span>
+                      </div>
+                      {diario.dataInicio && diario.dataTermino && (
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-1 text-sm text-gray-500">
+                          <span>Início: {new Date(diario.dataInicio).toLocaleDateString('pt-BR')}</span>
+                          <span>Término: {new Date(diario.dataTermino).toLocaleDateString('pt-BR')}</span>
+                        </div>
+                      )}
+                      {diario.solicitacao_devolucao && (
+                        <div className="mt-2 p-2 bg-orange-50 border border-orange-200 rounded text-sm">
+                          <div className="flex items-center gap-1 text-orange-800 font-medium">
+                            <AlertCircle className="h-4 w-4" />
+                            Solicitação de Devolução
+                          </div>
+                          <p className="text-orange-700 mt-1">{diario.solicitacao_devolucao.motivo || diario.solicitacao_devolucao.comentario}</p>
+                          <p className="text-orange-600 text-xs mt-1">
+                            Solicitado em: {new Date(diario.solicitacao_devolucao.at || diario.solicitacao_devolucao.dataSolicitacao).toLocaleDateString('pt-BR')}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
+                      {/* Botão "Ver Diário" - Sempre visível */}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="inline-flex items-center gap-1 whitespace-nowrap"
+                        onClick={() => handleViewDiario(diario)}
+                      >
+                        <Eye className="h-4 w-4" />
+                        Ver
+                      </Button>
 
+                      {currentUser?.papel === 'COORDENADOR' && (
+                        <>
+                          {permissions.canDevolver && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="inline-flex items-center gap-1 whitespace-nowrap"
+                              onClick={() => {
+                                setSelectedDiario(diario);
+                                setIsDevolverDialogOpen(true);
+                              }}
+                            >
+                              <RotateCcw className="h-4 w-4" />
+                              Devolver
+                            </Button>
+                          )}
+                          {permissions.canFinalizar && (
+                            <Button
+                              variant="default"
+                              size="sm"
+                              className="inline-flex items-center gap-1 whitespace-nowrap"
+                              onClick={() => {
+                                setSelectedDiario(diario);
+                                setIsFinalizarDialogOpen(true);
+                              }}
+                            >
+                              <CheckCircle className="h-4 w-4" />
+                              Finalizar
+                            </Button>
+                          )}
+                        </>
+                      )}
+                      
+                      <Button
+                        variant="outline"
+                        size="none"
+                        className="h-8 w-8 p-0 inline-flex items-center justify-center"
+                        onClick={() => handleEdit(diario)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="none"
+                        className="h-8 w-8 p-0 inline-flex items-center justify-center"
+                        onClick={() => handleDelete(diario.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+              
+              {filteredDiarios.length === 0 && (
+                <div className="text-center py-8 text-gray-500">
+                  <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>Nenhum diário encontrado</p>
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Modal de Visualização do Diário */}
+      <DiarioViewModal
+        diario={selectedDiario}
+        open={isViewModalOpen}
+        onOpenChange={setIsViewModalOpen}
+        onDevolver={() => {
+          setIsViewModalOpen(false);
+          setIsDevolverDialogOpen(true);
+        }}
+        onFinalizar={() => {
+          setIsViewModalOpen(false);
+          setIsFinalizarDialogOpen(true);
+        }}
+        loading={loading}
+        userRole={currentUser?.papel as 'COORDENADOR' | 'PROFESSOR' | 'ADMIN' | undefined}
+      />
+
+      {/* Dialog de Devolução */}
       <Dialog open={isDevolverDialogOpen} onOpenChange={setIsDevolverDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -887,6 +924,7 @@ export function DiariosList() {
         </DialogContent>
       </Dialog>
 
+      {/* Dialog de Finalização */}
       <Dialog open={isFinalizarDialogOpen} onOpenChange={setIsFinalizarDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -912,7 +950,7 @@ export function DiariosList() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </Card>
+    </>
   );
 }
 
