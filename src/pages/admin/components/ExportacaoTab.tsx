@@ -6,7 +6,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Label } from '../../../components/ui/label';
 import { Separator } from '../../../components/ui/separator';
 import { supabaseService } from '../../../services/supabaseService';
-import autoTable from 'jspdf-autotable';
 
 export function ExportacaoTab() {
   const [selectedDiario, setSelectedDiario] = useState('');
@@ -43,6 +42,33 @@ export function ExportacaoTab() {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+  };
+
+  // Criar tabela HTML simples para PDF
+  const createTableHTML = (headers: string[], rows: string[][]): string => {
+    let html = '<table style="width:100%; border-collapse:collapse;">';
+    
+    // Header
+    html += '<thead>';
+    html += '<tr style="background-color:#3b82f6; color:white;">';
+    headers.forEach(h => {
+      html += `<th style="border:1px solid #000; padding:8px; text-align:left;">${h}</th>`;
+    });
+    html += '</tr></thead>';
+    
+    // Body
+    html += '<tbody>';
+    rows.forEach((row, idx) => {
+      const bgColor = idx % 2 === 0 ? '#ffffff' : '#f5f7fa';
+      html += `<tr style="background-color:${bgColor};">`;
+      row.forEach(cell => {
+        html += `<td style="border:1px solid #ccc; padding:8px;">${cell}</td>`;
+      });
+      html += '</tr>';
+    });
+    html += '</tbody></table>';
+    
+    return html;
   };
 
   // Exportar Diário em PDF
@@ -87,19 +113,29 @@ export function ExportacaoTab() {
       doc.text('Lista de Alunos', 14, 88);
 
       if (alunosDoDiario && alunosDoDiario.length > 0) {
-        autoTable(doc, {
-          startY: 93,
-          head: [['Nº', 'Nome do Aluno', 'Matrícula', 'Situação']],
-          body: alunosDoDiario.map((aluno, index) => [
-            index + 1,
-            aluno.nome || 'N/A',
-            aluno.matricula || aluno.id || 'N/A',
-            'Ativo'
-          ]),
-          theme: 'grid',
-          headStyles: { fillColor: [59, 130, 246], textColor: 255 },
-          styles: { fontSize: 10, cellPadding: 3 },
-          alternateRowStyles: { fillColor: [245, 247, 250] }
+        // Tabela simples
+        let yPos = 93;
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        
+        // Header
+        doc.text('Nº', 14, yPos);
+        doc.text('Nome do Aluno', 25, yPos);
+        doc.text('Matrícula', 130, yPos);
+        doc.text('Situação', 170, yPos);
+        
+        yPos += 7;
+        doc.setLineWidth(0.3);
+        doc.line(14, yPos - 2, 196, yPos - 2);
+        
+        // Linhas
+        doc.setFont('helvetica', 'normal');
+        alunosDoDiario.forEach((aluno, index) => {
+          doc.text((index + 1).toString(), 14, yPos);
+          doc.text(aluno.nome || 'N/A', 25, yPos, { maxWidth: 100 });
+          doc.text(aluno.matricula || aluno.id || 'N/A', 130, yPos);
+          doc.text('Ativo', 170, yPos);
+          yPos += 7;
         });
       } else {
         doc.setFont('helvetica', 'normal');
@@ -194,22 +230,32 @@ export function ExportacaoTab() {
         doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 14, 45);
         doc.text(`Total de Alunos: ${alunos.length}`, 14, 52);
 
-        if (alunos.length > 0) {
-          autoTable(doc, {
-            startY: 60,
-            head: [['Nº', 'Nome', 'Email', 'Turma', 'Status']],
-            body: alunos.map((aluno, index) => [
-              index + 1,
-              aluno.nome || 'N/A',
-              aluno.email || 'N/A',
-              aluno.turma?.nome || aluno.turmaNome || 'N/A',
-              aluno.status || 'Ativo'
-            ]),
-            theme: 'grid',
-            headStyles: { fillColor: [59, 130, 246] },
-            styles: { fontSize: 9 }
-          });
-        }
+        // Tabela simples
+        let yPos = 60;
+        doc.setFont('helvetica', 'bold');
+        doc.text('Nº', 14, yPos);
+        doc.text('Nome', 25, yPos);
+        doc.text('Email', 80, yPos);
+        doc.text('Turma', 130, yPos);
+        doc.text('Status', 170, yPos);
+        
+        yPos += 7;
+        doc.setLineWidth(0.3);
+        doc.line(14, yPos - 2, 196, yPos - 2);
+        
+        doc.setFont('helvetica', 'normal');
+        alunos.slice(0, 30).forEach((aluno, index) => {
+          if (yPos > 250) {
+            doc.addPage();
+            yPos = 20;
+          }
+          doc.text((index + 1).toString(), 14, yPos);
+          doc.text(aluno.nome || 'N/A', 25, yPos, { maxWidth: 50 });
+          doc.text(aluno.email || 'N/A', 80, yPos, { maxWidth: 45 });
+          doc.text(aluno.turma?.nome || aluno.turmaNome || 'N/A', 130, yPos, { maxWidth: 35 });
+          doc.text(aluno.status || 'Ativo', 170, yPos);
+          yPos += 7;
+        });
 
         doc.save(`relatorio_alunos_${new Date().toISOString().split('T')[0]}.pdf`);
       } else {
@@ -251,17 +297,31 @@ export function ExportacaoTab() {
         doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 14, 45);
         doc.text('Frequência consolidada por turma', 14, 52);
 
-        autoTable(doc, {
-          startY: 60,
-          head: [['Turma', 'Total Alunos', 'Média Frequência', 'Status']],
-          body: [
-            ['6º Ano Manhã', '25', '92%', 'Regular'],
-            ['7º Ano Tarde', '28', '88%', 'Regular'],
-            ['8º Ano Manhã', '30', '95%', 'Excelente'],
-          ],
-          theme: 'grid',
-          headStyles: { fillColor: [34, 197, 94] },
-          styles: { fontSize: 10 }
+        // Tabela simples
+        let yPos = 60;
+        doc.setFont('helvetica', 'bold');
+        doc.text('Turma', 14, yPos);
+        doc.text('Total Alunos', 80, yPos);
+        doc.text('Média', 120, yPos);
+        doc.text('Status', 160, yPos);
+        
+        yPos += 7;
+        doc.setLineWidth(0.3);
+        doc.line(14, yPos - 2, 196, yPos - 2);
+        
+        doc.setFont('helvetica', 'normal');
+        const dados = [
+          ['6º Ano Manhã', '25', '92%', 'Regular'],
+          ['7º Ano Tarde', '28', '88%', 'Regular'],
+          ['8º Ano Manhã', '30', '95%', 'Excelente'],
+        ];
+        
+        dados.forEach(row => {
+          doc.text(row[0], 14, yPos);
+          doc.text(row[1], 80, yPos);
+          doc.text(row[2], 120, yPos);
+          doc.text(row[3], 160, yPos);
+          yPos += 7;
         });
 
         doc.save(`relatorio_frequencia_${new Date().toISOString().split('T')[0]}.pdf`);
@@ -302,17 +362,33 @@ export function ExportacaoTab() {
         doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 14, 45);
         doc.text('Médias por disciplina', 14, 52);
 
-        autoTable(doc, {
-          startY: 60,
-          head: [['Disciplina', 'Turma', 'Média Geral', 'Aprovados', 'Recuperação']],
-          body: [
-            ['Matemática', '6º Ano', '7.2', '85%', '15%'],
-            ['Português', '6º Ano', '7.8', '90%', '10%'],
-            ['Ciências', '6º Ano', '8.1', '92%', '8%'],
-          ],
-          theme: 'grid',
-          headStyles: { fillColor: [147, 51, 234] },
-          styles: { fontSize: 10 }
+        // Tabela simples
+        let yPos = 60;
+        doc.setFont('helvetica', 'bold');
+        doc.text('Disciplina', 14, yPos);
+        doc.text('Turma', 70, yPos);
+        doc.text('Média', 110, yPos);
+        doc.text('Aprovados', 140, yPos);
+        doc.text('Recup.', 175, yPos);
+        
+        yPos += 7;
+        doc.setLineWidth(0.3);
+        doc.line(14, yPos - 2, 196, yPos - 2);
+        
+        doc.setFont('helvetica', 'normal');
+        const dados = [
+          ['Matemática', '6º Ano', '7.2', '85%', '15%'],
+          ['Português', '6º Ano', '7.8', '90%', '10%'],
+          ['Ciências', '6º Ano', '8.1', '92%', '8%'],
+        ];
+        
+        dados.forEach(row => {
+          doc.text(row[0], 14, yPos);
+          doc.text(row[1], 70, yPos);
+          doc.text(row[2], 110, yPos);
+          doc.text(row[3], 140, yPos);
+          doc.text(row[4], 175, yPos);
+          yPos += 7;
         });
 
         doc.save(`relatorio_notas_${new Date().toISOString().split('T')[0]}.pdf`);
