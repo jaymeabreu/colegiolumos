@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '../../../components/ui/input';
 import { Label } from '../../../components/ui/label';
 import { Textarea } from '../../../components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
 import { supabaseService } from '../../../services/supabaseService';
 import { MarcarPresencaModal } from './MarcarPresencaModal';
 import type { Aula, Aluno } from '../../../services/supabaseService';
@@ -33,6 +34,10 @@ export function CriarAulaModal({
     horaInicio: '08:00',
     horaFim: '09:00',
     conteudo: '',
+    quantidadeAulas: '1',
+    tipoAula: 'Teórica',
+    aulaAssíncrona: 'Não',
+    conteudoDetalhado: '',
     observacoes: ''
   });
 
@@ -62,6 +67,10 @@ export function CriarAulaModal({
         horaInicio: '08:00',
         horaFim: '09:00',
         conteudo: '',
+        quantidadeAulas: '1',
+        tipoAula: 'Teórica',
+        aulaAssíncrona: 'Não',
+        conteudoDetalhado: '',
         observacoes: ''
       });
 
@@ -86,7 +95,7 @@ export function CriarAulaModal({
 
   return (
     <>
-      {/* BOTÃO - sem DialogTrigger */}
+      {/* BOTÃO */}
       <Button 
         onClick={() => onOpenChange(true)}
         className="bg-blue-600 hover:bg-blue-700"
@@ -95,28 +104,42 @@ export function CriarAulaModal({
         Nova Aula
       </Button>
 
-      {/* DIALOG CONTROLADO EXTERNAMENTE */}
+      {/* DIALOG */}
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Nova Aula</DialogTitle>
             <DialogDescription>
-              Preencha os dados da aula que deseja registrar
+              Conteúdo Ministrado da Aula
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <Label htmlFor="data">Data da Aula</Label>
-              <Input
-                id="data"
-                type="date"
-                value={formData.data}
-                onChange={(e) => setFormData({ ...formData, data: e.target.value })}
-                required
-              />
+            {/* LINHA 1: DATA E TÍTULO */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="data">Data da aula</Label>
+                <Input
+                  id="data"
+                  type="date"
+                  value={formData.data}
+                  onChange={(e) => setFormData({ ...formData, data: e.target.value })}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="conteudo">Título do conteúdo</Label>
+                <Input
+                  id="conteudo"
+                  placeholder="Ex: As Grandes Navegações"
+                  value={formData.conteudo}
+                  onChange={(e) => setFormData({ ...formData, conteudo: e.target.value })}
+                  required
+                />
+              </div>
             </div>
 
+            {/* LINHA 2: HORÁRIOS */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="horaInicio">Hora Início</Label>
@@ -138,22 +161,79 @@ export function CriarAulaModal({
               </div>
             </div>
 
+            {/* LINHA 3: QUANTIDADE, TIPO E ASSÍNCRONA */}
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="quantidadeAulas">Quantidade de aulas</Label>
+                <Select 
+                  value={formData.quantidadeAulas}
+                  onValueChange={(value) => setFormData({ ...formData, quantidadeAulas: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1 aula</SelectItem>
+                    <SelectItem value="2">2 aulas</SelectItem>
+                    <SelectItem value="3">3 aulas</SelectItem>
+                    <SelectItem value="4">4 aulas</SelectItem>
+                    <SelectItem value="5">5 aulas</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="tipoAula">Tipo de aula</Label>
+                <Select 
+                  value={formData.tipoAula}
+                  onValueChange={(value) => setFormData({ ...formData, tipoAula: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Teórica">Teórica</SelectItem>
+                    <SelectItem value="Prática">Prática</SelectItem>
+                    <SelectItem value="Teórica e Prática">Teórica e Prática</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="aulaAssíncrona">Aula assíncrona</Label>
+                <Select 
+                  value={formData.aulaAssíncrona}
+                  onValueChange={(value) => setFormData({ ...formData, aulaAssíncrona: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Não">Não</SelectItem>
+                    <SelectItem value="Sim">Sim</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* CONTEÚDO DETALHADO */}
             <div>
-              <Label htmlFor="conteudo">Título do Conteúdo</Label>
-              <Input
-                id="conteudo"
-                placeholder="Ex: Introdução às Grandes Navegações"
-                value={formData.conteudo}
-                onChange={(e) => setFormData({ ...formData, conteudo: e.target.value })}
-                required
+              <Label htmlFor="conteudoDetalhado">Conteúdo detalhado da aula</Label>
+              <Textarea
+                id="conteudoDetalhado"
+                placeholder="Descrição detalhada do conteúdo ministrado na aula. Ex: Introdução às Grandes Navegações - contexto histórico, causas econômicas e tecnológicas, principais navegadores portugueses e espanhóis, descobrimento do Brasil..."
+                value={formData.conteudoDetalhado}
+                onChange={(e) => setFormData({ ...formData, conteudoDetalhado: e.target.value })}
+                rows={4}
               />
             </div>
 
+            {/* OBSERVAÇÕES */}
             <div>
-              <Label htmlFor="observacoes">Observações (opcional)</Label>
+              <Label htmlFor="observacoes">Observações</Label>
               <Textarea
                 id="observacoes"
-                placeholder="Descrição detalhada do conteúdo, habilidades, etc..."
+                placeholder="Observações adicionais sobre a aula, comportamento da turma, dificuldades encontradas, etc..."
                 value={formData.observacoes}
                 onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
                 rows={3}
@@ -173,7 +253,7 @@ export function CriarAulaModal({
                 disabled={loading}
                 className="bg-blue-600 hover:bg-blue-700"
               >
-                {loading ? 'Salvando...' : 'Criar Aula'}
+                {loading ? 'Salvando...' : 'Salvar Aula'}
               </Button>
             </DialogFooter>
           </form>
