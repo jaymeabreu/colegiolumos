@@ -31,8 +31,6 @@ export function CriarAulaModal({
   
   const [formData, setFormData] = useState({
     data: new Date().toISOString().split('T')[0],
-    horaInicio: '08:00',
-    horaFim: '09:00',
     conteudo: '',
     quantidadeAulas: '1',
     tipoAula: 'Teórica',
@@ -55,8 +53,8 @@ export function CriarAulaModal({
       const novaAula = await supabaseService.createAula({
         diario_id: diarioId,
         data: formData.data,
-        hora_inicio: formData.horaInicio,
-        hora_fim: formData.horaFim,
+        hora_inicio: '',
+        hora_fim: '',
         conteudo: formData.conteudo,
         observacoes: formData.observacoes || null
       });
@@ -64,8 +62,6 @@ export function CriarAulaModal({
       setAulaCriada(novaAula);
       setFormData({
         data: new Date().toISOString().split('T')[0],
-        horaInicio: '08:00',
-        horaFim: '09:00',
         conteudo: '',
         quantidadeAulas: '1',
         tipoAula: 'Teórica',
@@ -106,7 +102,7 @@ export function CriarAulaModal({
 
       {/* DIALOG */}
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Nova Aula</DialogTitle>
             <DialogDescription>
@@ -139,29 +135,7 @@ export function CriarAulaModal({
               </div>
             </div>
 
-            {/* LINHA 2: HORÁRIOS */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="horaInicio">Hora Início</Label>
-                <Input
-                  id="horaInicio"
-                  type="time"
-                  value={formData.horaInicio}
-                  onChange={(e) => setFormData({ ...formData, horaInicio: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label htmlFor="horaFim">Hora Fim</Label>
-                <Input
-                  id="horaFim"
-                  type="time"
-                  value={formData.horaFim}
-                  onChange={(e) => setFormData({ ...formData, horaFim: e.target.value })}
-                />
-              </div>
-            </div>
-
-            {/* LINHA 3: QUANTIDADE, TIPO E ASSÍNCRONA */}
+            {/* LINHA 2: QUANTIDADE, TIPO E ASSÍNCRONA */}
             <div className="grid grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="quantidadeAulas">Quantidade de aulas</Label>
@@ -224,7 +198,8 @@ export function CriarAulaModal({
                 placeholder="Descrição detalhada do conteúdo ministrado na aula. Ex: Introdução às Grandes Navegações - contexto histórico, causas econômicas e tecnológicas, principais navegadores portugueses e espanhóis, descobrimento do Brasil..."
                 value={formData.conteudoDetalhado}
                 onChange={(e) => setFormData({ ...formData, conteudoDetalhado: e.target.value })}
-                rows={4}
+                rows={5}
+                className="resize-none"
               />
             </div>
 
@@ -236,11 +211,12 @@ export function CriarAulaModal({
                 placeholder="Observações adicionais sobre a aula, comportamento da turma, dificuldades encontradas, etc..."
                 value={formData.observacoes}
                 onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
-                rows={3}
+                rows={4}
+                className="resize-none"
               />
             </div>
 
-            <DialogFooter>
+            <DialogFooter className="gap-3 sm:gap-0">
               <Button
                 type="button"
                 variant="outline"
