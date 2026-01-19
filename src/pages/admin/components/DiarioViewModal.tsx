@@ -72,9 +72,9 @@ export function DiarioViewModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[99vw] h-[96vh] max-w-full p-0 flex flex-col fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+      <DialogContent className="max-w-[95vw] w-full h-[90vh] p-0 flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="border-b bg-gradient-to-r from-blue-50 to-indigo-50 p-8">
+        <div className="border-b bg-gradient-to-r from-blue-50 to-indigo-50 p-6">
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-2">
@@ -101,7 +101,7 @@ export function DiarioViewModal({
             </div>
             <button
               onClick={() => onOpenChange(false)}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              className="text-gray-400 hover:text-gray-600 transition-colors p-1"
             >
               <X className="h-6 w-6" />
             </button>
@@ -109,50 +109,50 @@ export function DiarioViewModal({
         </div>
 
         {/* Tabs */}
-        <div className="flex-1 overflow-y-auto">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
-            <TabsList className="w-full justify-start rounded-none border-b bg-gray-50 px-8 py-0">
+        <div className="flex-1 flex flex-col min-h-0">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
+            <TabsList className="w-full justify-start rounded-none border-b bg-gray-50 px-6 py-0 h-12">
               <TabsTrigger 
                 value="aulas"
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:bg-white"
+                className="h-full rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:bg-white px-6"
               >
                 <BookOpen className="h-4 w-4 mr-2" />
                 Aulas
               </TabsTrigger>
               <TabsTrigger 
                 value="avaliacoes"
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:bg-white"
+                className="h-full rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:bg-white px-6"
               >
                 <AlertTriangle className="h-4 w-4 mr-2" />
                 Avaliações
               </TabsTrigger>
               <TabsTrigger 
                 value="alunos"
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:bg-white"
+                className="h-full rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:bg-white px-6"
               >
                 <Users className="h-4 w-4 mr-2" />
                 Alunos
               </TabsTrigger>
               <TabsTrigger 
                 value="ocorrencias"
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:bg-white"
+                className="h-full rounded-none border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:bg-white px-6"
               >
                 <AlertCircle className="h-4 w-4 mr-2" />
                 Ocorrências
               </TabsTrigger>
             </TabsList>
 
-            <div className="flex-1 overflow-y-auto p-8">
-              <TabsContent value="aulas" className="m-0">
+            <div className="flex-1 overflow-y-auto p-6">
+              <TabsContent value="aulas" className="m-0 focus-visible:outline-none">
                 <AulasTab diarioId={diario.id} readOnly={isReadOnly} />
               </TabsContent>
-              <TabsContent value="avaliacoes" className="m-0">
+              <TabsContent value="avaliacoes" className="m-0 focus-visible:outline-none">
                 <AvaliacoesTab diarioId={diario.id} readOnly={isReadOnly} />
               </TabsContent>
-              <TabsContent value="alunos" className="m-0">
+              <TabsContent value="alunos" className="m-0 focus-visible:outline-none">
                 <AlunosTab diarioId={diario.id} readOnly={isReadOnly} />
               </TabsContent>
-              <TabsContent value="ocorrencias" className="m-0">
+              <TabsContent value="ocorrencias" className="m-0 focus-visible:outline-none">
                 <OcorrenciasTab diarioId={diario.id} readOnly={isReadOnly} />
               </TabsContent>
             </div>
@@ -160,12 +160,12 @@ export function DiarioViewModal({
         </div>
 
         {/* Footer com Botões de Ação */}
-        <div className="border-t bg-gray-50 px-8 py-6">
+        <div className="border-t bg-gray-50 px-6 py-4">
           <div className="flex items-center justify-between gap-4">
             <div>
               {isReadOnly && (
-                <p className="text-sm text-gray-600">
-                  <AlertCircle className="inline h-4 w-4 mr-1 text-blue-600" />
+                <p className="text-sm text-gray-600 flex items-center">
+                  <AlertCircle className="h-4 w-4 mr-1.5 text-blue-600" />
                   Este diário está em modo somente leitura
                 </p>
               )}
