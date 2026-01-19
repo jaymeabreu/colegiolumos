@@ -304,28 +304,6 @@ export function DiarioViewModal({
                   </div>
                 </div>
               </div>
-
-              {/* BLOCO 5: CONSOLIDAÇÃO E RELATÓRIOS */}
-              <div className="bg-white border rounded-lg p-6">
-                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-red-600" />
-                  Consolidações e Relatórios
-                </h3>
-                <div className="space-y-3">
-                  <div className="p-4 bg-blue-50 border border-blue-200 rounded">
-                    <p className="font-medium text-blue-900">📄 Documentos de Escrituração Escolar</p>
-                    <p className="text-sm text-blue-700 mt-1">Registros oficiais para a Diretoria de Ensino</p>
-                  </div>
-                  <div className="p-4 bg-green-50 border border-green-200 rounded">
-                    <p className="font-medium text-green-900">📈 Relatório de Frequência</p>
-                    <p className="text-sm text-green-700 mt-1">Consolidação de presença e faltas</p>
-                  </div>
-                  <div className="p-4 bg-purple-50 border border-purple-200 rounded">
-                    <p className="font-medium text-purple-900">📋 Relatório de Rendimento</p>
-                    <p className="text-sm text-purple-700 mt-1">Fechamento bimestral e notas dos alunos</p>
-                  </div>
-                </div>
-              </div>
             </div>
           </ScrollArea>
 
