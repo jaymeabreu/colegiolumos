@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Plus, Edit, Trash2, Users, Filter, CheckCircle, Clock, RotateCcw, XCircle, AlertCircle } from 'lucide-react';
+import { Plus, Edit, Trash2, Users, Filter, CheckCircle, Clock, RotateCcw, XCircle, AlertCircle, Eye } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
@@ -75,7 +75,7 @@ export function DiariosList() {
     loadData();
   }, [loadData]);
 
-  // Filtrar professores quando disciplina é selecionada - CORRIGIDO FINAL
+  // Filtrar professores quando disciplina é selecionada
   useEffect(() => {
     const filtrarProfessores = async () => {
       if (!formData.disciplinaId) {
@@ -84,16 +84,8 @@ export function DiariosList() {
       }
 
       try {
-        // Pegar os IDs dos professores que ensinam esta disciplina
         const resultado = await supabaseService.getProfessoresByDisciplina(Number(formData.disciplinaId));
         
-        // Debug completo
-        console.log('=== FILTRAGEM FINAL ===');
-        console.log('Resultado bruto:', resultado);
-        console.log('Tipo do resultado:', typeof resultado);
-        console.log('É array?:', Array.isArray(resultado));
-        
-        // Garantir que é um array de números
         let professoresIds: number[] = [];
         if (Array.isArray(resultado)) {
           professoresIds = resultado.map(item => {
@@ -103,18 +95,9 @@ export function DiariosList() {
           }).filter(id => !isNaN(id));
         }
         
-        console.log('IDs processados:', professoresIds);
-        console.log('Professores disponíveis:', professores.map(p => ({ id: p.id, professor_id: p.professor_id, nome: p.nome })));
-        
-        // Filtrar
         const professoresDaDisciplina = professores.filter(p => {
-          const match = p.professor_id !== undefined && p.professor_id !== null && professoresIds.includes(p.professor_id);
-          console.log(`${p.nome}: professor_id=${p.professor_id}, match=${match}`);
-          return match;
+          return p.professor_id !== undefined && p.professor_id !== null && professoresIds.includes(p.professor_id);
         });
-        
-        console.log('Resultado final:', professoresDaDisciplina.map(p => p.nome));
-        console.log('======================');
         
         setProfessoresFiltrados(professoresDaDisciplina);
         
@@ -351,9 +334,9 @@ export function DiariosList() {
         };
       case 'ENTREGUE':
         return { 
-          label: 'Entregue', 
+          label: 'Pendente de Revisão', 
           variant: 'default' as const, 
-          icon: CheckCircle,
+          icon: Eye,
           color: 'bg-blue-100 text-blue-800 border-blue-200'
         };
       case 'DEVOLVIDO':
@@ -367,7 +350,7 @@ export function DiariosList() {
         return { 
           label: 'Finalizado', 
           variant: 'outline' as const, 
-          icon: XCircle,
+          icon: CheckCircle,
           color: 'bg-green-100 text-green-800 border-green-200'
         };
       default:
@@ -382,8 +365,15 @@ export function DiariosList() {
 
   const canManageDiario = useCallback((diario: Diario) => {
     if (!currentUser || currentUser.papel !== 'COORDENADOR') return { canDevolver: false, canFinalizar: false };
-    return supabaseService.coordenadorPodeGerenciarDiario(diario.id);
+    const canDevolver = diario.status === 'ENTREGUE';
+    const canFinalizar = diario.status === 'DEVOLVIDO' || diario.status === 'PENDENTE';
+    return { canDevolver, canFinalizar };
   }, [currentUser]);
+
+  // Destacar diários entregues
+  const diasEntreguesPendentesRevisao = useMemo(() => {
+    return filteredDiarios.filter(d => d.status === 'ENTREGUE');
+  }, [filteredDiarios]);
 
   return (
     <Card>
@@ -594,7 +584,7 @@ export function DiariosList() {
                     <SelectContent>
                       <SelectItem value="all">Todos os status</SelectItem>
                       <SelectItem value="PENDENTE">Pendente</SelectItem>
-                      <SelectItem value="ENTREGUE">Entregue</SelectItem>
+                      <SelectItem value="ENTREGUE">Pendente de Revisão</SelectItem>
                       <SelectItem value="DEVOLVIDO">Devolvido</SelectItem>
                       <SelectItem value="FINALIZADO">Finalizado</SelectItem>
                     </SelectContent>
@@ -709,6 +699,39 @@ export function DiariosList() {
             </DialogContent>
           </Dialog>
         </div>
+
+        {/* SEÇÃO DESTACADA: Diários Entregues Pendentes de Revisão */}
+        {diasEntreguesPendentesRevisao.length > 0 && currentUser?.papel === 'COORDENADOR' && (
+          <div className="mb-6 p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
+            <div className="flex items-center gap-2 mb-3">
+              <Eye className="h-5 w-5 text-blue-600" />
+              <h4 className="font-semibold text-blue-900">
+                {diasEntreguesPendentesRevisao.length} Diário(s) Pendente(s) de Revisão
+              </h4>
+            </div>
+            <div className="space-y-2">
+              {diasEntreguesPendentesRevisao.map(diario => (
+                <div key={diario.id} className="p-3 bg-white rounded border border-blue-100 flex items-center justify-between">
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-800">{diario.nome}</p>
+                    <p className="text-sm text-gray-600">
+                      {getDisciplinaNome(diario.disciplina_id)} - {getTurmaNome(diario.turma_id)}
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      setSelectedDiario(diario);
+                      setIsDevolverDialogOpen(true);
+                    }}
+                  >
+                    Revisar
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         
         {loading && (
           <div className="text-center py-8 text-gray-500">
@@ -747,15 +770,15 @@ export function DiariosList() {
                         <span>Término: {new Date(diario.dataTermino).toLocaleDateString('pt-BR')}</span>
                       </div>
                     )}
-                    {diario.solicitacaoDevolucao && (
+                    {diario.solicitacao_devolucao && (
                       <div className="mt-2 p-2 bg-orange-50 border border-orange-200 rounded text-sm">
                         <div className="flex items-center gap-1 text-orange-800 font-medium">
                           <AlertCircle className="h-4 w-4" />
                           Solicitação de Devolução
                         </div>
-                        <p className="text-orange-700 mt-1">{diario.solicitacaoDevolucao.comentario}</p>
+                        <p className="text-orange-700 mt-1">{diario.solicitacao_devolucao.motivo || diario.solicitacao_devolucao.comentario}</p>
                         <p className="text-orange-600 text-xs mt-1">
-                          Solicitado em: {new Date(diario.solicitacaoDevolucao.dataSolicitacao).toLocaleDateString('pt-BR')}
+                          Solicitado em: {new Date(diario.solicitacao_devolucao.at || diario.solicitacao_devolucao.dataSolicitacao).toLocaleDateString('pt-BR')}
                         </p>
                       </div>
                     )}
