@@ -12,6 +12,7 @@ import { AvaliacoesTab } from '../diario/components/AvaliacoesTab';
 import { AlunosTab } from '../diario/components/AlunosTab';
 import { OcorrenciasTab } from '../diario/components/OcorrenciasTab';
 import { RecadosTab } from './components/RecadosTab';
+import { TurmaCard } from './components/TurmaCard';
 
 const MemoizedAulasTab = memo(AulasTab);
 const MemoizedAvaliacoesTab = memo(AvaliacoesTab);
@@ -125,39 +126,14 @@ export function ProfessorPage() {
               ) : (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {diarios.map((diario) => (
-                    <Card 
+                    <TurmaCard
                       key={diario.id}
-                      className="cursor-pointer hover:shadow-lg transition-shadow"
+                      diario={diario}
                       onClick={() => {
                         setSelectedDiario(diario.id);
                         setActiveTab('aulas');
                       }}
-                    >
-                      <CardHeader>
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <CardTitle>{diario.nome}</CardTitle>
-                            <div className="mt-2">
-                              <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${
-                                diario.status === 'PENDENTE' ? 'bg-yellow-100 text-yellow-800' :
-                                diario.status === 'ENTREGUE' ? 'bg-blue-100 text-blue-800' :
-                                diario.status === 'DEVOLVIDO' ? 'bg-orange-100 text-orange-800' :
-                                'bg-green-100 text-green-800'
-                              }`}>
-                                {diario.status}
-                              </span>
-                            </div>
-                          </div>
-                          <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Calendar className="h-4 w-4" />
-                          <span>{diario.bimestre}º Bimestre</span>
-                        </div>
-                      </CardContent>
-                    </Card>
+                    />
                   ))}
                 </div>
               )}
