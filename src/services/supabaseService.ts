@@ -816,6 +816,60 @@ class SupabaseService {
     return (data ?? []).map(withCamel) as Aula[];
   }
 
+  // NOVAS FUNÇÕES PARA ESTATÍSTICAS DO DIÁRIO
+  async getDiarioStats(diarioId: number): Promise<{
+    alunosMatriculados: number;
+    aulasCount: number;
+  }> {
+    try {
+      // Contar alunos matriculados neste diário
+      const { data: vinculos, error: e1 } = await supabase
+        .from('diario_alunos')
+        .select('aluno_id')
+        .eq('diario_id', diarioId);
+
+      if (e1) throw e1;
+
+      // Contar aulas dadas
+      const { data: aulas, error: e2 } = await supabase
+        .from('aulas')
+        .select('id')
+        .eq('diario_id', diarioId);
+
+      if (e2) throw e2;
+
+      return {
+        alunosMatriculados: (vinculos ?? []).length,
+        aulasCount: (aulas ?? []).length
+      };
+    } catch (error) {
+      console.error('Erro ao buscar estatísticas do diário:', error);
+      return {
+        alunosMatriculados: 0,
+        aulasCount: 0
+      };
+    }
+  }
+
+  async getDiariosWithStats(professorId: number): Promise<Array<Diario & { stats: { alunosMatriculados: number; aulasCount: number } }>> {
+    try {
+      const diarios = await this.getDiariosByProfessor(professorId);
+      
+      // Buscar stats para cada diário em paralelo
+      const diarioStats = await Promise.all(
+        diarios.map(async (diario) => ({
+          ...diario,
+          stats: await this.getDiarioStats(diario.id)
+        }))
+      );
+
+      return diarioStats;
+    } catch (error) {
+      console.error('Erro ao buscar diários com estatísticas:', error);
+      return [];
+    }
+  }
+
   async createAula(aula: Omit<Aula, 'id' | 'created_at' | 'updated_at'>): Promise<Aula> {
     const payload: any = {
       diario_id: aula.diario_id ?? aula.diarioId,
