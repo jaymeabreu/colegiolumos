@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { X, GraduationCap, TrendingUp, Calendar, AlertCircle, BookOpen, Award, User, CheckCircle } from 'lucide-center';
+import { X, GraduationCap, TrendingUp, Calendar, AlertCircle, BookOpen, Award, User, CheckCircle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Progress } from '../ui/progress';
@@ -279,7 +279,6 @@ export function BoletimModal({ aluno, onClose, diarioId }: BoletimModalProps) {
               </p>
             </div>
           </div>
-          {/* BOTÃO DE FECHAR (X) - CORRIGIDO */}
           <button 
             onClick={onClose} 
             type="button"
@@ -399,7 +398,6 @@ export function BoletimModal({ aluno, onClose, diarioId }: BoletimModalProps) {
           </Tabs>
         </div>
         
-        {/* Footer com Botão de Fechar - CORRIGIDO */}
         <div className="p-6 border-t bg-slate-50 flex justify-end">
           <Button onClick={onClose} variant="outline" className="px-8 cursor-pointer">
             Fechar
