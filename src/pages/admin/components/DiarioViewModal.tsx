@@ -122,14 +122,14 @@ export function DiarioViewModal({
   if (!diario) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4 backdrop-blur-sm overflow-y-auto">
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4 backdrop-blur-sm">
       <div 
-        className="bg-background rounded-xl !w-[95vw] !max-w-none flex flex-col shadow-2xl overflow-hidden border my-4"
+        className="bg-background rounded-xl !w-[95vw] !max-w-none flex flex-col shadow-2xl overflow-hidden border"
         style={{ width: '95vw', maxWidth: '95vw', maxHeight: '95vh' }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b bg-gradient-to-r from-slate-50 to-white flex-shrink-0">
-          <div className="flex-1">
+        <div className="flex items-start justify-between p-6 border-b bg-gradient-to-r from-slate-50 to-white flex-shrink-0">
+          <div className="flex-1 pr-4">
             <h2 className="text-2xl font-bold text-foreground flex items-center gap-2 mb-2">
               📚 Diário de Classe - {diario.nome}
             </h2>
@@ -152,6 +152,7 @@ export function DiarioViewModal({
           </div>
           <button 
             onClick={onClose} 
+            type="button"
             className="p-2 hover:bg-slate-100 rounded-full transition-colors text-muted-foreground hover:text-foreground flex-shrink-0"
           >
             <X className="h-6 w-6" />
