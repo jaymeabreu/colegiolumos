@@ -5,7 +5,6 @@ import { Button } from '../../../components/ui/button';
 import { ScrollArea } from '../../../components/ui/scroll-area';
 import { supabaseService } from '../../../services/supabaseService';
 import { MarcarPresencaModal } from './MarcarPresencaModal';
-import { CriarAulaModal } from './CriarAulaModal';
 import type { Diario, Aula, Aluno } from '../../../services/supabaseService';
 
 interface DiarioViewModalProps {
@@ -55,7 +54,6 @@ export function DiarioViewModal({
   const [alunosData, setAlunosData] = useState<Aluno[]>([]);
   const [isMarcarPresencaOpen, setIsMarcarPresencaOpen] = useState(false);
   const [selectedAula, setSelectedAula] = useState<Aula | null>(null);
-  const [isCriarAulaOpen, setIsCriarAulaOpen] = useState(false);
 
   const isReadOnly = diario?.status === 'ENTREGUE' || diario?.status === 'FINALIZADO';
   const canDevolver = userRole === 'COORDENADOR' && diario?.status === 'ENTREGUE';
@@ -182,19 +180,10 @@ export function DiarioViewModal({
 
               {/* BLOCO 2: REGISTRO DE AULAS */}
               <div className="bg-white border rounded-lg p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                    <FileText className="h-5 w-5 text-green-600" />
-                    Aulas Ministradas
-                  </h3>
-                  <CriarAulaModal
-                    diarioId={diario.id}
-                    alunos={alunosData}
-                    open={isCriarAulaOpen}
-                    onOpenChange={setIsCriarAulaOpen}
-                    onAulaCriada={carregarDados}
-                  />
-                </div>
+                <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-green-600" />
+                  Aulas Ministradas
+                </h3>
 
                 {carregando ? (
                   <div className="text-center py-4 text-gray-500">Carregando...</div>
@@ -203,39 +192,37 @@ export function DiarioViewModal({
                     <p className="text-sm">📝 Nenhuma aula registrada ainda</p>
                   </div>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                     {aulas.map((aula) => (
-                      <div key={aula.id} className="p-4 bg-gray-50 rounded border border-gray-200 hover:bg-gray-100 transition">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-1">
-                              <span className="font-semibold text-gray-900">
-                                📅 {new Date(aula.data).toLocaleDateString('pt-BR')}
+                      <div key={aula.id} className="p-4 bg-gray-50 rounded border border-gray-200 hover:bg-gray-100 transition flex flex-col">
+                        <div className="flex-1">
+                          <div className="mb-2">
+                            <span className="text-sm font-semibold text-gray-900">
+                              📅 {new Date(aula.data).toLocaleDateString('pt-BR')}
+                            </span>
+                            {aula.horaInicio && aula.horaFim && (
+                              <span className="text-xs text-gray-600 block">
+                                {aula.horaInicio} - {aula.horaFim}
                               </span>
-                              {aula.horaInicio && aula.horaFim && (
-                                <span className="text-xs text-gray-600">
-                                  {aula.horaInicio} - {aula.horaFim}
-                                </span>
-                              )}
-                            </div>
-                            <p className="font-medium text-gray-900">{aula.conteudo || 'Aula sem título'}</p>
-                            {aula.observacoes && (
-                              <p className="text-sm text-gray-600 mt-1">{aula.observacoes}</p>
                             )}
                           </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="border-green-200 text-green-700 hover:bg-green-50 ml-4 flex-shrink-0"
-                            onClick={() => {
-                              setSelectedAula(aula);
-                              setIsMarcarPresencaOpen(true);
-                            }}
-                          >
-                            <Eye className="h-4 w-4 mr-2" />
-                            Presença
-                          </Button>
+                          <p className="font-medium text-gray-900 text-sm mb-1">{aula.conteudo || 'Aula sem título'}</p>
+                          {aula.observacoes && (
+                            <p className="text-xs text-gray-600">{aula.observacoes}</p>
+                          )}
                         </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="border-green-200 text-green-700 hover:bg-green-50 mt-3 w-full"
+                          onClick={() => {
+                            setSelectedAula(aula);
+                            setIsMarcarPresencaOpen(true);
+                          }}
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          Presença
+                        </Button>
                       </div>
                     ))}
                   </div>
