@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ChevronRight, Users, BookOpen, Calendar } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
-import { supabaseService } from '../../services/supabaseService';
+import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
+import { supabaseService } from '../../../services/supabaseService';
 import type { Diario } from '../../services/supabaseService';
 
 interface TurmaCardProps {
