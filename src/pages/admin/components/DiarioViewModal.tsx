@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui
 import { ScrollArea } from '../../../components/ui/scroll-area';
 import { supabaseService } from '../../../services/supabaseService';
 import { MarcarPresencaModal } from './MarcarPresencaModal';
+import { CriarAulaModal } from './CriarAulaModal';
 import type { Diario, Aula, Aluno } from '../../../services/supabaseService';
 
 interface DiarioViewModalProps {
@@ -56,6 +57,7 @@ export function DiarioViewModal({
   const [alunosData, setAlunosData] = useState<Aluno[]>([]);
   const [isMarcarPresencaOpen, setIsMarcarPresencaOpen] = useState(false);
   const [selectedAula, setSelectedAula] = useState<Aula | null>(null);
+  const [isCriarAulaOpen, setIsCriarAulaOpen] = useState(false);
 
   const isReadOnly = diario?.status === 'ENTREGUE' || diario?.status === 'FINALIZADO';
   const canDevolver = userRole === 'COORDENADOR' && diario?.status === 'ENTREGUE';
@@ -281,6 +283,13 @@ export function DiarioViewModal({
                       <h3 className="text-lg font-bold text-gray-900">
                         Registro de Aulas ({aulas.length})
                       </h3>
+                      <CriarAulaModal
+                        diarioId={diario.id}
+                        alunos={alunosData}
+                        open={isCriarAulaOpen}
+                        onOpenChange={setIsCriarAulaOpen}
+                        onAulaCriada={carregarDados}
+                      />
                     </div>
 
                     {aulas.length === 0 ? (
