@@ -112,6 +112,14 @@ export interface Aula {
   horaFim?: string;
   conteudo?: string;
   observacoes?: string;
+  quantidade_aulas?: number;
+  quantidadeAulas?: number;
+  tipo_aula?: string;
+  tipoAula?: string;
+  aula_assincrona?: boolean;
+  aulaAssincrona?: boolean;
+  conteudo_detalhado?: string;
+  conteudoDetalhado?: string;
   created_at: string;
   updated_at: string;
 }
@@ -228,6 +236,11 @@ function withCamel<T extends Record<string, any>>(row: T): T {
   if (r.aluno_nome !== undefined) r.alunoNome = r.aluno_nome;
 
   if (r.carga_horaria !== undefined) r.cargaHoraria = r.carga_horaria;
+
+  if (r.quantidade_aulas !== undefined) r.quantidadeAulas = r.quantidade_aulas;
+  if (r.tipo_aula !== undefined) r.tipoAula = r.tipo_aula;
+  if (r.aula_assincrona !== undefined) r.aulaAssincrona = r.aula_assincrona;
+  if (r.conteudo_detalhado !== undefined) r.conteudoDetalhado = r.conteudo_detalhado;
 
   return r;
 }
@@ -877,7 +890,11 @@ class SupabaseService {
       hora_inicio: aula.hora_inicio ?? aula.horaInicio ?? null,
       hora_fim: aula.hora_fim ?? aula.horaFim ?? null,
       conteudo: aula.conteudo ?? null,
-      observacoes: aula.observacoes ?? null
+      observacoes: aula.observacoes ?? null,
+      quantidade_aulas: aula.quantidade_aulas ?? aula.quantidadeAulas ?? 1,
+      tipo_aula: aula.tipo_aula ?? aula.tipoAula ?? 'Teórica',
+      aula_assincrona: aula.aula_assincrona ?? aula.aulaAssincrona ?? false,
+      conteudo_detalhado: aula.conteudo_detalhado ?? aula.conteudoDetalhado ?? null
     };
 
     const { data, error } = await supabase
@@ -903,6 +920,14 @@ class SupabaseService {
     if (updates.horaFim !== undefined) payload.hora_fim = updates.horaFim;
     if (updates.conteudo !== undefined) payload.conteudo = updates.conteudo;
     if (updates.observacoes !== undefined) payload.observacoes = updates.observacoes;
+    if (updates.quantidade_aulas !== undefined) payload.quantidade_aulas = updates.quantidade_aulas;
+    if (updates.quantidadeAulas !== undefined) payload.quantidade_aulas = updates.quantidadeAulas;
+    if (updates.tipo_aula !== undefined) payload.tipo_aula = updates.tipo_aula;
+    if (updates.tipoAula !== undefined) payload.tipo_aula = updates.tipoAula;
+    if (updates.aula_assincrona !== undefined) payload.aula_assincrona = updates.aula_assincrona;
+    if (updates.aulaAssincrona !== undefined) payload.aula_assincrona = updates.aulaAssincrona;
+    if (updates.conteudo_detalhado !== undefined) payload.conteudo_detalhado = updates.conteudo_detalhado;
+    if (updates.conteudoDetalhado !== undefined) payload.conteudo_detalhado = updates.conteudoDetalhado;
 
     payload.updated_at = nowIso();
 
