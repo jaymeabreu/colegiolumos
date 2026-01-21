@@ -218,34 +218,29 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
         </CardContent>
       </Card>
 
-      {/* Modal Boletim */}
       <Dialog open={isBoletimOpen} onOpenChange={setIsBoletimOpen}>
-       <DialogContent className="w-[95vw] max-w-[1400px] h-auto max-h-[90vh] p-0 overflow-y-auto">
-          {/* Header */}
-          <div className="border-b p-6 sticky top-0 bg-white z-10">
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-3">
-                <Avatar className="h-12 w-12">
-                  <AvatarFallback className="bg-blue-100 text-blue-600 font-medium">
-                    {selectedAluno ? getInitials(selectedAluno.nome) : ''}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <h2 className="text-xl font-semibold text-gray-900">Boletim Escolar</h2>
-                  <p className="text-sm text-gray-500">{selectedAluno?.nome}</p>
-                </div>
+        <DialogContent className="max-w-[1400px] w-[95vw] max-h-[85vh] overflow-hidden flex flex-col p-0">
+          <div className="border-b p-6 flex items-start justify-between">
+            <div className="flex items-center gap-3">
+              <Avatar className="h-12 w-12">
+                <AvatarFallback className="bg-blue-100 text-blue-600 font-medium">
+                  {selectedAluno ? getInitials(selectedAluno.nome) : ''}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">Boletim Escolar</h2>
+                <p className="text-sm text-gray-500">{selectedAluno?.nome}</p>
               </div>
-              <button 
-                onClick={() => setIsBoletimOpen(false)}
-                className="text-gray-400 hover:text-gray-600 text-2xl"
-              >
-                ×
-              </button>
             </div>
+            <button 
+              onClick={() => setIsBoletimOpen(false)}
+              className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
+            >
+              ×
+            </button>
           </div>
 
-          {/* Tabs */}
-          <div className="border-b bg-gray-50 px-6 sticky top-[88px] z-10">
+          <div className="border-b bg-gray-50 px-6">
             <div className="flex gap-0 overflow-x-auto">
               {[
                 { id: 'resumo', label: 'Resumo' },
@@ -266,8 +261,7 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
             </div>
           </div>
 
-          {/* Conteúdo */}
-          <div className="p-6">
+          <div className="flex-1 overflow-y-auto p-6">
             {loadingBoletim ? (
               <div className="flex items-center justify-center py-12">
                 <div className="text-center">
@@ -277,9 +271,7 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
               </div>
             ) : activeTab === 'resumo' && boletimData ? (
               <div className="space-y-6">
-                {/* Cards de Resumo */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {/* Média Geral */}
                   <div className="border rounded-lg p-6 bg-white hover:shadow-sm transition">
                     <div className="flex justify-between items-start mb-4">
                       <p className="text-sm font-medium text-gray-700">Média Geral</p>
@@ -294,7 +286,6 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
                     <p className="text-xs text-gray-500">De 0 a 10</p>
                   </div>
 
-                  {/* Frequência */}
                   <div className="border rounded-lg p-6 bg-white hover:shadow-sm transition">
                     <div className="flex justify-between items-start mb-4">
                       <p className="text-sm font-medium text-gray-700">Frequência</p>
@@ -310,7 +301,6 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
                     </p>
                   </div>
 
-                  {/* Situação */}
                   <div className={`border rounded-lg p-6 hover:shadow-sm transition ${
                     boletimData.situacao === 'Aprovado' ? 'bg-green-50' :
                     boletimData.situacao === 'Reprovado' ? 'bg-red-50' :
@@ -328,7 +318,6 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
                     <p className="text-xs text-gray-600">Status atual no período</p>
                   </div>
 
-                  {/* Faltas */}
                   <div className="border rounded-lg p-6 bg-white hover:shadow-sm transition">
                     <div className="flex justify-between items-start mb-4">
                       <p className="text-sm font-medium text-gray-700">Faltas</p>
@@ -344,7 +333,6 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
                   </div>
                 </div>
 
-                {/* Notas por Avaliação */}
                 {boletimData.notas.length > 0 && (
                   <div className="border-t pt-6">
                     <h3 className="text-base font-semibold text-gray-900 mb-4">Avaliações Realizadas</h3>
