@@ -219,7 +219,7 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
       </Card>
 
       <Dialog open={isBoletimOpen} onOpenChange={setIsBoletimOpen}>
-        <DialogContent className="max-w-[95vw] w-[95vw] max-h-[95vh] h-[95vh] overflow-hidden flex flex-col p-0 border-none shadow-2xl">
+        <DialogContent className="w-screen max-w-screen h-[95vh] max-h-[95vh] overflow-hidden flex flex-col p-0 border-none shadow-2xl">
           <div className="border-b p-6 flex items-start justify-between">
             <div className="flex items-center gap-3">
               <Avatar className="h-12 w-12">
