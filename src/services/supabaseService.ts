@@ -131,6 +131,7 @@ export interface Presenca {
   aluno_id: number;
   alunoId?: number;
   status: 'PRESENTE' | 'FALTA' | 'JUSTIFICADA';
+  aula_sequencia?: number; // ← ADICIONADO
   created_at: string;
   updated_at: string;
 }
