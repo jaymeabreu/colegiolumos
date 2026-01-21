@@ -5,7 +5,7 @@ import { Input } from '../../../components/ui/input';
 import { Badge } from '../../../components/ui/badge'; 
 import { Avatar, AvatarImage, AvatarFallback } from '../../../components/ui/avatar';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../../components/ui/card';
-import { Dialog, DialogContent } from '../../../components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '../../../components/ui/dialog';
 import { supabaseService } from '../../../services/supabaseService';
 import type { Aluno, Diario } from '../../../services/supabaseService';
 
@@ -219,8 +219,8 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
       </Card>
 
       <Dialog open={isBoletimOpen} onOpenChange={setIsBoletimOpen}>
-        <DialogContent className="w-screen max-w-screen h-[95vh] max-h-[95vh] overflow-hidden flex flex-col p-0 border-none shadow-2xl">
-          <div className="border-b p-6 flex items-start justify-between">
+        <DialogContent className="max-w-[95vw] lg:max-w-[800px] max-h-[95vh] overflow-y-auto flex flex-col p-0 scrollbar-hide">
+          <div className="border-b p-6">
             <div className="flex items-center gap-3">
               <Avatar className="h-12 w-12">
                 <AvatarFallback className="bg-blue-100 text-blue-600 font-medium">
@@ -228,11 +228,12 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
                 </AvatarFallback>
               </Avatar>
               <div>
-                <h2 className="text-xl font-semibold text-gray-900">Boletim Escolar</h2>
-                <p className="text-sm text-gray-500">{selectedAluno?.nome}</p>
+                <DialogTitle className="text-xl font-semibold text-gray-900">Boletim Escolar</DialogTitle>
+                <DialogDescription className="text-sm text-gray-500">
+                  Visualizando o boletim de {selectedAluno?.nome}
+                </DialogDescription>
               </div>
             </div>
-            {/* Botão X extra removido daqui para evitar duplicidade com o padrão do Dialog */}
           </div>
 
           <div className="border-b bg-gray-50 px-6">
@@ -256,7 +257,7 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-6 scrollbar-hide">
+          <div className="flex-1 p-6">
             {loadingBoletim ? (
               <div className="flex items-center justify-center py-12">
                 <div className="text-center">
