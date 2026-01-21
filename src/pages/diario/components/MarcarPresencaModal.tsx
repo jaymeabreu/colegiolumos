@@ -21,10 +21,12 @@ export function MarcarPresencaModal({
   onSave
 }: MarcarPresencaModalProps) {
   const [loading, setLoading] = useState(false);
-  const [numeroAulas, setNumeroAulas] = useState<1 | 2>(1);
   const [presencas, setPresencas] = useState<{
     [key: string]: 'PRESENTE' | 'FALTA' | 'JUSTIFICADA';
   }>({});
+
+  // Define se é 1 ou 2 aulas baseado na quantidade_aulas
+  const numeroAulas = (aula.quantidade_aulas && aula.quantidade_aulas >= 2) ? 2 : 1;
 
   useEffect(() => {
     if (open && aula) {
@@ -34,23 +36,23 @@ export function MarcarPresencaModal({
 
   const loadPresencas = async () => {
     try {
-      const qtdAulas = aula.quantidade_aulas || 1;
-      setNumeroAulas(qtdAulas >= 2 ? 2 : 1);
-
       const presencasData = await supabaseService.getPresencasByAula(aula.id);
       
       const presencasMap: { [key: string]: 'PRESENTE' | 'FALTA' | 'JUSTIFICADA' } = {};
       
+      // Inicializa todos como PRESENTE
       alunos.forEach(aluno => {
-        for (let i = 1; i <= (qtdAulas >= 2 ? 2 : 1); i++) {
+        for (let i = 1; i <= numeroAulas; i++) {
           presencasMap[`${aluno.id}-${i}`] = 'PRESENTE';
         }
       });
 
+      // Sobrescreve com dados existentes
       presencasData?.forEach(p => {
         const alunoId = p.aluno_id || p.alunoId;
+        const sequencia = p.aula_sequencia || 1;
         if (alunoId) {
-          presencasMap[`${alunoId}-1`] = p.status;
+          presencasMap[`${alunoId}-${sequencia}`] = p.status;
         }
       });
 
@@ -75,19 +77,17 @@ export function MarcarPresencaModal({
     try {
       setLoading(true);
 
-      // Para cada aluno, salvamos apenas 1 registro de presença
-      // Se for 2 aulas, salvamos o status da 1ª aula (ou podemos criar lógica diferente)
       const presencasParaSalvar: Omit<Presenca, 'id'>[] = [];
 
       alunos.forEach(aluno => {
-        // Por enquanto, vamos salvar apenas a presença da 1ª aula
-        // Se quiser salvar as 2 aulas, precisamos adicionar uma coluna na tabela
-        // como "aula_numero" ou "sequencia"
-        presencasParaSalvar.push({
-          aula_id: aula.id,
-          aluno_id: aluno.id,
-          status: presencas[`${aluno.id}-1`] || 'PRESENTE'
-        });
+        for (let aulaNum = 1; aulaNum <= numeroAulas; aulaNum++) {
+          presencasParaSalvar.push({
+            aula_id: aula.id,
+            aluno_id: aluno.id,
+            status: presencas[`${aluno.id}-${aulaNum}`] || 'PRESENTE',
+            aula_sequencia: aulaNum // ← CAMPO NOVO!
+          });
+        }
       });
 
       await supabaseService.savePresencas(presencasParaSalvar);
@@ -109,30 +109,27 @@ export function MarcarPresencaModal({
           <DialogTitle>Marcar Presença - {aula.conteudo}</DialogTitle>
           <p className="text-sm text-gray-500">
             {new Date(aula.data).toLocaleDateString('pt-BR')}
+            {numeroAulas === 2 && <span className="ml-2 text-blue-600 font-medium">(2 aulas seguidas)</span>}
           </p>
         </DialogHeader>
-
-        {aula.quantidade_aulas && aula.quantidade_aulas > 1 && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-            <p className="text-sm text-blue-800">
-              ℹ️ Esta é uma aula com <strong>{aula.quantidade_aulas} aulas seguidas</strong>. 
-              A presença será registrada para a primeira aula.
-            </p>
-          </div>
-        )}
 
         <div className="border rounded-lg overflow-hidden">
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-4 py-3 text-left text-sm font-medium">Aluno</th>
-                <th className="px-4 py-3 text-center text-sm font-medium">Presença</th>
+                <th className="px-4 py-3 text-center text-sm font-medium">1ª Aula</th>
+                {numeroAulas === 2 && (
+                  <th className="px-4 py-3 text-center text-sm font-medium">2ª Aula</th>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y">
               {alunos.map(aluno => (
                 <tr key={aluno.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 text-sm">{aluno.nome}</td>
+                  
+                  {/* 1ª AULA */}
                   <td className="px-4 py-3">
                     <div className="flex justify-center gap-1">
                       <Button
@@ -141,7 +138,6 @@ export function MarcarPresencaModal({
                         variant={presencas[`${aluno.id}-1`] === 'PRESENTE' ? 'default' : 'outline'}
                         onClick={() => handlePresencaChange(aluno.id, 1, 'PRESENTE')}
                         className={presencas[`${aluno.id}-1`] === 'PRESENTE' ? 'bg-green-600 hover:bg-green-700' : ''}
-                        title="Presente"
                       >
                         <Check className="h-4 w-4" />
                       </Button>
@@ -151,7 +147,6 @@ export function MarcarPresencaModal({
                         variant={presencas[`${aluno.id}-1`] === 'FALTA' ? 'default' : 'outline'}
                         onClick={() => handlePresencaChange(aluno.id, 1, 'FALTA')}
                         className={presencas[`${aluno.id}-1`] === 'FALTA' ? 'bg-red-600 hover:bg-red-700' : ''}
-                        title="Falta"
                       >
                         <X className="h-4 w-4" />
                       </Button>
@@ -161,12 +156,46 @@ export function MarcarPresencaModal({
                         variant={presencas[`${aluno.id}-1`] === 'JUSTIFICADA' ? 'default' : 'outline'}
                         onClick={() => handlePresencaChange(aluno.id, 1, 'JUSTIFICADA')}
                         className={presencas[`${aluno.id}-1`] === 'JUSTIFICADA' ? 'bg-yellow-600 hover:bg-yellow-700' : ''}
-                        title="Falta Justificada"
                       >
                         J
                       </Button>
                     </div>
                   </td>
+
+                  {/* 2ª AULA (só aparece se quantidade_aulas >= 2) */}
+                  {numeroAulas === 2 && (
+                    <td className="px-4 py-3">
+                      <div className="flex justify-center gap-1">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant={presencas[`${aluno.id}-2`] === 'PRESENTE' ? 'default' : 'outline'}
+                          onClick={() => handlePresencaChange(aluno.id, 2, 'PRESENTE')}
+                          className={presencas[`${aluno.id}-2`] === 'PRESENTE' ? 'bg-green-600 hover:bg-green-700' : ''}
+                        >
+                          <Check className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant={presencas[`${aluno.id}-2`] === 'FALTA' ? 'default' : 'outline'}
+                          onClick={() => handlePresencaChange(aluno.id, 2, 'FALTA')}
+                          className={presencas[`${aluno.id}-2`] === 'FALTA' ? 'bg-red-600 hover:bg-red-700' : ''}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant={presencas[`${aluno.id}-2`] === 'JUSTIFICADA' ? 'default' : 'outline'}
+                          onClick={() => handlePresencaChange(aluno.id, 2, 'JUSTIFICADA')}
+                          className={presencas[`${aluno.id}-2`] === 'JUSTIFICADA' ? 'bg-yellow-600 hover:bg-yellow-700' : ''}
+                        >
+                          J
+                        </Button>
+                      </div>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
