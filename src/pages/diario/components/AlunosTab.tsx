@@ -220,7 +220,7 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
 
       {/* Modal Boletim */}
       <Dialog open={isBoletimOpen} onOpenChange={setIsBoletimOpen}>
-        <DialogContent className="w-[90vw] max-w-6xl p-0 max-h-[90vh] overflow-y-auto">
+       <DialogContent className="w-[95vw] max-w-[1400px] p-0 max-h-[90vh] overflow-y-auto">
           {/* Header */}
           <div className="border-b p-6 sticky top-0 bg-white z-10">
             <div className="flex items-start justify-between">
