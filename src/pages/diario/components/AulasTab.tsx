@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Calendar, Clock, Edit, Trash2, Users, Check, X } from 'lucide-react';
+import { Plus, Calendar, Clock, Edit, Trash2, Users } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
 import {
@@ -12,8 +12,9 @@ import {
 import { Label } from '../../../components/ui/label';
 import { Textarea } from '../../../components/ui/textarea';
 import { supabaseService } from '../../../services/supabaseService';
-import type { Aula, Aluno, Presenca } from '../../../services/supabaseService';
+import type { Aula, Aluno } from '../../../services/supabaseService';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../../components/ui/card';
+import { MarcarPresencaModal } from './MarcarPresencaModal';
 
 interface AulasTabProps {
   diarioId: number;
@@ -25,15 +26,10 @@ export function AulasTab({ diarioId, readOnly = false }: AulasTabProps) {
   const [alunos, setAlunos] = useState<Aluno[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isPresencaDialogOpen, setIsPresencaDialogOpen] = useState(false);
   const [editingAula, setEditingAula] = useState<Aula | null>(null);
   const [selectedAula, setSelectedAula] = useState<Aula | null>(null);
-  const [presencas, setPresencas] = useState<{
-    [key: string]: 'PRESENTE' | 'FALTA' | 'JUSTIFICADA';
-  }>({});
-  const [numeroAulas, setNumeroAulas] = useState(1);
-  const [aulaAssincrona, setAulaAssincrona] = useState('nao');
-  const [tipoAula, setTipoAula] = useState('teorica');
+  const [isPresencaDialogOpen, setIsPresencaDialogOpen] = useState(false);
+  
   const [formData, setFormData] = useState({
     data: '',
     horario: '',
@@ -42,43 +38,13 @@ export function AulasTab({ diarioId, readOnly = false }: AulasTabProps) {
     observacoes: ''
   });
 
-  const [diarioInfo, setDiarioInfo] = useState({
-    nome: '',
-    professor: '',
-    turma: '',
-    disciplina: '',
-    bimestre: ''
-  });
-
   /* -------------------------------------------------------------------------- */
   /*                                Carregamento                               */
   /* -------------------------------------------------------------------------- */
   useEffect(() => {
     loadAulas();
     loadAlunos();
-    void loadDiarioInfo();
   }, [diarioId]);
-
-  const loadDiarioInfo = async () => {
-    try {
-      const diario = await supabaseService.getDiarioById(diarioId);
-      if (diario) {
-        const professor = await supabaseService.getProfessorById(diario.professorId || diario.professor_id || 0);
-        const turma = await supabaseService.getTurmaById(diario.turmaId || diario.turma_id || 0);
-        const disciplina = await supabaseService.getDisciplinaById(diario.disciplinaId || diario.disciplina_id || 0);
-
-        setDiarioInfo({
-          nome: diario.nome,
-          professor: professor?.nome ?? 'Professor não encontrado',
-          turma: turma?.nome ?? 'Turma não encontrada',
-          disciplina: disciplina?.nome ?? 'Disciplina não encontrada',
-          bimestre: diario.bimestre?.toString() ?? '1'
-        });
-      }
-    } catch (error) {
-      console.error('Erro ao carregar informações do diário:', error);
-    }
-  };
 
   const loadAulas = async () => {
     try {
@@ -165,80 +131,11 @@ export function AulasTab({ diarioId, readOnly = false }: AulasTabProps) {
   };
 
   /* -------------------------------------------------------------------------- */
-  /*                              Presença (Diálogo)                           */
+  /*                              Presença                                      */
   /* -------------------------------------------------------------------------- */
-  const handlePresenca = async (aula: Aula) => {
+  const handleMarcarPresenca = (aula: Aula) => {
     setSelectedAula(aula);
-
-    const isDouble = isAulaDupla(aula.id);
-    setNumeroAulas(isDouble ? 2 : 1);
-
-    try {
-      const presencasPrimeira = await supabaseService.getPresencasByAula(aula.id);
-      const presencasSegunda = await supabaseService.getPresencasByAula(aula.id + 10000);
-
-      const map: { [key: string]: 'PRESENTE' | 'FALTA' | 'JUSTIFICADA' } = {};
-
-      (alunos || []).forEach(aluno => {
-        const p1 = (presencasPrimeira || []).find(p => (p.alunoId || p.aluno_id) === aluno.id);
-        map[`${aluno.id}-1`] = p1?.status ?? 'PRESENTE';
-
-        if (isDouble) {
-          const p2 = (presencasSegunda || []).find(p => (p.alunoId || p.aluno_id) === aluno.id);
-          map[`${aluno.id}-2`] = p2?.status ?? 'PRESENTE';
-        }
-      });
-
-      setPresencas(map);
-      setIsPresencaDialogOpen(true);
-    } catch (error) {
-      console.error('Erro ao carregar presenças:', error);
-    }
-  };
-
-  const handlePresencas = (aula: Aula) => {
-    handlePresenca(aula);
-  };
-
-  const handlePresencaChange = (
-    alunoId: number,
-    aulaNum: number,
-    status: 'PRESENTE' | 'FALTA' | 'JUSTIFICADA'
-  ) => {
-    setPresencas(prev => ({
-      ...prev,
-      [`${alunoId}-${aulaNum}`]: status
-    }));
-  };
-
-  const handleSavePresencas = async () => {
-    if (!selectedAula) return;
-
-    try {
-      for (let aulaNum = 1; aulaNum <= numeroAulas; aulaNum++) {
-        const presencasParaSalvar: Omit<Presenca, 'id'>[] = (alunos || []).map(aluno => ({
-          aulaId: aulaNum === 1 ? selectedAula.id : selectedAula.id + 10000,
-          alunoId: aluno.id,
-          status: presencas[`${aluno.id}-${aulaNum}`] ?? 'PRESENTE'
-        }));
-
-        await supabaseService.savePresencas(presencasParaSalvar);
-      }
-
-      if (numeroAulas === 2) {
-        await supabaseService.updateAula(selectedAula.id, {
-          observacoes: `${selectedAula.observacoes ?? ''}${selectedAula.observacoes ? ' | ' : ''}Aula dupla`
-        });
-      }
-
-      await loadAulas();
-    } catch (error) {
-      console.error('Erro ao salvar presenças:', error);
-    } finally {
-      setIsPresencaDialogOpen(false);
-      setSelectedAula(null);
-      setPresencas({});
-    }
+    setIsPresencaDialogOpen(true);
   };
 
   const resetForm = () => {
@@ -249,227 +146,204 @@ export function AulasTab({ diarioId, readOnly = false }: AulasTabProps) {
       conteudoDetalhado: '',
       observacoes: ''
     });
-    setAulaAssincrona('nao');
-    setTipoAula('teorica');
-    setNumeroAulas(1);
     setEditingAula(null);
-  };
-
-  const handleDialogClose = () => {
-    setIsDialogOpen(false);
-    resetForm();
-  };
-
-  const handlePresencaDialogClose = () => {
-    setIsPresencaDialogOpen(false);
-    setSelectedAula(null);
-    setPresencas({});
-  };
-
-  /* -------------------------------------------------------------------------- */
-  /*                             Funções auxiliares                             */
-  /* -------------------------------------------------------------------------- */
-  const getPresencaCount = async (aulaId: number) => {
-    try {
-      const presencasAula = await supabaseService.getPresencasByAula(aulaId);
-      const presencasSegundaAula = await supabaseService.getPresencasByAula(aulaId + 10000);
-
-      if ((presencasSegundaAula || []).length > 0) {
-        const presentesPrimeira = (presencasAula || []).filter(
-          p => p.status === 'PRESENTE'
-        ).length;
-        const presentesSegunda = (presencasSegundaAula || []).filter(
-          p => p.status === 'PRESENTE'
-        ).length;
-        const total = (alunos || []).length;
-        return `${presentesPrimeira}/${total} | ${presentesSegunda}/${total}`;
-      }
-
-      const presentes = (presencasAula || []).filter(p => p.status === 'PRESENTE').length;
-      const total = (alunos || []).length;
-      return `${presentes}/${total}`;
-    } catch (error) {
-      console.error('Erro ao contar presenças:', error);
-      return '0/0';
-    }
-  };
-
-  const isAulaDupla = async (aulaId: number) => {
-    try {
-      const segunda = await supabaseService.getPresencasByAula(aulaId + 10000);
-      return (segunda || []).length > 0;
-    } catch {
-      return false;
-    }
   };
 
   /* -------------------------------------------------------------------------- */
   /*                                   Render                                   */
   /* -------------------------------------------------------------------------- */
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="space-y-2">
-            <CardTitle>Aulas Ministradas</CardTitle>
-            <CardDescription>
-              Registre as aulas ministradas e gerencie a presença dos alunos
-            </CardDescription>
+    <>
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="space-y-2">
+              <CardTitle>Aulas Ministradas</CardTitle>
+              <CardDescription>
+                Registre as aulas ministradas e gerencie a presença dos alunos
+              </CardDescription>
+            </div>
+            {!readOnly && (
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button onClick={resetForm} className="flex items-center gap-2">
+                    <Plus className="h-4 w-4" />
+                    <span className="sm:hidden">Nova</span>
+                    <span className="hidden sm:inline">Nova Aula</span>
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-[95vw] lg:max-w-[800px] max-h-[95vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>
+                      {editingAula ? 'Editar Aula' : 'Nova Aula'}
+                    </DialogTitle>
+                  </DialogHeader>
+
+                  <form onSubmit={handleSubmit} className="space-y-6">
+                    <div>
+                      <h4 className="text-lg font-medium mb-4">
+                        Conteúdo Ministrado da Aula
+                      </h4>
+
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+                        <div>
+                          <Label htmlFor="dataAula">Data da aula</Label>
+                          <Input
+                            id="dataAula"
+                            type="date"
+                            value={formData.data}
+                            onChange={e =>
+                              setFormData({ ...formData, data: e.target.value })
+                            }
+                            className="mt-1"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="titulo">Título do conteúdo</Label>
+                          <Input
+                            id="titulo"
+                            value={formData.conteudo}
+                            onChange={e =>
+                              setFormData({ ...formData, conteudo: e.target.value })
+                            }
+                            placeholder="Ex: As Grandes Navegações"
+                            required
+                            className="mt-1"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="mb-4">
+                        <Label htmlFor="observacoes">Observações</Label>
+                        <Textarea
+                          id="observacoes"
+                          value={formData.observacoes}
+                          onChange={e =>
+                            setFormData({
+                              ...formData,
+                              observacoes: e.target.value
+                            })
+                          }
+                          placeholder="Observações adicionais sobre a aula..."
+                          className="mt-1"
+                          rows={3}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-4 border-t">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setIsDialogOpen(false)}
+                      >
+                        Cancelar
+                      </Button>
+                      <Button type="submit">
+                        {editingAula ? 'Salvar Alterações' : 'Salvar Aula'}
+                      </Button>
+                    </div>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            )}
           </div>
-          {!readOnly && (
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button onClick={resetForm} className="flex items-center gap-2">
-                  <Plus className="h-4 w-4" />
-                  <span className="sm:hidden">Nova</span>
-                  <span className="hidden sm:inline">Nova Aula</span>
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-[95vw] lg:max-w-[800px] max-h-[95vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>
-                    {editingAula ? 'Editar Aula' : 'Nova Aula'}
-                  </DialogTitle>
-                </DialogHeader>
+        </CardHeader>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <div>
-                    <h4 className="text-lg font-medium mb-4">
-                      Conteúdo Ministrado da Aula
-                    </h4>
+        <CardContent>
+          <div className="mb-4">
+            <Input
+              className="input"
+              placeholder="Buscar aulas..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+            />
+          </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-                      <div>
-                        <Label htmlFor="dataAula">Data da aula</Label>
-                        <Input
-                          id="dataAula"
-                          type="date"
-                          value={formData.data}
-                          onChange={e =>
-                            setFormData({ ...formData, data: e.target.value })
-                          }
-                          className="mt-1"
-                          required
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="titulo">Título do conteúdo</Label>
-                        <Input
-                          id="titulo"
-                          value={formData.conteudo}
-                          onChange={e =>
-                            setFormData({ ...formData, conteudo: e.target.value })
-                          }
-                          placeholder="Ex: As Grandes Navegações"
-                          required
-                          className="mt-1"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="mb-4">
-                      <Label htmlFor="observacoes">Observações</Label>
-                      <Textarea
-                        id="observacoes"
-                        value={formData.observacoes}
-                        onChange={e =>
-                          setFormData({
-                            ...formData,
-                            observacoes: e.target.value
-                          })
-                        }
-                        placeholder="Observações adicionais sobre a aula..."
-                        className="mt-1"
-                        rows={3}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end gap-2 pt-4 border-t">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setIsDialogOpen(false)}
-                    >
-                      Cancelar
-                    </Button>
-                    <Button type="submit">
-                      {editingAula ? 'Salvar Alterações' : 'Salvar Aula'}
-                    </Button>
-                  </div>
-                </form>
-              </DialogContent>
-            </Dialog>
-          )}
-        </div>
-      </CardHeader>
-
-      <CardContent>
-        <div className="mb-4">
-          <Input
-            className="input"
-            placeholder="Buscar aulas..."
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-          />
-        </div>
-
-        <div className="space-y-4">
-          {filteredAulas.map(aula => (
-            <div
-              key={aula.id}
-              className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 p-4 border rounded-lg"
-            >
-              <div className="flex-1">
-                <h3 className="font-medium">{aula.conteudo}</h3>
-                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-1 text-sm text-gray-600">
-                  <span className="flex items-center gap-1">
-                    <Calendar className="h-3 w-3" />
-                    {new Date(aula.data).toLocaleDateString('pt-BR')}
-                  </span>
-                  {aula.horario && (
+          <div className="space-y-4">
+            {filteredAulas.map(aula => (
+              <div
+                key={aula.id}
+                className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 p-4 border rounded-lg"
+              >
+                <div className="flex-1">
+                  <h3 className="font-medium">{aula.conteudo}</h3>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-1 text-sm text-gray-600">
                     <span className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      {aula.horario}
+                      <Calendar className="h-3 w-3" />
+                      {new Date(aula.data).toLocaleDateString('pt-BR')}
                     </span>
-                  )}
-                  {aula.observacoes && (
-                    <span className="text-muted-foreground">
-                      {aula.observacoes.substring(0, 50)}...
-                    </span>
-                  )}
+                    {aula.horario && (
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {aula.horario}
+                      </span>
+                    )}
+                    {aula.observacoes && (
+                      <span className="text-muted-foreground">
+                        {aula.observacoes.substring(0, 50)}...
+                      </span>
+                    )}
+                  </div>
                 </div>
+
+                {!readOnly && (
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {/* BOTÃO DE PRESENÇA - ESSE É O QUE ESTAVA FALTANDO */}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleMarcarPresenca(aula)}
+                      className="bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+                    >
+                      <Users className="h-4 w-4 mr-1" />
+                      <span className="hidden sm:inline">Presença</span>
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEdit(aula)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleDelete(aula.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
               </div>
+            ))}
 
-              {!readOnly && (
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleEdit(aula)}
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
+            {filteredAulas.length === 0 && (
+              <div className="text-center py-8 text-muted-foreground">
+                {searchTerm ? 'Nenhuma aula encontrada.' : 'Nenhuma aula cadastrada.'}
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => handleDelete(aula.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              )}
-            </div>
-          ))}
-
-          {filteredAulas.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              {searchTerm ? 'Nenhuma aula encontrada.' : 'Nenhuma aula cadastrada.'}
-            </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+      {/* Modal de Marcar Presença */}
+      {selectedAula && (
+        <MarcarPresencaModal
+          aula={selectedAula}
+          alunos={alunos}
+          open={isPresencaDialogOpen}
+          onOpenChange={setIsPresencaDialogOpen}
+          onSave={() => {
+            setIsPresencaDialogOpen(false);
+            setSelectedAula(null);
+            loadAulas();
+          }}
+        />
+      )}
+    </>
   );
 }
