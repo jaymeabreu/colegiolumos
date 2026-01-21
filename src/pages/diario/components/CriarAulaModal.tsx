@@ -140,9 +140,6 @@ export function CriarAulaModal({
                   <SelectContent>
                     <SelectItem value="1">1 aula</SelectItem>
                     <SelectItem value="2">2 aulas</SelectItem>
-                    <SelectItem value="3">3 aulas</SelectItem>
-                    <SelectItem value="4">4 aulas</SelectItem>
-                    <SelectItem value="5">5 aulas</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
