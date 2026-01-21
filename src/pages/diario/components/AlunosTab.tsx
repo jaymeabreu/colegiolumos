@@ -219,7 +219,7 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
       </Card>
 
       <Dialog open={isBoletimOpen} onOpenChange={setIsBoletimOpen}>
-        <DialogContent className="max-w-[95vw] w-[95vw] max-h-[95vh] h-[95vh] overflow-hidden flex flex-col p-0">
+        <DialogContent className="max-w-[95vw] w-[95vw] max-h-[95vh] h-[95vh] overflow-hidden flex flex-col p-0 border-none shadow-2xl">
           <div className="border-b p-6 flex items-start justify-between">
             <div className="flex items-center gap-3">
               <Avatar className="h-12 w-12">
@@ -232,12 +232,7 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
                 <p className="text-sm text-gray-500">{selectedAluno?.nome}</p>
               </div>
             </div>
-            <button 
-              onClick={() => setIsBoletimOpen(false)}
-              className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
-            >
-              ×
-            </button>
+            {/* Botão X extra removido daqui para evitar duplicidade com o padrão do Dialog */}
           </div>
 
           <div className="border-b bg-gray-50 px-6">
