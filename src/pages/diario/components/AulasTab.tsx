@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Edit, Trash2, Users } from 'lucide-react';
-import { Button } from '../../../components/ui/button';  
+import { Trash2, Users } from 'lucide-react';
+import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
-import { supabaseService } from '../../../services/supabaseService'; 
+import { supabaseService } from '../../../services/supabaseService';
 import type { Aula, Aluno } from '../../../services/supabaseService';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../../components/ui/card';
 import { CriarAulaModal } from './CriarAulaModal';
@@ -21,9 +21,6 @@ export function AulasTab({ diarioId, readOnly = false }: AulasTabProps) {
   const [selectedAula, setSelectedAula] = useState<Aula | null>(null);
   const [isPresencaDialogOpen, setIsPresencaDialogOpen] = useState(false);
 
-  /* -------------------------------------------------------------------------- */
-  /*                                Carregamento                               */
-  /* -------------------------------------------------------------------------- */
   useEffect(() => {
     loadAulas();
     loadAlunos();
@@ -49,18 +46,12 @@ export function AulasTab({ diarioId, readOnly = false }: AulasTabProps) {
     }
   };
 
-  /* -------------------------------------------------------------------------- */
-  /*                                Filtros e UI                               */
-  /* -------------------------------------------------------------------------- */
   const filteredAulas = (aulas || []).filter(
     aula =>
       (aula.conteudo?.toLowerCase() ?? '').includes(searchTerm.toLowerCase()) ||
       (aula.data ?? '').includes(searchTerm)
   );
 
-  /* -------------------------------------------------------------------------- */
-  /*                               Manipulação                                  */
-  /* -------------------------------------------------------------------------- */
   const handleDelete = async (aulaId: number) => {
     if (confirm('Tem certeza que deseja excluir esta aula?')) {
       try {
@@ -77,9 +68,6 @@ export function AulasTab({ diarioId, readOnly = false }: AulasTabProps) {
     setIsPresencaDialogOpen(true);
   };
 
-  /* -------------------------------------------------------------------------- */
-  /*                                   Render                                   */
-  /* -------------------------------------------------------------------------- */
   return (
     <>
       <Card>
@@ -106,7 +94,6 @@ export function AulasTab({ diarioId, readOnly = false }: AulasTabProps) {
         <CardContent>
           <div className="mb-4">
             <Input
-              className="input"
               placeholder="Buscar aulas..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
@@ -122,45 +109,28 @@ export function AulasTab({ diarioId, readOnly = false }: AulasTabProps) {
                 <div className="flex-1">
                   <h3 className="font-medium">{aula.conteudo}</h3>
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-1 text-sm text-gray-600">
-                    <span className="flex items-center gap-1">
-                      📅 {new Date(aula.data).toLocaleDateString('pt-BR')}
-                    </span>
+                    <span>📅 {new Date(aula.data).toLocaleDateString('pt-BR')}</span>
                     {aula.quantidade_aulas && aula.quantidade_aulas > 1 && (
                       <span className="text-blue-600 font-medium">
                         {aula.quantidade_aulas} aulas
                       </span>
                     )}
-                    {aula.tipo_aula && (
-                      <span className="text-gray-500">
-                        {aula.tipo_aula}
-                      </span>
-                    )}
-                    {aula.aula_assincrona && (
-                      <span className="text-purple-600">
-                        Assíncrona
-                      </span>
-                    )}
+                    {aula.tipo_aula && <span>{aula.tipo_aula}</span>}
+                    {aula.aula_assincrona && <span className="text-purple-600">Assíncrona</span>}
                   </div>
-                  {aula.observacoes && (
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {aula.observacoes.substring(0, 80)}
-                      {aula.observacoes.length > 80 ? '...' : ''}
-                    </p>
-                  )}
                 </div>
 
                 {!readOnly && (
-                  <div className="flex items-center gap-2 flex-shrink-0">
+                  <div className="flex items-center gap-2">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => handleMarcarPresenca(aula)}
-                      className="bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
+                      className="bg-green-50 hover:bg-green-100 text-green-700"
                     >
                       <Users className="h-4 w-4 mr-1" />
-                      <span className="hidden sm:inline">Presença</span>
+                      Presença
                     </Button>
-
                     <Button
                       variant="destructive"
                       size="sm"
@@ -175,14 +145,13 @@ export function AulasTab({ diarioId, readOnly = false }: AulasTabProps) {
 
             {filteredAulas.length === 0 && (
               <div className="text-center py-8 text-muted-foreground">
-                {searchTerm ? 'Nenhuma aula encontrada.' : 'Nenhuma aula cadastrada.'}
+                Nenhuma aula cadastrada.
               </div>
             )}
           </div>
         </CardContent>
       </Card>
 
-      {/* Modal de Marcar Presença Manual */}
       {selectedAula && (
         <MarcarPresencaModal
           aula={selectedAula}
