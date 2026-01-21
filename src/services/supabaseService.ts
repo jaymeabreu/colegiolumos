@@ -957,30 +957,31 @@ class SupabaseService {
   }
 
   async savePresencas(presencas: Omit<Presenca, 'id'>[]): Promise<void> {
-    if (!presencas || presencas.length === 0) return;
+  if (!presencas || presencas.length === 0) return;
 
-    const aulaIds = Array.from(new Set(presencas.map(p => p.aula_id ?? p.aulaId).filter(Boolean)));
+  const aulaIds = Array.from(new Set(presencas.map(p => p.aula_id ?? p.aulaId).filter(Boolean)));
 
-    if (aulaIds.length > 0) {
-      const { error: delError } = await supabase
-        .from('presencas')
-        .delete()
-        .in('aula_id', aulaIds as number[]);
+  if (aulaIds.length > 0) {
+    const { error: delError } = await supabase
+      .from('presencas')
+      .delete()
+      .in('aula_id', aulaIds as number[]);
 
-      if (delError) throw delError;
-    }
-
-    const payload = presencas.map(p => ({
-      aula_id: p.aula_id ?? p.aulaId,
-      aluno_id: p.aluno_id ?? p.alunoId,
-      status: p.status
-    }));
-
-    const { error } = await supabase.from('presencas').insert(payload);
-    if (error) throw error;
-
-    this.dispatchDataUpdated('presencas');
+    if (delError) throw delError;
   }
+
+  const payload = presencas.map(p => ({
+    aula_id: p.aula_id ?? p.aulaId,
+    aluno_id: p.aluno_id ?? p.alunoId,
+    status: p.status,
+    aula_sequencia: p.aula_sequencia ?? 1 // ← ADICIONADO
+  }));
+
+  const { error } = await supabase.from('presencas').insert(payload);
+  if (error) throw error;
+
+  this.dispatchDataUpdated('presencas');
+}
 
   // AVALIAÇÕES
   async getAvaliacoesByDiario(diarioId: number): Promise<Avaliacao[]> {
