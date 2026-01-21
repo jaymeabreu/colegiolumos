@@ -23,6 +23,10 @@ export function TurmaCard({ diario, onClick, onStatusChange }: TurmaCardProps) {
   });
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+  const [disciplinaNome, setDisciplinaNome] = useState<string>('');
+  const [turmaNome, setTurmaNome] = useState<string>('');
+  
+  const diarioNome = disciplinaNome && turmaNome ? `${disciplinaNome} - ${turmaNome}` : diario.nome;
 
   useEffect(() => {
     const carregarStats = async () => {
@@ -38,6 +42,24 @@ export function TurmaCard({ diario, onClick, onStatusChange }: TurmaCardProps) {
 
     carregarStats();
   }, [diario.id]);
+
+  useEffect(() => {
+    const carregarNomes = async () => {
+      try {
+        const [disciplina, turma] = await Promise.all([
+          supabaseService.getDisciplinaById(diario.disciplina_id ?? diario.disciplinaId ?? 0),
+          supabaseService.getTurmaById(diario.turma_id ?? diario.turmaId ?? 0)
+        ]);
+        
+        if (disciplina) setDisciplinaNome(disciplina.nome);
+        if (turma) setTurmaNome(turma.nome);
+      } catch (error) {
+        console.error('Erro ao carregar nomes:', error);
+      }
+    };
+
+    carregarNomes();
+  }, [diario.id, diario.disciplina_id, diario.disciplinaId, diario.turma_id, diario.turmaId]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -93,7 +115,7 @@ export function TurmaCard({ diario, onClick, onStatusChange }: TurmaCardProps) {
       <CardHeader>
         <div className="flex items-start justify-between">
           <div className="flex-1 cursor-pointer" onClick={onClick}>
-            <CardTitle className="text-lg">{diario.nome}</CardTitle>
+            <CardTitle className="text-lg">{diarioNome}</CardTitle>
             <div className="mt-2">
               <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${getStatusColor(diario.status)}`}>
                 {diario.status}
