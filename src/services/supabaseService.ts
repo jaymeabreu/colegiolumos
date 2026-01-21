@@ -1582,5 +1582,111 @@ class SupabaseService {
     return (data ?? []).map((row: any) => row.disciplina_id);
   }
 }
+// BOLETIM DO ALUNO
+  async getBoletimAluno(diarioId: number, alunoId: number): Promise<{
+    mediaGeral: number;
+    frequencia: number;
+    situacao: string;
+    totalAulas: number;
+    presencas: number;
+    faltas: number;
+    notas: Array<{
+      avaliacaoId: number;
+      avaliacaoTitulo: string;
+      avaliacaoTipo: string;
+      avaliacaoData: string;
+      nota: number;
+      peso: number;
+    }>;
+  }> {
+    try {
+      // 1. Buscar avaliações do diário
+      const avaliacoes = await this.getAvaliacoesByDiario(diarioId);
+      
+      // 2. Buscar notas do aluno
+      const todasNotas = await this.getNotasByAluno(alunoId);
+      const notasDoDiario = todasNotas.filter(n => 
+        avaliacoes.some(av => av.id === (n.avaliacao_id ?? n.avaliacaoId))
+      );
+
+      // 3. Calcular média
+      let somaPesos = 0;
+      let somaPonderada = 0;
+      const notasDetalhadas = [];
+
+      for (const av of avaliacoes) {
+        const nota = notasDoDiario.find(n => (n.avaliacao_id ?? n.avaliacaoId) === av.id);
+        const peso = av.peso ?? 1;
+        
+        if (nota) {
+          somaPesos += peso;
+          somaPonderada += (nota.valor ?? 0) * peso;
+          
+          notasDetalhadas.push({
+            avaliacaoId: av.id,
+            avaliacaoTitulo: av.titulo,
+            avaliacaoTipo: av.tipo,
+            avaliacaoData: av.data,
+            nota: nota.valor ?? 0,
+            peso: peso
+          });
+        }
+      }
+
+      const mediaGeral = somaPesos > 0 ? Number((somaPonderada / somaPesos).toFixed(2)) : 0;
+
+      // 4. Buscar aulas do diário
+      const aulas = await this.getAulasByDiario(diarioId);
+      
+      // 5. Buscar presenças do aluno nessas aulas
+      const aulaIds = aulas.map(a => a.id);
+      const { data: presencasData, error } = await supabase
+        .from('presencas')
+        .select('*')
+        .in('aula_id', aulaIds)
+        .eq('aluno_id', alunoId);
+
+      if (error) throw error;
+
+      const presencas = (presencasData ?? []).filter(p => p.status === 'PRESENTE').length;
+      const faltas = (presencasData ?? []).filter(p => p.status === 'FALTA').length;
+      const totalAulas = aulas.length;
+      const frequencia = totalAulas > 0 ? Number(((presencas / totalAulas) * 100).toFixed(1)) : 0;
+
+      // 6. Determinar situação
+      let situacao = 'Em Análise';
+      if (mediaGeral >= 7 && frequencia >= 75) {
+        situacao = 'Aprovado';
+      } else if (mediaGeral < 5 || frequencia < 75) {
+        situacao = 'Reprovado';
+      } else if (mediaGeral >= 5 && mediaGeral < 7) {
+        situacao = 'Recuperação';
+      }
+
+      return {
+        mediaGeral,
+        frequencia,
+        situacao,
+        totalAulas,
+        presencas,
+        faltas,
+        notas: notasDetalhadas
+      };
+    } catch (error) {
+      console.error('Erro ao buscar boletim do aluno:', error);
+      return {
+        mediaGeral: 0,
+        frequencia: 0,
+        situacao: 'Sem Dados',
+        totalAulas: 0,
+        presencas: 0,
+        faltas: 0,
+        notas: []
+      };
+    }
+  }
+}
+
+export const supabaseService = new SupabaseService();
 
 export const supabaseService = new SupabaseService();
