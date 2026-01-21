@@ -1,19 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Plus, Calendar, Clock, Edit, Trash2, Users } from 'lucide-react';
+import { Edit, Trash2, Users } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger
-} from '../../../components/ui/dialog';
-import { Label } from '../../../components/ui/label';
-import { Textarea } from '../../../components/ui/textarea';
 import { supabaseService } from '../../../services/supabaseService';
 import type { Aula, Aluno } from '../../../services/supabaseService';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../../components/ui/card';
+import { CriarAulaModal } from './CriarAulaModal';
 import { MarcarPresencaModal } from './MarcarPresencaModal';
 
 interface AulasTabProps {
@@ -25,18 +17,9 @@ export function AulasTab({ diarioId, readOnly = false }: AulasTabProps) {
   const [aulas, setAulas] = useState<Aula[]>([]);
   const [alunos, setAlunos] = useState<Aluno[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingAula, setEditingAula] = useState<Aula | null>(null);
+  const [isCriarAulaOpen, setIsCriarAulaOpen] = useState(false);
   const [selectedAula, setSelectedAula] = useState<Aula | null>(null);
   const [isPresencaDialogOpen, setIsPresencaDialogOpen] = useState(false);
-  
-  const [formData, setFormData] = useState({
-    data: '',
-    horario: '',
-    conteudo: '',
-    conteudoDetalhado: '',
-    observacoes: ''
-  });
 
   /* -------------------------------------------------------------------------- */
   /*                                Carregamento                               */
@@ -76,49 +59,8 @@ export function AulasTab({ diarioId, readOnly = false }: AulasTabProps) {
   );
 
   /* -------------------------------------------------------------------------- */
-  /*                               Manipulação de Form                           */
+  /*                               Manipulação                                  */
   /* -------------------------------------------------------------------------- */
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    try {
-      if (editingAula) {
-        await supabaseService.updateAula(editingAula.id, {
-          data: formData.data,
-          horario: formData.horario,
-          conteudo: formData.conteudo,
-          observacoes: formData.observacoes
-        });
-      } else {
-        await supabaseService.createAula({
-          diarioId,
-          data: formData.data,
-          horario: formData.horario,
-          conteudo: formData.conteudo,
-          observacoes: formData.observacoes
-        });
-      }
-      await loadAulas();
-    } catch (error) {
-      console.error('Erro ao salvar aula:', error);
-    } finally {
-      setIsDialogOpen(false);
-      resetForm();
-    }
-  };
-
-  const handleEdit = (aula: Aula) => {
-    setEditingAula(aula);
-    setFormData({
-      data: aula.data,
-      horario: aula.horario || '',
-      conteudo: aula.conteudo || '',
-      conteudoDetalhado: aula.observacoes ?? '',
-      observacoes: ''
-    });
-    setIsDialogOpen(true);
-  };
-
   const handleDelete = async (aulaId: number) => {
     if (confirm('Tem certeza que deseja excluir esta aula?')) {
       try {
@@ -130,23 +72,9 @@ export function AulasTab({ diarioId, readOnly = false }: AulasTabProps) {
     }
   };
 
-  /* -------------------------------------------------------------------------- */
-  /*                              Presença                                      */
-  /* -------------------------------------------------------------------------- */
   const handleMarcarPresenca = (aula: Aula) => {
     setSelectedAula(aula);
     setIsPresencaDialogOpen(true);
-  };
-
-  const resetForm = () => {
-    setFormData({
-      data: '',
-      horario: '',
-      conteudo: '',
-      conteudoDetalhado: '',
-      observacoes: ''
-    });
-    setEditingAula(null);
   };
 
   /* -------------------------------------------------------------------------- */
@@ -164,89 +92,13 @@ export function AulasTab({ diarioId, readOnly = false }: AulasTabProps) {
               </CardDescription>
             </div>
             {!readOnly && (
-              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button onClick={resetForm} className="flex items-center gap-2">
-                    <Plus className="h-4 w-4" />
-                    <span className="sm:hidden">Nova</span>
-                    <span className="hidden sm:inline">Nova Aula</span>
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-[95vw] lg:max-w-[800px] max-h-[95vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>
-                      {editingAula ? 'Editar Aula' : 'Nova Aula'}
-                    </DialogTitle>
-                  </DialogHeader>
-
-                  <form onSubmit={handleSubmit} className="space-y-6">
-                    <div>
-                      <h4 className="text-lg font-medium mb-4">
-                        Conteúdo Ministrado da Aula
-                      </h4>
-
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-                        <div>
-                          <Label htmlFor="dataAula">Data da aula</Label>
-                          <Input
-                            id="dataAula"
-                            type="date"
-                            value={formData.data}
-                            onChange={e =>
-                              setFormData({ ...formData, data: e.target.value })
-                            }
-                            className="mt-1"
-                            required
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="titulo">Título do conteúdo</Label>
-                          <Input
-                            id="titulo"
-                            value={formData.conteudo}
-                            onChange={e =>
-                              setFormData({ ...formData, conteudo: e.target.value })
-                            }
-                            placeholder="Ex: As Grandes Navegações"
-                            required
-                            className="mt-1"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="mb-4">
-                        <Label htmlFor="observacoes">Observações</Label>
-                        <Textarea
-                          id="observacoes"
-                          value={formData.observacoes}
-                          onChange={e =>
-                            setFormData({
-                              ...formData,
-                              observacoes: e.target.value
-                            })
-                          }
-                          placeholder="Observações adicionais sobre a aula..."
-                          className="mt-1"
-                          rows={3}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex justify-end gap-2 pt-4 border-t">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => setIsDialogOpen(false)}
-                      >
-                        Cancelar
-                      </Button>
-                      <Button type="submit">
-                        {editingAula ? 'Salvar Alterações' : 'Salvar Aula'}
-                      </Button>
-                    </div>
-                  </form>
-                </DialogContent>
-              </Dialog>
+              <CriarAulaModal
+                diarioId={diarioId}
+                alunos={alunos}
+                open={isCriarAulaOpen}
+                onOpenChange={setIsCriarAulaOpen}
+                onAulaCriada={loadAulas}
+              />
             )}
           </div>
         </CardHeader>
@@ -271,26 +123,34 @@ export function AulasTab({ diarioId, readOnly = false }: AulasTabProps) {
                   <h3 className="font-medium">{aula.conteudo}</h3>
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-1 text-sm text-gray-600">
                     <span className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3" />
-                      {new Date(aula.data).toLocaleDateString('pt-BR')}
+                      📅 {new Date(aula.data).toLocaleDateString('pt-BR')}
                     </span>
-                    {aula.horario && (
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        {aula.horario}
+                    {aula.quantidade_aulas && aula.quantidade_aulas > 1 && (
+                      <span className="text-blue-600 font-medium">
+                        {aula.quantidade_aulas} aulas
                       </span>
                     )}
-                    {aula.observacoes && (
-                      <span className="text-muted-foreground">
-                        {aula.observacoes.substring(0, 50)}...
+                    {aula.tipo_aula && (
+                      <span className="text-gray-500">
+                        {aula.tipo_aula}
+                      </span>
+                    )}
+                    {aula.aula_assincrona && (
+                      <span className="text-purple-600">
+                        Assíncrona
                       </span>
                     )}
                   </div>
+                  {aula.observacoes && (
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {aula.observacoes.substring(0, 80)}
+                      {aula.observacoes.length > 80 ? '...' : ''}
+                    </p>
+                  )}
                 </div>
 
                 {!readOnly && (
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    {/* BOTÃO DE PRESENÇA - ESSE É O QUE ESTAVA FALTANDO */}
                     <Button
                       variant="outline"
                       size="sm"
@@ -299,14 +159,6 @@ export function AulasTab({ diarioId, readOnly = false }: AulasTabProps) {
                     >
                       <Users className="h-4 w-4 mr-1" />
                       <span className="hidden sm:inline">Presença</span>
-                    </Button>
-
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleEdit(aula)}
-                    >
-                      <Edit className="h-4 w-4" />
                     </Button>
 
                     <Button
@@ -330,7 +182,7 @@ export function AulasTab({ diarioId, readOnly = false }: AulasTabProps) {
         </CardContent>
       </Card>
 
-      {/* Modal de Marcar Presença */}
+      {/* Modal de Marcar Presença Manual */}
       {selectedAula && (
         <MarcarPresencaModal
           aula={selectedAula}
