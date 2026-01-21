@@ -1,168 +1,221 @@
-import { useState, useEffect } from 'react';
-import { Trash2, Users } from 'lucide-react';
+import { useState } from 'react';
+import { Plus } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../../../components/ui/dialog';
 import { Input } from '../../../components/ui/input';
+import { Label } from '../../../components/ui/label';
+import { Textarea } from '../../../components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
 import { supabaseService } from '../../../services/supabaseService';
-import type { Aula, Aluno } from '../../../services/supabaseService';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../../components/ui/card';
-import { CriarAulaModal } from './CriarAulaModal';
 import { MarcarPresencaModal } from './MarcarPresencaModal';
+import type { Aula, Aluno } from '../../../services/supabaseService';
 
-interface AulasTabProps {
+interface CriarAulaModalProps {
   diarioId: number;
-  readOnly?: boolean;
+  alunos: Aluno[];
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onAulaCriada?: () => void;
 }
 
-export function AulasTab({ diarioId, readOnly = false }: AulasTabProps) {
-  const [aulas, setAulas] = useState<Aula[]>([]);
-  const [alunos, setAlunos] = useState<Aluno[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isCriarAulaOpen, setIsCriarAulaOpen] = useState(false);
-  const [selectedAula, setSelectedAula] = useState<Aula | null>(null);
-  const [isPresencaDialogOpen, setIsPresencaDialogOpen] = useState(false);
+export function CriarAulaModal({
+  diarioId,
+  alunos,
+  open,
+  onOpenChange,
+  onAulaCriada
+}: CriarAulaModalProps) {
+  const [loading, setLoading] = useState(false);
+  const [aulaCriada, setAulaCriada] = useState<Aula | null>(null);
+  const [isMarcarPresencaOpen, setIsMarcarPresencaOpen] = useState(false);
+  
+  const [formData, setFormData] = useState({
+    data: new Date().toISOString().split('T')[0],
+    conteudo: '',
+    quantidade_aulas: '1',
+    tipo_aula: 'Teórica',
+    aula_assincrona: false,
+    conteudo_detalhado: '',
+    observacoes: ''
+  });
 
-  useEffect(() => {
-    loadAulas();
-    loadAlunos();
-  }, [diarioId]);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-  const loadAulas = async () => {
+    if (!formData.conteudo.trim()) {
+      alert('Preencha o título do conteúdo');
+      return;
+    }
+
     try {
-      const aulasData = await supabaseService.getAulasByDiario(diarioId);
-      setAulas(aulasData || []);
+      setLoading(true);
+
+      const novaAula = await supabaseService.createAula({
+        diario_id: diarioId,
+        data: formData.data,
+        conteudo: formData.conteudo,
+        quantidade_aulas: parseInt(formData.quantidade_aulas),
+        tipo_aula: formData.tipo_aula,
+        aula_assincrona: formData.aula_assincrona,
+        conteudo_detalhado: formData.conteudo_detalhado || undefined,
+        observacoes: formData.observacoes || null
+      });
+
+      setAulaCriada(novaAula);
+      
+      setFormData({
+        data: new Date().toISOString().split('T')[0],
+        conteudo: '',
+        quantidade_aulas: '1',
+        tipo_aula: 'Teórica',
+        aula_assincrona: false,
+        conteudo_detalhado: '',
+        observacoes: ''
+      });
+
+      onOpenChange(false);
+
+      setTimeout(() => {
+        setIsMarcarPresencaOpen(true);
+      }, 300);
+
+      onAulaCriada?.();
     } catch (error) {
-      console.error('Erro ao carregar aulas:', error);
-      setAulas([]);
+      console.error('Erro ao criar aula:', error);
+      alert('Erro ao criar aula. Tente novamente.');
+    } finally {
+      setLoading(false);
     }
-  };
-
-  const loadAlunos = async () => {
-    try {
-      const alunosData = await supabaseService.getAlunosByDiario(diarioId);
-      setAlunos(alunosData || []);
-    } catch (error) {
-      console.error('Erro ao carregar alunos:', error);
-      setAlunos([]);
-    }
-  };
-
-  const filteredAulas = (aulas || []).filter(
-    aula =>
-      (aula.conteudo?.toLowerCase() ?? '').includes(searchTerm.toLowerCase()) ||
-      (aula.data ?? '').includes(searchTerm)
-  );
-
-  const handleDelete = async (aulaId: number) => {
-    if (confirm('Tem certeza que deseja excluir esta aula?')) {
-      try {
-        await supabaseService.deleteAula(aulaId);
-        await loadAulas();
-      } catch (error) {
-        console.error('Erro ao excluir aula:', error);
-      }
-    }
-  };
-
-  const handleMarcarPresenca = (aula: Aula) => {
-    setSelectedAula(aula);
-    setIsPresencaDialogOpen(true);
   };
 
   return (
     <>
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="space-y-2">
-              <CardTitle>Aulas Ministradas</CardTitle>
-              <CardDescription>
-                Registre as aulas ministradas e gerencie a presença dos alunos
-              </CardDescription>
+      <Button 
+        onClick={() => onOpenChange(true)}
+        className="bg-blue-600 hover:bg-blue-700"
+      >
+        <Plus className="h-4 w-4 mr-2" />
+        Nova Aula
+      </Button>
+
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Nova Aula</DialogTitle>
+            <DialogDescription>Conteúdo Ministrado da Aula</DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="data">Data da aula</Label>
+                <Input
+                  id="data"
+                  type="date"
+                  value={formData.data}
+                  onChange={(e) => setFormData({ ...formData, data: e.target.value })}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="conteudo">Título do conteúdo</Label>
+                <Input
+                  id="conteudo"
+                  placeholder="Ex: As Grandes Navegações"
+                  value={formData.conteudo}
+                  onChange={(e) => setFormData({ ...formData, conteudo: e.target.value })}
+                  required
+                />
+              </div>
             </div>
-            {!readOnly && (
-              <CriarAulaModal
-                diarioId={diarioId}
-                alunos={alunos}
-                open={isCriarAulaOpen}
-                onOpenChange={setIsCriarAulaOpen}
-                onAulaCriada={loadAulas}
+
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <Label>Quantidade de aulas</Label>
+                <Select 
+                  value={formData.quantidade_aulas}
+                  onValueChange={(value) => setFormData({ ...formData, quantidade_aulas: value })}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1 aula</SelectItem>
+                    <SelectItem value="2">2 aulas</SelectItem>
+                    <SelectItem value="3">3 aulas</SelectItem>
+                    <SelectItem value="4">4 aulas</SelectItem>
+                    <SelectItem value="5">5 aulas</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label>Tipo de aula</Label>
+                <Select 
+                  value={formData.tipo_aula}
+                  onValueChange={(value) => setFormData({ ...formData, tipo_aula: value })}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Teórica">Teórica</SelectItem>
+                    <SelectItem value="Prática">Prática</SelectItem>
+                    <SelectItem value="Teórica e Prática">Teórica e Prática</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label>Aula assíncrona</Label>
+                <Select 
+                  value={formData.aula_assincrona ? 'Sim' : 'Não'}
+                  onValueChange={(value) => setFormData({ ...formData, aula_assincrona: value === 'Sim' })}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Não">Não</SelectItem>
+                    <SelectItem value="Sim">Sim</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div>
+              <Label>Conteúdo detalhado da aula</Label>
+              <Textarea
+                placeholder="Descrição detalhada..."
+                value={formData.conteudo_detalhado}
+                onChange={(e) => setFormData({ ...formData, conteudo_detalhado: e.target.value })}
+                rows={5}
               />
-            )}
-          </div>
-        </CardHeader>
+            </div>
 
-        <CardContent>
-          <div className="mb-4">
-            <Input
-              placeholder="Buscar aulas..."
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-            />
-          </div>
+            <div>
+              <Label>Observações</Label>
+              <Textarea
+                placeholder="Observações..."
+                value={formData.observacoes}
+                onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
+                rows={4}
+              />
+            </div>
 
-          <div className="space-y-4">
-            {filteredAulas.map(aula => (
-              <div
-                key={aula.id}
-                className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 p-4 border rounded-lg"
-              >
-                <div className="flex-1">
-                  <h3 className="font-medium">{aula.conteudo}</h3>
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-1 text-sm text-gray-600">
-                    <span>📅 {new Date(aula.data).toLocaleDateString('pt-BR')}</span>
-                    {aula.quantidade_aulas && aula.quantidade_aulas > 1 && (
-                      <span className="text-blue-600 font-medium">
-                        {aula.quantidade_aulas} aulas
-                      </span>
-                    )}
-                    {aula.tipo_aula && <span>{aula.tipo_aula}</span>}
-                    {aula.aula_assincrona && <span className="text-purple-600">Assíncrona</span>}
-                  </div>
-                </div>
+            <DialogFooter className="gap-3 sm:gap-0">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={loading} className="bg-blue-600 hover:bg-blue-700">
+                {loading ? 'Salvando...' : 'Salvar Aula'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
-                {!readOnly && (
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleMarcarPresenca(aula)}
-                      className="bg-green-50 hover:bg-green-100 text-green-700"
-                    >
-                      <Users className="h-4 w-4 mr-1" />
-                      Presença
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleDelete(aula.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                )}
-              </div>
-            ))}
-
-            {filteredAulas.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground">
-                Nenhuma aula cadastrada.
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {selectedAula && (
+      {aulaCriada && (
         <MarcarPresencaModal
-          aula={selectedAula}
+          aula={aulaCriada}
           alunos={alunos}
-          open={isPresencaDialogOpen}
-          onOpenChange={setIsPresencaDialogOpen}
-          onSave={() => {
-            setIsPresencaDialogOpen(false);
-            setSelectedAula(null);
-            loadAulas();
-          }}
+          open={isMarcarPresencaOpen}
+          onOpenChange={setIsMarcarPresencaOpen}
+          onSave={() => setIsMarcarPresencaOpen(false)}
         />
       )}
     </>
