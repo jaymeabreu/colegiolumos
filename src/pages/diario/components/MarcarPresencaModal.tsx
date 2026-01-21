@@ -75,19 +75,23 @@ export function MarcarPresencaModal({
     try {
       setLoading(true);
 
+      // Para cada aluno, salvamos apenas 1 registro de presença
+      // Se for 2 aulas, salvamos o status da 1ª aula (ou podemos criar lógica diferente)
       const presencasParaSalvar: Omit<Presenca, 'id'>[] = [];
 
       alunos.forEach(aluno => {
-        for (let aulaNum = 1; aulaNum <= numeroAulas; aulaNum++) {
-          presencasParaSalvar.push({
-            aula_id: aula.id,
-            aluno_id: aluno.id,
-            status: presencas[`${aluno.id}-${aulaNum}`] || 'PRESENTE'
-          });
-        }
+        // Por enquanto, vamos salvar apenas a presença da 1ª aula
+        // Se quiser salvar as 2 aulas, precisamos adicionar uma coluna na tabela
+        // como "aula_numero" ou "sequencia"
+        presencasParaSalvar.push({
+          aula_id: aula.id,
+          aluno_id: aluno.id,
+          status: presencas[`${aluno.id}-1`] || 'PRESENTE'
+        });
       });
 
       await supabaseService.savePresencas(presencasParaSalvar);
+      
       onSave();
       onOpenChange(false);
     } catch (error) {
@@ -108,113 +112,61 @@ export function MarcarPresencaModal({
           </p>
         </DialogHeader>
 
-        <div className="mb-6">
-          <p className="text-sm font-medium mb-2">Número de aulas seguidas</p>
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant={numeroAulas === 1 ? 'default' : 'outline'}
-              onClick={() => setNumeroAulas(1)}
-              size="sm"
-            >
-              1 Aula
-            </Button>
-            <Button
-              type="button"
-              variant={numeroAulas === 2 ? 'default' : 'outline'}
-              onClick={() => setNumeroAulas(2)}
-              size="sm"
-            >
-              2 Aulas
-            </Button>
+        {aula.quantidade_aulas && aula.quantidade_aulas > 1 && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+            <p className="text-sm text-blue-800">
+              ℹ️ Esta é uma aula com <strong>{aula.quantidade_aulas} aulas seguidas</strong>. 
+              A presença será registrada para a primeira aula.
+            </p>
           </div>
-        </div>
+        )}
 
         <div className="border rounded-lg overflow-hidden">
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-4 py-3 text-left text-sm font-medium">Aluno</th>
-                {numeroAulas >= 1 && (
-                  <th className="px-4 py-3 text-center text-sm font-medium">1ª Aula</th>
-                )}
-                {numeroAulas === 2 && (
-                  <th className="px-4 py-3 text-center text-sm font-medium">2ª Aula</th>
-                )}
+                <th className="px-4 py-3 text-center text-sm font-medium">Presença</th>
               </tr>
             </thead>
             <tbody className="divide-y">
               {alunos.map(aluno => (
                 <tr key={aluno.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 text-sm">{aluno.nome}</td>
-                  
-                  {numeroAulas >= 1 && (
-                    <td className="px-4 py-3">
-                      <div className="flex justify-center gap-1">
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant={presencas[`${aluno.id}-1`] === 'PRESENTE' ? 'default' : 'outline'}
-                          onClick={() => handlePresencaChange(aluno.id, 1, 'PRESENTE')}
-                          className={presencas[`${aluno.id}-1`] === 'PRESENTE' ? 'bg-green-600 hover:bg-green-700' : ''}
-                        >
-                          <Check className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant={presencas[`${aluno.id}-1`] === 'FALTA' ? 'default' : 'outline'}
-                          onClick={() => handlePresencaChange(aluno.id, 1, 'FALTA')}
-                          className={presencas[`${aluno.id}-1`] === 'FALTA' ? 'bg-red-600 hover:bg-red-700' : ''}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant={presencas[`${aluno.id}-1`] === 'JUSTIFICADA' ? 'default' : 'outline'}
-                          onClick={() => handlePresencaChange(aluno.id, 1, 'JUSTIFICADA')}
-                          className={presencas[`${aluno.id}-1`] === 'JUSTIFICADA' ? 'bg-yellow-600 hover:bg-yellow-700' : ''}
-                        >
-                          J
-                        </Button>
-                      </div>
-                    </td>
-                  )}
-
-                  {numeroAulas === 2 && (
-                    <td className="px-4 py-3">
-                      <div className="flex justify-center gap-1">
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant={presencas[`${aluno.id}-2`] === 'PRESENTE' ? 'default' : 'outline'}
-                          onClick={() => handlePresencaChange(aluno.id, 2, 'PRESENTE')}
-                          className={presencas[`${aluno.id}-2`] === 'PRESENTE' ? 'bg-green-600 hover:bg-green-700' : ''}
-                        >
-                          <Check className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant={presencas[`${aluno.id}-2`] === 'FALTA' ? 'default' : 'outline'}
-                          onClick={() => handlePresencaChange(aluno.id, 2, 'FALTA')}
-                          className={presencas[`${aluno.id}-2`] === 'FALTA' ? 'bg-red-600 hover:bg-red-700' : ''}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant={presencas[`${aluno.id}-2`] === 'JUSTIFICADA' ? 'default' : 'outline'}
-                          onClick={() => handlePresencaChange(aluno.id, 2, 'JUSTIFICADA')}
-                          className={presencas[`${aluno.id}-2`] === 'JUSTIFICADA' ? 'bg-yellow-600 hover:bg-yellow-700' : ''}
-                        >
-                          J
-                        </Button>
-                      </div>
-                    </td>
-                  )}
+                  <td className="px-4 py-3">
+                    <div className="flex justify-center gap-1">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={presencas[`${aluno.id}-1`] === 'PRESENTE' ? 'default' : 'outline'}
+                        onClick={() => handlePresencaChange(aluno.id, 1, 'PRESENTE')}
+                        className={presencas[`${aluno.id}-1`] === 'PRESENTE' ? 'bg-green-600 hover:bg-green-700' : ''}
+                        title="Presente"
+                      >
+                        <Check className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={presencas[`${aluno.id}-1`] === 'FALTA' ? 'default' : 'outline'}
+                        onClick={() => handlePresencaChange(aluno.id, 1, 'FALTA')}
+                        className={presencas[`${aluno.id}-1`] === 'FALTA' ? 'bg-red-600 hover:bg-red-700' : ''}
+                        title="Falta"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={presencas[`${aluno.id}-1`] === 'JUSTIFICADA' ? 'default' : 'outline'}
+                        onClick={() => handlePresencaChange(aluno.id, 1, 'JUSTIFICADA')}
+                        className={presencas[`${aluno.id}-1`] === 'JUSTIFICADA' ? 'bg-yellow-600 hover:bg-yellow-700' : ''}
+                        title="Falta Justificada"
+                      >
+                        J
+                      </Button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
