@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus } from 'lucide-react'; 
+import { Plus } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../../../components/ui/dialog';
 import { Input } from '../../../components/ui/input';
@@ -62,6 +62,7 @@ export function CriarAulaModal({
       });
 
       setAulaCriada(novaAula);
+      
       setFormData({
         data: new Date().toISOString().split('T')[0],
         conteudo: '',
@@ -71,6 +72,8 @@ export function CriarAulaModal({
         conteudo_detalhado: '',
         observacoes: ''
       });
+
+      onOpenChange(false);
 
       setTimeout(() => {
         setIsMarcarPresencaOpen(true);
@@ -85,15 +88,13 @@ export function CriarAulaModal({
     }
   };
 
-  const handleCloseDialog = () => {
-    setAulaCriada(null);
+  const handleClosePresenca = () => {
     setIsMarcarPresencaOpen(false);
-    onOpenChange(false);
+    setAulaCriada(null);
   };
 
   return (
     <>
-      {/* BOTÃO */}
       <Button 
         onClick={() => onOpenChange(true)}
         className="bg-blue-600 hover:bg-blue-700"
@@ -102,9 +103,8 @@ export function CriarAulaModal({
         Nova Aula
       </Button>
 
-      {/* DIALOG */}
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Nova Aula</DialogTitle>
             <DialogDescription>
@@ -113,7 +113,6 @@ export function CriarAulaModal({
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* LINHA 1: DATA E TÍTULO */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="data">Data da aula</Label>
@@ -137,7 +136,6 @@ export function CriarAulaModal({
               </div>
             </div>
 
-            {/* LINHA 2: QUANTIDADE, TIPO E ASSÍNCRONA */}
             <div className="grid grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="quantidade_aulas">Quantidade de aulas</Label>
@@ -192,12 +190,11 @@ export function CriarAulaModal({
               </div>
             </div>
 
-            {/* CONTEÚDO DETALHADO */}
             <div>
               <Label htmlFor="conteudo_detalhado">Conteúdo detalhado da aula</Label>
               <Textarea
                 id="conteudo_detalhado"
-                placeholder="Descrição detalhada do conteúdo ministrado na aula. Ex: Introdução às Grandes Navegações - contexto histórico, causas econômicas e tecnológicas, principais navegadores portugueses e espanhóis, descobrimento do Brasil..."
+                placeholder="Descrição detalhada do conteúdo ministrado..."
                 value={formData.conteudo_detalhado}
                 onChange={(e) => setFormData({ ...formData, conteudo_detalhado: e.target.value })}
                 rows={5}
@@ -205,12 +202,11 @@ export function CriarAulaModal({
               />
             </div>
 
-            {/* OBSERVAÇÕES */}
             <div>
               <Label htmlFor="observacoes">Observações</Label>
               <Textarea
                 id="observacoes"
-                placeholder="Observações adicionais sobre a aula, comportamento da turma, dificuldades encontradas, etc..."
+                placeholder="Observações adicionais..."
                 value={formData.observacoes}
                 onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
                 rows={4}
@@ -238,25 +234,15 @@ export function CriarAulaModal({
         </DialogContent>
       </Dialog>
 
-      {/* Modal de Marcar Presença */}
       {aulaCriada && (
         <MarcarPresencaModal
           aula={aulaCriada}
           alunos={alunos}
           open={isMarcarPresencaOpen}
-          onOpenChange={(isOpen) => {
-            setIsMarcarPresencaOpen(isOpen);
-            if (!isOpen) {
-              handleCloseDialog();
-            }
-          }}
-          onSave={() => {
-            handleCloseDialog();
-          }}
+          onOpenChange={setIsMarcarPresencaOpen}
+          onSave={handleClosePresenca}
         />
       )}
     </>
   );
 }
-
-export default CriarAulaModal;
