@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Edit, Trash2, Users } from 'lucide-react';
 import { Button } from '../../../components/ui/button';  
 import { Input } from '../../../components/ui/input';
-import { supabaseService } from '../../../services/supabaseService';
+import { supabaseService } from '../../../services/supabaseService'; 
 import type { Aula, Aluno } from '../../../services/supabaseService';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../../components/ui/card';
 import { CriarAulaModal } from './CriarAulaModal';
