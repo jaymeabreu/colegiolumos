@@ -711,7 +711,7 @@ export function DiariosList() {
           </div>
 
           {/* SEÇÃO DESTACADA: Diários Entregues Pendentes de Revisão */}
-          {diasEntreguesPendentesRevisao.length > 0 && currentUser?.papel === 'COORDENADOR' && (
+          {filteredDiarios.filter(d => d.status === 'ENTREGUE').length > 0 && (
             <div className="mb-6 p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
               <div className="flex items-center gap-2 mb-3">
                 <Eye className="h-5 w-5 text-blue-600" />
