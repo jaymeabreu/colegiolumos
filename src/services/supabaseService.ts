@@ -268,7 +268,6 @@ class SupabaseService {
     senha?: string
   ): Promise<Usuario> {
     try {
-      // Se não passou senha, gera uma aleatória
       if (!senha) {
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$%&*';
         senha = '';
@@ -277,7 +276,6 @@ class SupabaseService {
         }
       }
 
-      // Criar registro na tabela usuarios
       const payload: any = {
         nome: usuario.nome,
         email: usuario.email,
@@ -645,20 +643,14 @@ class SupabaseService {
       situacao: aluno.situacao ?? null
     };
 
-    console.log('🚀 createAluno payload:', payload);
-
     const { data, error } = await supabase
       .from('alunos')
       .insert(payload)
       .select('*')
       .single();
 
-    if (error) {
-      console.error('❌ Erro ao criar aluno:', error);
-      throw error;
-    }
+    if (error) throw error;
 
-    console.log('✅ Aluno criado:', data);
     this.dispatchDataUpdated('alunos');
     return withCamel(data) as Aluno;
   }
@@ -694,8 +686,6 @@ class SupabaseService {
     
     payload.updated_at = nowIso();
 
-    console.log('🔄 updateAluno payload:', payload);
-
     const { data, error } = await supabase
       .from('alunos')
       .update(payload)
@@ -703,12 +693,8 @@ class SupabaseService {
       .select('*')
       .maybeSingle();
 
-    if (error) {
-      console.error('❌ Erro ao atualizar aluno:', error);
-      throw error;
-    }
+    if (error) throw error;
 
-    console.log('✅ Aluno atualizado:', data);
     this.dispatchDataUpdated('alunos');
     return data ? (withCamel(data) as Aluno) : null;
   }
@@ -829,13 +815,11 @@ class SupabaseService {
     return (data ?? []).map(withCamel) as Aula[];
   }
 
-  // NOVAS FUNÇÕES PARA ESTATÍSTICAS DO DIÁRIO
   async getDiarioStats(diarioId: number): Promise<{
     alunosMatriculados: number;
     aulasCount: number;
   }> {
     try {
-      // Contar alunos matriculados neste diário
       const { data: vinculos, error: e1 } = await supabase
         .from('diario_alunos')
         .select('aluno_id')
@@ -843,7 +827,6 @@ class SupabaseService {
 
       if (e1) throw e1;
 
-      // Contar aulas dadas
       const { data: aulas, error: e2 } = await supabase
         .from('aulas')
         .select('id')
@@ -868,7 +851,6 @@ class SupabaseService {
     try {
       const diarios = await this.getDiariosByProfessor(professorId);
       
-      // Buscar stats para cada diário em paralelo
       const diarioStats = await Promise.all(
         diarios.map(async (diario) => ({
           ...diario,
@@ -1218,20 +1200,14 @@ class SupabaseService {
       data_publicacao: comunicado.data_publicacao ?? comunicado.dataPublicacao ?? new Date().toISOString().split('T')[0]
     };
 
-    console.log('🚀 createComunicado payload:', payload);
-
     const { data, error } = await supabase
       .from('comunicados')
       .insert(payload)
       .select('*')
       .single();
 
-    if (error) {
-      console.error('❌ Erro ao criar comunicado:', error);
-      throw error;
-    }
+    if (error) throw error;
 
-    console.log('✅ Comunicado criado:', data);
     this.dispatchDataUpdated('comunicados');
     return withCamel(data) as Comunicado;
   }
@@ -1248,8 +1224,6 @@ class SupabaseService {
 
     payload.updated_at = nowIso();
 
-    console.log('🔄 updateComunicado payload:', payload);
-
     const { data, error } = await supabase
       .from('comunicados')
       .update(payload)
@@ -1257,12 +1231,8 @@ class SupabaseService {
       .select('*')
       .maybeSingle();
 
-    if (error) {
-      console.error('❌ Erro ao atualizar comunicado:', error);
-      throw error;
-    }
+    if (error) throw error;
 
-    console.log('✅ Comunicado atualizado:', data);
     this.dispatchDataUpdated('comunicados');
     return data ? (withCamel(data) as Comunicado) : null;
   }
@@ -1460,7 +1430,7 @@ class SupabaseService {
     return (data ?? []).map(withCamel) as DiarioAluno[];
   }
 
-  // PROFESSORES POR DISCIPLINA (tabela professor_disciplinas) - CORRIGIDO PARA RETORNAR IDs
+  // PROFESSORES POR DISCIPLINA
   async getProfessoresByDisciplina(disciplinaId: number): Promise<number[]> {
     const { data, error } = await supabase
       .from('professor_disciplinas')
@@ -1470,9 +1440,6 @@ class SupabaseService {
     if (error) throw error;
 
     const ids = (data ?? []).map((row: any) => row.professor_id).filter((id: any) => id !== null && id !== undefined);
-    console.log('getProfessoresByDisciplina - disciplinaId:', disciplinaId);
-    console.log('getProfessoresByDisciplina - resultado bruto:', data);
-    console.log('getProfessoresByDisciplina - IDs extraídos:', ids);
     return ids as number[];
   }
 
@@ -1581,8 +1548,8 @@ class SupabaseService {
     if (error) throw error;
     return (data ?? []).map((row: any) => row.disciplina_id);
   }
-}
-// BOLETIM DO ALUNO
+
+  // BOLETIM DO ALUNO
   async getBoletimAluno(diarioId: number, alunoId: number): Promise<{
     mediaGeral: number;
     frequencia: number;
@@ -1600,16 +1567,12 @@ class SupabaseService {
     }>;
   }> {
     try {
-      // 1. Buscar avaliações do diário
       const avaliacoes = await this.getAvaliacoesByDiario(diarioId);
-      
-      // 2. Buscar notas do aluno
       const todasNotas = await this.getNotasByAluno(alunoId);
       const notasDoDiario = todasNotas.filter(n => 
         avaliacoes.some(av => av.id === (n.avaliacao_id ?? n.avaliacaoId))
       );
 
-      // 3. Calcular média
       let somaPesos = 0;
       let somaPonderada = 0;
       const notasDetalhadas = [];
@@ -1635,11 +1598,9 @@ class SupabaseService {
 
       const mediaGeral = somaPesos > 0 ? Number((somaPonderada / somaPesos).toFixed(2)) : 0;
 
-      // 4. Buscar aulas do diário
       const aulas = await this.getAulasByDiario(diarioId);
-      
-      // 5. Buscar presenças do aluno nessas aulas
       const aulaIds = aulas.map(a => a.id);
+      
       const { data: presencasData, error } = await supabase
         .from('presencas')
         .select('*')
@@ -1653,7 +1614,6 @@ class SupabaseService {
       const totalAulas = aulas.length;
       const frequencia = totalAulas > 0 ? Number(((presencas / totalAulas) * 100).toFixed(1)) : 0;
 
-      // 6. Determinar situação
       let situacao = 'Em Análise';
       if (mediaGeral >= 7 && frequencia >= 75) {
         situacao = 'Aprovado';
@@ -1686,7 +1646,5 @@ class SupabaseService {
     }
   }
 }
-
-export const supabaseService = new SupabaseService();
 
 export const supabaseService = new SupabaseService();
