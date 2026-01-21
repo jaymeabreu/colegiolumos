@@ -219,7 +219,7 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
       </Card>
 
       <Dialog open={isBoletimOpen} onOpenChange={setIsBoletimOpen}>
-        <DialogContent className="max-w-[1400px] w-[95vw] max-h-[85vh] overflow-hidden flex flex-col p-0">
+        <DialogContent className="max-w-[95vw] w-[95vw] max-h-[95vh] h-[95vh] overflow-hidden flex flex-col p-0">
           <div className="border-b p-6 flex items-start justify-between">
             <div className="flex items-center gap-3">
               <Avatar className="h-12 w-12">
@@ -241,7 +241,7 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
           </div>
 
           <div className="border-b bg-gray-50 px-6">
-            <div className="flex gap-0 overflow-x-auto">
+            <div className="flex gap-0 overflow-x-auto scrollbar-hide">
               {[
                 { id: 'resumo', label: 'Resumo' },
                 { id: 'notas', label: 'Notas Detalhadas' }
@@ -261,7 +261,7 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-6">
+          <div className="flex-1 overflow-y-auto p-6 scrollbar-hide">
             {loadingBoletim ? (
               <div className="flex items-center justify-center py-12">
                 <div className="text-center">
