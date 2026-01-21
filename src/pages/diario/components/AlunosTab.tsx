@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Users, GraduationCap, Mail, FileText, Eye, TrendingUp, BarChart3, AlertTriangle } from 'lucide-react';
+import { Users, GraduationCap, Mail, Eye, TrendingUp, BarChart3, AlertTriangle, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
 import { Badge } from '../../../components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '../../../components/ui/avatar';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../../components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../../components/ui/dialog';
+import { Dialog, DialogContent } from '../../../components/ui/dialog';
 import { supabaseService } from '../../../services/supabaseService';
 import type { Aluno, Diario } from '../../../services/supabaseService';
 
@@ -22,6 +22,8 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
   const [selectedAluno, setSelectedAluno] = useState<Aluno | null>(null);
   const [isBoletimOpen, setIsBoletimOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('resumo');
+  const [boletimData, setBoletimData] = useState<any>(null);
+  const [loadingBoletim, setLoadingBoletim] = useState(false);
 
   useEffect(() => {
     loadAlunos();
@@ -39,11 +41,9 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
       }
       
       setDiario(diarioData);
-      console.log('📚 Diário carregado:', diarioData);
       
       const turmaId = diarioData.turma_id ?? diarioData.turmaId;
       const alunosDaTurma = await supabaseService.getAlunosByTurma(turmaId);
-      console.log('👥 Alunos da turma:', alunosDaTurma);
       
       let alunosVinculados: number[] = [];
       try {
@@ -52,7 +52,6 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
           .filter(da => da.diario_id === diarioId || da.diarioId === diarioId)
           .map(da => da.aluno_id ?? da.alunoId)
           .filter((id): id is number => id !== null && id !== undefined);
-        console.log('📌 Alunos já vinculados:', alunosVinculados);
       } catch (error) {
         console.log('⚠️ Erro ao carregar alunos vinculados:', error);
       }
@@ -60,13 +59,11 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
       if (alunosDaTurma && alunosDaTurma.length > 0) {
         for (const aluno of alunosDaTurma) {
           if (alunosVinculados.includes(aluno.id)) {
-            console.log(`⏭️ Aluno ${aluno.nome} já vinculado, pulando...`);
             continue;
           }
 
           try {
             await supabaseService.vincularAlunoAoDiario(diarioId, aluno.id);
-            console.log(`✅ Aluno ${aluno.nome} vinculado ao diário`);
           } catch (error) {
             console.error(`❌ Erro ao vincular ${aluno.nome}:`, error);
           }
@@ -75,7 +72,6 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
       
       const alunosDoDiario = await supabaseService.getAlunosByDiario(diarioId);
       setAlunos(alunosDoDiario || []);
-      console.log('📋 Alunos do diário:', alunosDoDiario);
     } catch (error) {
       console.error('Erro ao carregar alunos:', error);
       setAlunos([]);
@@ -98,10 +94,38 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
       .slice(0, 2);
   };
 
-  const handleVerBoletim = (aluno: Aluno) => {
+  const handleVerBoletim = async (aluno: Aluno) => {
     setSelectedAluno(aluno);
     setActiveTab('resumo');
     setIsBoletimOpen(true);
+    setLoadingBoletim(true);
+    
+    try {
+      const dados = await supabaseService.getBoletimAluno(diarioId, aluno.id);
+      setBoletimData(dados);
+    } catch (error) {
+      console.error('Erro ao carregar boletim:', error);
+    } finally {
+      setLoadingBoletim(false);
+    }
+  };
+
+  const getSituacaoColor = (situacao: string) => {
+    switch (situacao) {
+      case 'Aprovado': return 'bg-green-100 text-green-800';
+      case 'Reprovado': return 'bg-red-100 text-red-800';
+      case 'Recuperação': return 'bg-yellow-100 text-yellow-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getSituacaoIcon = (situacao: string) => {
+    switch (situacao) {
+      case 'Aprovado': return <CheckCircle className="h-5 w-5" />;
+      case 'Reprovado': return <XCircle className="h-5 w-5" />;
+      case 'Recuperação': return <Clock className="h-5 w-5" />;
+      default: return <AlertTriangle className="h-5 w-5" />;
+    }
   };
 
   if (loading) {
@@ -196,9 +220,9 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
 
       {/* Modal Boletim */}
       <Dialog open={isBoletimOpen} onOpenChange={setIsBoletimOpen}>
-        <DialogContent className="w-[90vw] max-w-6xl p-0">
+        <DialogContent className="w-[90vw] max-w-6xl p-0 max-h-[90vh] overflow-y-auto">
           {/* Header */}
-          <div className="border-b p-6">
+          <div className="border-b p-6 sticky top-0 bg-white z-10">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
                 <Avatar className="h-12 w-12">
@@ -221,19 +245,16 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
           </div>
 
           {/* Tabs */}
-          <div className="border-b bg-gray-100 px-6">
-            <div className="flex gap-0">
+          <div className="border-b bg-gray-50 px-6 sticky top-[88px] z-10">
+            <div className="flex gap-0 overflow-x-auto">
               {[
                 { id: 'resumo', label: 'Resumo' },
-                { id: 'completo', label: 'Boletim Completo' },
-                { id: 'disciplina', label: 'Por Disciplina' },
-                { id: 'avaliacoes', label: 'Avaliações' },
-                { id: 'ocorrencias', label: 'Ocorrências' }
+                { id: 'notas', label: 'Notas Detalhadas' }
               ].map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`px-6 py-3 font-medium text-sm transition border-b-2 ${
+                  className={`px-6 py-3 font-medium text-sm transition border-b-2 whitespace-nowrap ${
                     activeTab === tab.id
                       ? 'text-gray-900 border-blue-600 bg-white'
                       : 'text-gray-500 border-transparent hover:text-gray-700'
@@ -247,91 +268,156 @@ export function AlunosTab({ diarioId, readOnly = false }: AlunosTabProps) {
 
           {/* Conteúdo */}
           <div className="p-6">
-            {activeTab === 'resumo' && (
+            {loadingBoletim ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                  <p className="text-muted-foreground">Carregando dados...</p>
+                </div>
+              </div>
+            ) : activeTab === 'resumo' && boletimData ? (
               <div className="space-y-6">
                 {/* Cards de Resumo */}
-                <div className="grid grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   {/* Média Geral */}
                   <div className="border rounded-lg p-6 bg-white hover:shadow-sm transition">
                     <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <p className="text-sm font-medium text-gray-700">Média Geral</p>
-                      </div>
+                      <p className="text-sm font-medium text-gray-700">Média Geral</p>
                       <TrendingUp className="h-5 w-5 text-gray-400" />
                     </div>
-                    <div className="text-3xl font-bold text-red-600 mb-2">-</div>
-                    <p className="text-xs text-gray-500">Sem notas</p>
+                    <div className={`text-3xl font-bold mb-2 ${
+                      boletimData.mediaGeral >= 7 ? 'text-green-600' :
+                      boletimData.mediaGeral >= 5 ? 'text-yellow-600' : 'text-red-600'
+                    }`}>
+                      {boletimData.mediaGeral.toFixed(1)}
+                    </div>
+                    <p className="text-xs text-gray-500">De 0 a 10</p>
                   </div>
 
                   {/* Frequência */}
                   <div className="border rounded-lg p-6 bg-white hover:shadow-sm transition">
                     <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <p className="text-sm font-medium text-gray-700">Frequência</p>
-                      </div>
+                      <p className="text-sm font-medium text-gray-700">Frequência</p>
                       <BarChart3 className="h-5 w-5 text-gray-400" />
                     </div>
-                    <div className="text-3xl font-bold text-red-600 mb-2">-</div>
+                    <div className={`text-3xl font-bold mb-2 ${
+                      boletimData.frequencia >= 75 ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      {boletimData.frequencia.toFixed(1)}%
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      {boletimData.presencas} de {boletimData.totalAulas} aulas
+                    </p>
                   </div>
 
                   {/* Situação */}
-                  <div className="border rounded-lg p-6 bg-yellow-50 hover:shadow-sm transition">
+                  <div className={`border rounded-lg p-6 hover:shadow-sm transition ${
+                    boletimData.situacao === 'Aprovado' ? 'bg-green-50' :
+                    boletimData.situacao === 'Reprovado' ? 'bg-red-50' :
+                    boletimData.situacao === 'Recuperação' ? 'bg-yellow-50' : 'bg-gray-50'
+                  }`}>
                     <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <p className="text-sm font-medium text-gray-700">Situação</p>
-                      </div>
-                      <AlertTriangle className="h-5 w-5 text-gray-400" />
+                      <p className="text-sm font-medium text-gray-700">Situação</p>
+                      {getSituacaoIcon(boletimData.situacao)}
                     </div>
                     <div className="mb-3">
-                      <span className="inline-block px-3 py-1 bg-yellow-300 text-yellow-900 rounded-full text-xs font-medium">
-                        Sem Dados
+                      <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${getSituacaoColor(boletimData.situacao)}`}>
+                        {boletimData.situacao}
                       </span>
                     </div>
                     <p className="text-xs text-gray-600">Status atual no período</p>
                   </div>
 
-                  {/* Ocorrências */}
+                  {/* Faltas */}
                   <div className="border rounded-lg p-6 bg-white hover:shadow-sm transition">
                     <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <p className="text-sm font-medium text-gray-700">Ocorrências</p>
-                      </div>
+                      <p className="text-sm font-medium text-gray-700">Faltas</p>
                       <AlertTriangle className="h-5 w-5 text-gray-400" />
                     </div>
-                    <div className="text-3xl font-bold text-gray-900 mb-2">1</div>
-                    <p className="text-xs text-gray-500">Registros no período</p>
+                    <div className={`text-3xl font-bold mb-2 ${
+                      boletimData.faltas === 0 ? 'text-green-600' :
+                      boletimData.faltas <= 3 ? 'text-yellow-600' : 'text-red-600'
+                    }`}>
+                      {boletimData.faltas}
+                    </div>
+                    <p className="text-xs text-gray-500">Total de ausências</p>
                   </div>
                 </div>
 
-                {/* Performance por Disciplina */}
-                <div className="border-t pt-6">
-                  <h3 className="text-base font-semibold text-gray-900 mb-1">Performance por Disciplina</h3>
-                  <p className="text-sm text-gray-500 mb-4">Visão geral do desempenho</p>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
-                      <span className="font-medium text-gray-900">Ciências</span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-red-600 font-bold">-</span>
-                        <span className="text-sm text-gray-600">Em Andamento</span>
-                      </div>
-                    </div>
-                    <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
-                      <span className="font-medium text-gray-900">Geografia</span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-red-600 font-bold">-</span>
-                        <span className="text-sm text-gray-600">Em Andamento</span>
-                      </div>
+                {/* Notas por Avaliação */}
+                {boletimData.notas.length > 0 && (
+                  <div className="border-t pt-6">
+                    <h3 className="text-base font-semibold text-gray-900 mb-4">Avaliações Realizadas</h3>
+                    <div className="space-y-3">
+                      {boletimData.notas.map((nota: any, index: number) => (
+                        <div key={index} className="flex justify-between items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+                          <div className="flex-1">
+                            <p className="font-medium text-gray-900">{nota.avaliacaoTitulo}</p>
+                            <p className="text-sm text-gray-600">{nota.avaliacaoTipo} • {new Date(nota.avaliacaoData).toLocaleDateString('pt-BR')}</p>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <span className="text-sm text-gray-600">Peso: {nota.peso}</span>
+                            <span className={`text-lg font-bold ${
+                              nota.nota >= 7 ? 'text-green-600' :
+                              nota.nota >= 5 ? 'text-yellow-600' : 'text-red-600'
+                            }`}>
+                              {nota.nota.toFixed(1)}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                </div>
-              </div>
-            )}
+                )}
 
-            {activeTab !== 'resumo' && (
-              <div className="text-center py-8 text-gray-500">
-                Conteúdo em desenvolvimento
+                {boletimData.notas.length === 0 && (
+                  <div className="text-center py-8 text-gray-500">
+                    Nenhuma avaliação registrada ainda
+                  </div>
+                )}
               </div>
-            )}
+            ) : activeTab === 'notas' && boletimData ? (
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Histórico Completo de Notas</h3>
+                {boletimData.notas.length > 0 ? (
+                  <div className="border rounded-lg overflow-hidden">
+                    <table className="w-full">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Avaliação</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Tipo</th>
+                          <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">Data</th>
+                          <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">Peso</th>
+                          <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">Nota</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y">
+                        {boletimData.notas.map((nota: any, index: number) => (
+                          <tr key={index} className="hover:bg-gray-50">
+                            <td className="px-4 py-3 text-sm">{nota.avaliacaoTitulo}</td>
+                            <td className="px-4 py-3 text-sm">{nota.avaliacaoTipo}</td>
+                            <td className="px-4 py-3 text-sm">{new Date(nota.avaliacaoData).toLocaleDateString('pt-BR')}</td>
+                            <td className="px-4 py-3 text-sm text-center">{nota.peso}</td>
+                            <td className="px-4 py-3 text-center">
+                              <span className={`font-bold ${
+                                nota.nota >= 7 ? 'text-green-600' :
+                                nota.nota >= 5 ? 'text-yellow-600' : 'text-red-600'
+                              }`}>
+                                {nota.nota.toFixed(1)}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    Nenhuma nota registrada
+                  </div>
+                )}
+              </div>
+            ) : null}
           </div>
         </DialogContent>
       </Dialog>
