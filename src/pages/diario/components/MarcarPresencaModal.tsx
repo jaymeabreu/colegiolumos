@@ -25,7 +25,6 @@ export function MarcarPresencaModal({
     [key: string]: 'PRESENTE' | 'FALTA' | 'JUSTIFICADA';
   }>({});
 
-  // Define se é 1 ou 2 aulas baseado na quantidade_aulas
   const numeroAulas = (aula.quantidade_aulas && aula.quantidade_aulas >= 2) ? 2 : 1;
 
   useEffect(() => {
@@ -67,9 +66,10 @@ export function MarcarPresencaModal({
     aulaNum: number,
     status: 'PRESENTE' | 'FALTA' | 'JUSTIFICADA'
   ) => {
+    const key = `${alunoId}-${aulaNum}`;
     setPresencas(prev => ({
       ...prev,
-      [`${alunoId}-${aulaNum}`]: status
+      [key]: status
     }));
   };
 
@@ -77,15 +77,16 @@ export function MarcarPresencaModal({
     try {
       setLoading(true);
 
-      const presencasParaSalvar: Omit<Presenca, 'id'>[] = [];
+      const presencasParaSalvar: Omit<Presenca, 'id' | 'created_at' | 'updated_at'>[] = [];
 
       alunos.forEach(aluno => {
         for (let aulaNum = 1; aulaNum <= numeroAulas; aulaNum++) {
+          const key = `${aluno.id}-${aulaNum}`;
           presencasParaSalvar.push({
             aula_id: aula.id,
             aluno_id: aluno.id,
-            status: presencas[`${aluno.id}-${aulaNum}`] || 'PRESENTE',
-            aula_sequencia: aulaNum // ← CAMPO NOVO!
+            status: presencas[key] || 'PRESENTE',
+            aula_sequencia: aulaNum
           });
         }
       });
@@ -162,7 +163,7 @@ export function MarcarPresencaModal({
                     </div>
                   </td>
 
-                  {/* 2ª AULA (só aparece se quantidade_aulas >= 2) */}
+                  {/* 2ª AULA */}
                   {numeroAulas === 2 && (
                     <td className="px-4 py-3">
                       <div className="flex justify-center gap-1">
