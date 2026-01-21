@@ -34,23 +34,19 @@ export function MarcarPresencaModal({
 
   const loadPresencas = async () => {
     try {
-      // Define número de aulas baseado na quantidade
       const qtdAulas = aula.quantidade_aulas || 1;
       setNumeroAulas(qtdAulas >= 2 ? 2 : 1);
 
-      // Carrega presenças existentes
       const presencasData = await supabaseService.getPresencasByAula(aula.id);
       
       const presencasMap: { [key: string]: 'PRESENTE' | 'FALTA' | 'JUSTIFICADA' } = {};
       
-      // Inicializa todos os alunos como PRESENTE
       alunos.forEach(aluno => {
         for (let i = 1; i <= (qtdAulas >= 2 ? 2 : 1); i++) {
           presencasMap[`${aluno.id}-${i}`] = 'PRESENTE';
         }
       });
 
-      // Sobrescreve com dados existentes
       presencasData?.forEach(p => {
         const alunoId = p.aluno_id || p.alunoId;
         if (alunoId) {
@@ -112,7 +108,6 @@ export function MarcarPresencaModal({
           </p>
         </DialogHeader>
 
-        {/* Número de Aulas */}
         <div className="mb-6">
           <p className="text-sm font-medium mb-2">Número de aulas seguidas</p>
           <div className="flex gap-2">
@@ -135,7 +130,6 @@ export function MarcarPresencaModal({
           </div>
         </div>
 
-        {/* Tabela de Presenças */}
         <div className="border rounded-lg overflow-hidden">
           <table className="w-full">
             <thead className="bg-gray-50">
@@ -154,7 +148,6 @@ export function MarcarPresencaModal({
                 <tr key={aluno.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 text-sm">{aluno.nome}</td>
                   
-                  {/* 1ª Aula */}
                   {numeroAulas >= 1 && (
                     <td className="px-4 py-3">
                       <div className="flex justify-center gap-1">
@@ -189,7 +182,6 @@ export function MarcarPresencaModal({
                     </td>
                   )}
 
-                  {/* 2ª Aula */}
                   {numeroAulas === 2 && (
                     <td className="px-4 py-3">
                       <div className="flex justify-center gap-1">
@@ -229,7 +221,6 @@ export function MarcarPresencaModal({
           </table>
         </div>
 
-        {/* Legenda */}
         <div className="flex gap-4 text-sm text-gray-600 mt-4">
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-green-600 rounded"></div>
