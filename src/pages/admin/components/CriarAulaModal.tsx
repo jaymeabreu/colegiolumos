@@ -88,11 +88,6 @@ export function CriarAulaModal({
     }
   };
 
-  const handleClosePresenca = () => {
-    setIsMarcarPresencaOpen(false);
-    setAulaCriada(null);
-  };
-
   return (
     <>
       <Button 
@@ -107,9 +102,7 @@ export function CriarAulaModal({
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Nova Aula</DialogTitle>
-            <DialogDescription>
-              Conteúdo Ministrado da Aula
-            </DialogDescription>
+            <DialogDescription>Conteúdo Ministrado da Aula</DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -138,14 +131,12 @@ export function CriarAulaModal({
 
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <Label htmlFor="quantidade_aulas">Quantidade de aulas</Label>
+                <Label>Quantidade de aulas</Label>
                 <Select 
                   value={formData.quantidade_aulas}
                   onValueChange={(value) => setFormData({ ...formData, quantidade_aulas: value })}
                 >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="1">1 aula</SelectItem>
                     <SelectItem value="2">2 aulas</SelectItem>
@@ -157,14 +148,12 @@ export function CriarAulaModal({
               </div>
 
               <div>
-                <Label htmlFor="tipo_aula">Tipo de aula</Label>
+                <Label>Tipo de aula</Label>
                 <Select 
                   value={formData.tipo_aula}
                   onValueChange={(value) => setFormData({ ...formData, tipo_aula: value })}
                 >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Teórica">Teórica</SelectItem>
                     <SelectItem value="Prática">Prática</SelectItem>
@@ -174,14 +163,12 @@ export function CriarAulaModal({
               </div>
 
               <div>
-                <Label htmlFor="aula_assincrona">Aula assíncrona</Label>
+                <Label>Aula assíncrona</Label>
                 <Select 
                   value={formData.aula_assincrona ? 'Sim' : 'Não'}
                   onValueChange={(value) => setFormData({ ...formData, aula_assincrona: value === 'Sim' })}
                 >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Não">Não</SelectItem>
                     <SelectItem value="Sim">Sim</SelectItem>
@@ -191,42 +178,30 @@ export function CriarAulaModal({
             </div>
 
             <div>
-              <Label htmlFor="conteudo_detalhado">Conteúdo detalhado da aula</Label>
+              <Label>Conteúdo detalhado da aula</Label>
               <Textarea
-                id="conteudo_detalhado"
-                placeholder="Descrição detalhada do conteúdo ministrado..."
+                placeholder="Descrição detalhada..."
                 value={formData.conteudo_detalhado}
                 onChange={(e) => setFormData({ ...formData, conteudo_detalhado: e.target.value })}
                 rows={5}
-                className="resize-none"
               />
             </div>
 
             <div>
-              <Label htmlFor="observacoes">Observações</Label>
+              <Label>Observações</Label>
               <Textarea
-                id="observacoes"
-                placeholder="Observações adicionais..."
+                placeholder="Observações..."
                 value={formData.observacoes}
                 onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
                 rows={4}
-                className="resize-none"
               />
             </div>
 
             <DialogFooter className="gap-3 sm:gap-0">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-              >
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancelar
               </Button>
-              <Button
-                type="submit"
-                disabled={loading}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
+              <Button type="submit" disabled={loading} className="bg-blue-600 hover:bg-blue-700">
                 {loading ? 'Salvando...' : 'Salvar Aula'}
               </Button>
             </DialogFooter>
@@ -240,7 +215,7 @@ export function CriarAulaModal({
           alunos={alunos}
           open={isMarcarPresencaOpen}
           onOpenChange={setIsMarcarPresencaOpen}
-          onSave={handleClosePresenca}
+          onSave={() => setIsMarcarPresencaOpen(false)}
         />
       )}
     </>
