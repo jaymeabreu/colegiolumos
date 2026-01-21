@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Users, GraduationCap, Mail, Eye, TrendingUp, BarChart3, AlertTriangle, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
-import { Badge } from '../../../components/ui/badge';
+import { Badge } from '../../../components/ui/badge'; 
 import { Avatar, AvatarImage, AvatarFallback } from '../../../components/ui/avatar';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../../components/ui/card';
 import { Dialog, DialogContent } from '../../../components/ui/dialog';
