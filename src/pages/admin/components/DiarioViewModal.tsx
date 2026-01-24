@@ -153,11 +153,11 @@ export function DiarioViewModal({
   };
 
   const getSituacaoColor = (situacao: string | null) => {
-    if (!situacao || situacao === 'Em Análise') return 'bg-gray-100 text-gray-800 border-gray-200';
-    if (situacao === 'Aprovado') return 'bg-green-100 text-green-800 border-green-200';
-    if (situacao === 'Reprovado') return 'bg-red-100 text-red-800 border-red-200';
-    if (situacao === 'Recuperação') return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-    return 'bg-gray-100 text-gray-800 border-gray-200';
+    if (!situacao || situacao === 'Em Análise') return 'bg-gray-100 text-gray-800 border-gray-300';
+    if (situacao === 'Aprovado') return 'bg-green-100 text-green-800 border-green-300';
+    if (situacao === 'Reprovado') return 'bg-red-100 text-red-800 border-red-300';
+    if (situacao === 'Recuperação') return 'bg-yellow-100 text-yellow-800 border-yellow-300';
+    return 'bg-gray-100 text-gray-800 border-gray-300';
   };
 
   if (!diario || !open) return null;
