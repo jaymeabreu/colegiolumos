@@ -24,6 +24,16 @@ export function DevolverDiarioModal({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
+  // Limpar estados quando modal fecha
+  useEffect(() => {
+    if (!open) {
+      setMotivo('');
+      setError(null);
+      setSuccess(false);
+      setIsLoading(false);
+    }
+  }, [open]);
+
   const playSuccessSound = () => {
     try {
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -60,7 +70,19 @@ export function DevolverDiarioModal({
     setSuccess(false);
     setError(null);
     setIsLoading(false);
+    
+    // Chamar onOpenChange imediatamente
     onOpenChange(false);
+    
+    // Extra: garantir com timeout
+    setTimeout(() => {
+      onOpenChange(false);
+    }, 10);
+    
+    // Extra: mais um para ter certeza
+    setTimeout(() => {
+      onOpenChange(false);
+    }, 50);
   };
 
   const handleDevolver = async () => {
@@ -163,15 +185,18 @@ export function DevolverDiarioModal({
 
               {/* Campo de Motivo */}
               <div className="flex-1">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <label htmlFor="motivo" className="block text-sm font-semibold text-gray-700 mb-2">
                   Observação (opcional)
                 </label>
                 <textarea
+                  id="motivo"
+                  name="motivo"
                   value={motivo}
                   onChange={(e) => setMotivo(e.target.value.slice(0, 500))}
                   placeholder="Explique o motivo da devolução para o professor..."
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none h-32"
                   disabled={isLoading}
+                  autoComplete="off"
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   {motivo.length}/500 caracteres
