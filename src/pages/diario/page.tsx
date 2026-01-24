@@ -5,6 +5,7 @@ import { DiarioTabs } from "./components/DiarioTabs"
 import { AulasTab } from "./components/AulasTab"
 import { AvaliacoesTab } from "./components/AvaliacoesTab"
 import { AlunosTab } from "./components/AlunosTab"
+import { RendimentoTab } from "./components/RendimentoTab"
 import { OcorrenciasTab } from "./components/OcorrenciasTab"
 import { DiarioStatusControls } from "../../components/shared/DiarioStatusControls"
 import { supabaseService, Diario } from "../../services/supabaseService"
@@ -57,7 +58,7 @@ export function DiarioPage() {
     )
   }
 
-  const podeEditar = supabaseService.professorPodeEditarDiario(diario.id, user.professorId || 0)
+  const podeEditar = supabaseService.professorPodeEditarDiario(diario, user.professorId || 0)
 
   const renderTabContent = () => {
     const tabProps = { 
@@ -72,6 +73,8 @@ export function DiarioPage() {
         return <AvaliacoesTab {...tabProps} />
       case "alunos":
         return <AlunosTab {...tabProps} />
+      case "rendimento":
+        return <RendimentoTab diarioId={diario.id} />
       case "ocorrencias":
         return <OcorrenciasTab {...tabProps} />
       default:
