@@ -117,7 +117,20 @@ export function DiarioViewModal({
         }
       });
 
-      const boletim = await Promise.all(boletimPromises);
+      let boletim = await Promise.all(boletimPromises);
+      
+      // Aplicar lógica: a média é o status final
+      boletim = boletim.map(aluno => ({
+        ...aluno,
+        acompanhamento: aluno.media === null 
+          ? 'Em Análise'
+          : aluno.media >= 7 
+            ? 'Aprovado'
+            : aluno.media >= 5
+              ? 'Recuperação'
+              : 'Reprovado'
+      }));
+      
       setAlunos(boletim);
 
       const aulasData = await supabaseService.getAulasByDiario(diario.id);
