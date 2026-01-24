@@ -109,20 +109,29 @@ export function TurmaCard({ diario, onClick, onStatusChange }: TurmaCardProps) {
 
   const canDeliver = diario.status === 'PENDENTE' || diario.status === 'DEVOLVIDO';
   const canRequestReturn = diario.status === 'ENTREGUE';
+  const isLocked = diario.status === 'ENTREGUE' || diario.status === 'FINALIZADO';
 
   return (
-    <Card className="hover:shadow-lg transition-shadow">
+    <Card className={`hover:shadow-lg transition-shadow ${isLocked ? 'opacity-70 bg-gray-50' : ''}`}>
       <CardHeader>
         <div className="flex items-start justify-between">
-          <div className="flex-1 cursor-pointer" onClick={onClick}>
+          <div className={`flex-1 ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`} onClick={!isLocked ? onClick : undefined}>
             <CardTitle className="text-lg">{diarioNome}</CardTitle>
-            <div className="mt-2">
+            <div className="mt-2 space-y-2">
               <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${getStatusColor(diario.status)}`}>
                 {diario.status}
               </span>
+              {isLocked && (
+                <div className="text-xs text-orange-600 font-medium">
+                  🔒 Diário bloqueado para edição
+                </div>
+              )}
             </div>
           </div>
-          <ChevronRight className="h-5 w-5 text-muted-foreground flex-shrink-0 cursor-pointer" onClick={onClick} />
+          <ChevronRight 
+            className={`h-5 w-5 text-muted-foreground flex-shrink-0 ${isLocked ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`} 
+            onClick={!isLocked ? onClick : undefined} 
+          />
         </div>
       </CardHeader>
       <CardContent>
@@ -130,13 +139,13 @@ export function TurmaCard({ diario, onClick, onStatusChange }: TurmaCardProps) {
           {/* Informações */}
           <div className="space-y-3">
             {/* Período/Bimestre */}
-            <div className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer" onClick={onClick}>
+            <div className={`flex items-center gap-2 text-sm text-muted-foreground ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`} onClick={!isLocked ? onClick : undefined}>
               <Calendar className="h-4 w-4" />
               <span>{diario.bimestre}º Bimestre</span>
             </div>
 
             {/* Alunos Matriculados */}
-            <div className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer" onClick={onClick}>
+            <div className={`flex items-center gap-2 text-sm text-muted-foreground ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`} onClick={!isLocked ? onClick : undefined}>
               <Users className="h-4 w-4" />
               <span>
                 {loading ? 'Carregando...' : `${stats.alunosMatriculados} alunos matriculados`}
@@ -144,13 +153,25 @@ export function TurmaCard({ diario, onClick, onStatusChange }: TurmaCardProps) {
             </div>
 
             {/* Aulas Dadas */}
-            <div className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer" onClick={onClick}>
+            <div className={`flex items-center gap-2 text-sm text-muted-foreground ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`} onClick={!isLocked ? onClick : undefined}>
               <BookOpen className="h-4 w-4" />
               <span>
                 {loading ? 'Carregando...' : `${stats.aulasCount} aulas dadas`}
               </span>
             </div>
           </div>
+
+          {/* Aviso quando bloqueado */}
+          {isLocked && (
+            <div className="p-3 bg-orange-50 border border-orange-200 rounded text-sm text-orange-700">
+              <p className="font-medium">
+                {diario.status === 'ENTREGUE' 
+                  ? '⏳ Aguardando análise do coordenador. Você não pode editar neste momento.'
+                  : '✅ Diário finalizado. Não é possível fazer alterações.'
+                }
+              </p>
+            </div>
+          )}
 
           {/* Botões de Ação */}
           <div className="flex gap-2 pt-2 border-t">
