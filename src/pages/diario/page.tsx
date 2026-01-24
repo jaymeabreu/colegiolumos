@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import { DiarioHeader } from "./components/DiarioHeader"
+import { DiarioHeader } from "./components/DiarioHeader" 
 import { DiarioTabs } from "./components/DiarioTabs"
 import { AulasTab } from "./components/AulasTab"
 import { AvaliacoesTab } from "./components/AvaliacoesTab"
