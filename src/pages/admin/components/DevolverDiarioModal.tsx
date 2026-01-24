@@ -65,24 +65,7 @@ export function DevolverDiarioModal({
   };
 
   const closeModal = () => {
-    console.log('Fechando modal...');
-    setMotivo('');
-    setSuccess(false);
-    setError(null);
-    setIsLoading(false);
-    
-    // Chamar onOpenChange imediatamente
     onOpenChange(false);
-    
-    // Extra: garantir com timeout
-    setTimeout(() => {
-      onOpenChange(false);
-    }, 10);
-    
-    // Extra: mais um para ter certeza
-    setTimeout(() => {
-      onOpenChange(false);
-    }, 50);
   };
 
   const handleDevolver = async () => {
@@ -102,10 +85,10 @@ export function DevolverDiarioModal({
         playSuccessSound();
         setSuccess(true);
         
-        // Esperar 1.5 segundos mostrando sucesso
+        // Esperar 1.5 segundos mostrando a mensagem de sucesso
         await new Promise(resolve => setTimeout(resolve, 1500));
         
-        // Chamar callback
+        // Chamar o callback de sucesso (geralmente para atualizar a lista de diários)
         if (onSuccess) {
           const result = onSuccess();
           if (result instanceof Promise) {
@@ -113,10 +96,7 @@ export function DevolverDiarioModal({
           }
         }
         
-        // Aguardar recarregamento
-        await new Promise(resolve => setTimeout(resolve, 300));
-        
-        // FECHAR MODAL
+        // FECHAR MODAL AUTOMATICAMENTE
         closeModal();
       } else {
         setError('Erro ao devolver o diário. Tente novamente.');
