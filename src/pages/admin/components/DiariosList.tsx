@@ -863,8 +863,9 @@ export function DiariosList() {
         diario={selectedDiario}
         open={isDevolverModalOpen}
         onOpenChange={setIsDevolverModalOpen}
-        onSuccess={() => {
-          loadData();
+        onSuccess={async () => {
+          // Recarregar dados imediatamente
+          await loadData();
           setSelectedDiario(null);
           setObservacaoDevolucao('');
         }}
