@@ -350,12 +350,9 @@ export function DiarioViewModal({
                                 </span>
                               </td>
                               <td className="border px-4 py-3 text-center">
-                                <Badge 
-                                  variant="outline" 
-                                  className={getSituacaoColor(aluno.acompanhamento)}
-                                >
+                                <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold border ${getSituacaoColor(aluno.acompanhamento)}`}>
                                   {aluno.acompanhamento || 'Em Análise'}
-                                </Badge>
+                                </span>
                               </td>
                             </tr>
                           ))
