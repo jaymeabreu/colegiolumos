@@ -24,13 +24,16 @@ export function DevolverDiarioModal({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  // Reset states quando modal fecha
+  // Resetar quando modal fecha - com force cleanup
   useEffect(() => {
     if (!open) {
-      setMotivo('');
-      setError(null);
-      setSuccess(false);
-      setIsLoading(false);
+      const timer = setTimeout(() => {
+        setMotivo('');
+        setError(null);
+        setSuccess(false);
+        setIsLoading(false);
+      }, 100);
+      return () => clearTimeout(timer);
     }
   }, [open]);
 
@@ -42,28 +45,21 @@ export function DevolverDiarioModal({
       
       oscillator.connect(gainNode);
       gainNode.connect(audioContext.destination);
-      
       oscillator.frequency.value = 523.25;
       oscillator.type = 'sine';
-      
       gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
       gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
-      
       oscillator.start(audioContext.currentTime);
       oscillator.stop(audioContext.currentTime + 0.4);
       
       const osc2 = audioContext.createOscillator();
       const gain2 = audioContext.createGain();
-      
       osc2.connect(gain2);
       gain2.connect(audioContext.destination);
-      
       osc2.frequency.value = 659.25;
       osc2.type = 'sine';
-      
       gain2.gain.setValueAtTime(0.3, audioContext.currentTime + 0.15);
       gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.55);
-      
       osc2.start(audioContext.currentTime + 0.15);
       osc2.stop(audioContext.currentTime + 0.55);
     } catch (e) {
@@ -88,10 +84,10 @@ export function DevolverDiarioModal({
         playSuccessSound();
         setSuccess(true);
         
-        // Esperar 2 segundos mostrando sucesso
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        // Esperar 1.5 segundos mostrando sucesso
+        await new Promise(resolve => setTimeout(resolve, 1500));
         
-        // Chamar callback para recarregar dados
+        // Chamar callback
         if (onSuccess) {
           const result = onSuccess();
           if (result instanceof Promise) {
@@ -99,15 +95,22 @@ export function DevolverDiarioModal({
           }
         }
         
-        // Aguardar um pouco para garantir recarregamento
-        await new Promise(resolve => setTimeout(resolve, 300));
+        // Aguardar recarregamento
+        await new Promise(resolve => setTimeout(resolve, 500));
         
-        // FORÇAR fechamento do modal
+        // FECHAR FORÇADAMENTE
         setMotivo('');
         setSuccess(false);
         setError(null);
         setIsLoading(false);
+        
+        // CRUCIAL: Chamar onOpenChange DEPOIS de tudo
         onOpenChange(false);
+        
+        // Extra: garantir com um setTimeout
+        setTimeout(() => {
+          onOpenChange(false);
+        }, 100);
       } else {
         setError('Erro ao devolver o diário. Tente novamente.');
       }
@@ -149,13 +152,13 @@ export function DevolverDiarioModal({
         </div>
 
         {/* CONTEÚDO */}
-        <div className="p-6 min-h-[300px] flex flex-col">
+        <div className="p-6 min-h-[320px] flex flex-col">
           {success ? (
-            <div className="flex-1 flex flex-col items-center justify-center py-8">
+            <div className="flex-1 flex flex-col items-center justify-center">
               <CheckCircle className="h-12 w-12 text-green-600 mb-3 animate-bounce" />
               <p className="text-lg font-semibold text-gray-900 mb-1">Diário devolvido com sucesso!</p>
               <p className="text-sm text-gray-600 text-center">
-                O professor será notificado sobre a devolução e poderá fazer as correções necessárias.
+                O professor será notificado sobre a devolução.
               </p>
             </div>
           ) : (
