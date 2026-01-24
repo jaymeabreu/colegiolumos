@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../../components/ui/card';
 import { Badge } from '../../../components/ui/badge';
 import { Input } from '../../../components/ui/input';
-import { Button } from '../../../components/ui/button'; 
+import { Button } from '../../../components/ui/button';
 import { Eye, Search, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { supabaseService } from '../../../services/supabaseService';
-import type { Aluno, Diario } from '../../../services/supabaseService';
+import type { Aluno, Diario, Avaliacao } from '../../../services/supabaseService';
 
 interface RendimentoTabProps {
   diarioId: number;
@@ -18,10 +18,12 @@ interface AlunoRendimento {
   faltas: number;
   situacao: 'Aprovado' | 'Reprovado' | 'Em Análise' | 'Recuperação';
   frequencia: number;
+  notas: { [avaliacaoId: number]: number };
 }
 
 export function RendimentoTab({ diarioId }: RendimentoTabProps) {
   const [alunos, setAlunos] = useState<AlunoRendimento[]>([]);
+  const [avaliacoes, setAvaliacoes] = useState<Avaliacao[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [diario, setDiario] = useState<Diario | null>(null);
@@ -41,8 +43,13 @@ export function RendimentoTab({ diarioId }: RendimentoTabProps) {
       if (!diarioData) {
         console.error('Diário não encontrado');
         setAlunos([]);
+        setAvaliacoes([]);
         return;
       }
+
+      // Buscar avaliações do diário
+      const avaliacoesData = await supabaseService.getAvaliacoesByDiario(diarioId);
+      setAvaliacoes(avaliacoesData || []);
 
       // Buscar alunos do diário
       const alunosDoDiario = await supabaseService.getAlunosByDiario(diarioId);
@@ -53,13 +60,25 @@ export function RendimentoTab({ diarioId }: RendimentoTabProps) {
           try {
             const boletim = await supabaseService.getBoletimAluno(diarioId, aluno.id);
             
+            // Buscar notas individuais de cada avaliação
+            const notasAluno = await supabaseService.getNotasByAluno(aluno.id);
+            const notasPorAvaliacao: { [key: number]: number } = {};
+            
+            notasAluno.forEach(nota => {
+              const avaliacaoId = nota.avaliacao_id ?? nota.avaliacaoId;
+              if (avaliacaoId) {
+                notasPorAvaliacao[avaliacaoId] = nota.valor ?? 0;
+              }
+            });
+            
             return {
               id: aluno.id,
               nome: aluno.nome,
               media: boletim.mediaGeral,
               faltas: boletim.faltas,
               situacao: boletim.situacao as AlunoRendimento['situacao'],
-              frequencia: boletim.frequencia
+              frequencia: boletim.frequencia,
+              notas: notasPorAvaliacao
             };
           } catch (error) {
             console.error(`Erro ao buscar rendimento de ${aluno.nome}:`, error);
@@ -69,7 +88,8 @@ export function RendimentoTab({ diarioId }: RendimentoTabProps) {
               media: 0,
               faltas: 0,
               situacao: 'Em Análise' as const,
-              frequencia: 0
+              frequencia: 0,
+              notas: {}
             };
           }
         })
@@ -79,6 +99,7 @@ export function RendimentoTab({ diarioId }: RendimentoTabProps) {
     } catch (error) {
       console.error('Erro ao carregar rendimento:', error);
       setAlunos([]);
+      setAvaliacoes([]);
     } finally {
       setLoading(false);
     }
@@ -231,19 +252,28 @@ export function RendimentoTab({ diarioId }: RendimentoTabProps) {
                 <table className="w-full">
                   <thead className="bg-gray-50 border-b">
                     <tr>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
+                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 whitespace-nowrap">
                         Nº
                       </th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
+                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 whitespace-nowrap min-w-[200px]">
                         Nome
                       </th>
-                      <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">
+                      {/* Colunas dinâmicas de avaliações */}
+                      {avaliacoes.map((avaliacao) => (
+                        <th key={avaliacao.id} className="px-4 py-3 text-center text-sm font-medium text-gray-700 whitespace-nowrap">
+                          <div>{avaliacao.titulo}</div>
+                          <div className="text-xs text-gray-500 font-normal">
+                            Peso: {avaliacao.peso}
+                          </div>
+                        </th>
+                      ))}
+                      <th className="px-4 py-3 text-center text-sm font-medium text-gray-700 whitespace-nowrap">
                         Média
                       </th>
-                      <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">
+                      <th className="px-4 py-3 text-center text-sm font-medium text-gray-700 whitespace-nowrap">
                         Faltas
                       </th>
-                      <th className="px-4 py-3 text-center text-sm font-medium text-gray-700">
+                      <th className="px-4 py-3 text-center text-sm font-medium text-gray-700 whitespace-nowrap">
                         Situação
                       </th>
                     </tr>
@@ -257,6 +287,21 @@ export function RendimentoTab({ diarioId }: RendimentoTabProps) {
                         <td className="px-4 py-4 text-sm text-gray-900">
                           {aluno.nome}
                         </td>
+                        {/* Notas de cada avaliação */}
+                        {avaliacoes.map((avaliacao) => {
+                          const nota = aluno.notas[avaliacao.id];
+                          return (
+                            <td key={avaliacao.id} className="px-4 py-4 text-center">
+                              <span className={`font-semibold text-sm ${
+                                nota === undefined ? 'text-gray-400' :
+                                nota >= 7 ? 'text-green-600' :
+                                nota >= 5 ? 'text-yellow-600' : 'text-red-600'
+                              }`}>
+                                {nota !== undefined ? nota.toFixed(1) : '-'}
+                              </span>
+                            </td>
+                          );
+                        })}
                         <td className="px-4 py-4 text-center">
                           <div className="flex items-center justify-center gap-2">
                             {getMediaIcon(aluno.media)}
