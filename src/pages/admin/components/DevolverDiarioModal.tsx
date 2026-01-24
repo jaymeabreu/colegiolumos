@@ -85,27 +85,27 @@ export function DevolverDiarioModal({
         
         // Fechar TUDO após 2.5 segundos
         setTimeout(() => {
-          // IMPORTANTE: Resetar tudo ANTES de fechar
+          // PASSO 1: Chamar callback para recarregar dados
+          onSuccess?.();
+          
+          // PASSO 2: Resetar states
           setMotivo('');
           setSuccess(false);
           setError(null);
           setIsLoading(false);
           
-          // Chamar callback PRIMEIRO
-          onSuccess?.();
-          
-          // DEPOIS fechar o modal (com delay para garantir)
+          // PASSO 3: Fechar o modal (com delay para garantir)
           setTimeout(() => {
             onOpenChange(false);
-          }, 100);
+          }, 50);
         }, 2500);
       } else {
         setError('Erro ao devolver o diário. Tente novamente.');
+        setIsLoading(false);
       }
     } catch (err: any) {
       console.error('Erro ao devolver diário:', err);
       setError(err.message || 'Erro ao devolver o diário');
-    } finally {
       setIsLoading(false);
     }
   };
@@ -125,7 +125,11 @@ export function DevolverDiarioModal({
             </p>
           </div>
           <button
-            onClick={() => onOpenChange(false)}
+            onClick={() => {
+              setMotivo('');
+              setError(null);
+              onOpenChange(false);
+            }}
             className="p-1 hover:bg-white rounded-full transition-colors text-gray-600 hover:text-gray-900"
           >
             <X className="h-5 w-5" />
@@ -188,7 +192,11 @@ export function DevolverDiarioModal({
           <div className="border-t bg-gray-50 px-6 py-4 flex gap-3 justify-end">
             <Button
               variant="outline"
-              onClick={() => onOpenChange(false)}
+              onClick={() => {
+                setMotivo('');
+                setError(null);
+                onOpenChange(false);
+              }}
               disabled={isLoading}
               className="px-6"
             >
