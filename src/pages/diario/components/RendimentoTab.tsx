@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../../components/ui/card';
 import { Badge } from '../../../components/ui/badge';
 import { Input } from '../../../components/ui/input';
-import { Button } from '../../../components/ui/button';
+import { Button } from '../../../components/ui/button'; 
 import { Eye, Search, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { supabaseService } from '../../../services/supabaseService';
 import type { Aluno, Diario } from '../../../services/supabaseService';
