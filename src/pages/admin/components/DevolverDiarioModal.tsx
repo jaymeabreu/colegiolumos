@@ -24,19 +24,6 @@ export function DevolverDiarioModal({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  // Resetar quando modal fecha - com force cleanup
-  useEffect(() => {
-    if (!open) {
-      const timer = setTimeout(() => {
-        setMotivo('');
-        setError(null);
-        setSuccess(false);
-        setIsLoading(false);
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [open]);
-
   const playSuccessSound = () => {
     try {
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -65,6 +52,15 @@ export function DevolverDiarioModal({
     } catch (e) {
       console.log('Som não disponível');
     }
+  };
+
+  const closeModal = () => {
+    console.log('Fechando modal...');
+    setMotivo('');
+    setSuccess(false);
+    setError(null);
+    setIsLoading(false);
+    onOpenChange(false);
   };
 
   const handleDevolver = async () => {
@@ -96,28 +92,17 @@ export function DevolverDiarioModal({
         }
         
         // Aguardar recarregamento
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 300));
         
-        // FECHAR FORÇADAMENTE
-        setMotivo('');
-        setSuccess(false);
-        setError(null);
-        setIsLoading(false);
-        
-        // CRUCIAL: Chamar onOpenChange DEPOIS de tudo
-        onOpenChange(false);
-        
-        // Extra: garantir com um setTimeout
-        setTimeout(() => {
-          onOpenChange(false);
-        }, 100);
+        // FECHAR MODAL
+        closeModal();
       } else {
         setError('Erro ao devolver o diário. Tente novamente.');
+        setIsLoading(false);
       }
     } catch (err: any) {
       console.error('Erro ao devolver diário:', err);
       setError(err.message || 'Erro ao devolver o diário');
-    } finally {
       setIsLoading(false);
     }
   };
@@ -137,14 +122,9 @@ export function DevolverDiarioModal({
             </p>
           </div>
           <button
-            onClick={() => {
-              setMotivo('');
-              setError(null);
-              setSuccess(false);
-              setIsLoading(false);
-              onOpenChange(false);
-            }}
-            disabled={isLoading}
+            onClick={closeModal}
+            disabled={isLoading || success}
+            type="button"
             className="p-1 hover:bg-white rounded-full transition-colors text-gray-600 hover:text-gray-900 disabled:opacity-50"
           >
             <X className="h-5 w-5" />
@@ -205,20 +185,16 @@ export function DevolverDiarioModal({
         {!success && (
           <div className="border-t bg-gray-50 px-6 py-4 flex gap-3 justify-end flex-shrink-0">
             <Button
+              type="button"
               variant="outline"
-              onClick={() => {
-                setMotivo('');
-                setError(null);
-                setSuccess(false);
-                setIsLoading(false);
-                onOpenChange(false);
-              }}
+              onClick={closeModal}
               disabled={isLoading}
               className="px-6"
             >
               Cancelar
             </Button>
             <Button
+              type="button"
               className="bg-orange-600 hover:bg-orange-700 text-white px-6"
               onClick={handleDevolver}
               disabled={isLoading}
