@@ -24,6 +24,45 @@ export function DevolverDiarioModal({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
+  const playSuccessSound = () => {
+    try {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      // Nota musical - Dó maior
+      oscillator.frequency.value = 523.25; // Dó
+      oscillator.type = 'sine';
+      
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.4);
+      
+      // Nota 2 - Mi
+      const osc2 = audioContext.createOscillator();
+      const gain2 = audioContext.createGain();
+      
+      osc2.connect(gain2);
+      gain2.connect(audioContext.destination);
+      
+      osc2.frequency.value = 659.25; // Mi
+      osc2.type = 'sine';
+      
+      gain2.gain.setValueAtTime(0.3, audioContext.currentTime + 0.15);
+      gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.55);
+      
+      osc2.start(audioContext.currentTime + 0.15);
+      osc2.stop(audioContext.currentTime + 0.55);
+    } catch (e) {
+      console.log('Som não disponível');
+    }
+  };
+
   const handleDevolver = async () => {
     if (!diario) return;
 
@@ -39,15 +78,26 @@ export function DevolverDiarioModal({
       );
 
       if (resultado) {
+        // Reproduzir som de sucesso
+        playSuccessSound();
+        
         setSuccess(true);
         
-        // Fechar após 2 segundos
+        // Fechar TUDO após 2.5 segundos
         setTimeout(() => {
-          onOpenChange(false);
           setMotivo('');
           setSuccess(false);
-          onSuccess?.();
-        }, 2000);
+          setError(null);
+          setIsLoading(false);
+          
+          // Fechar o modal de devolver
+          onOpenChange(false);
+          
+          // Aguardar um pouco e depois chamar callback (que recarrega dados)
+          setTimeout(() => {
+            onSuccess?.();
+          }, 300);
+        }, 2500);
       } else {
         setError('Erro ao devolver o diário. Tente novamente.');
       }
@@ -85,10 +135,10 @@ export function DevolverDiarioModal({
         <div className="p-6">
           {success ? (
             <div className="flex flex-col items-center justify-center py-8">
-              <CheckCircle className="h-12 w-12 text-green-600 mb-3" />
+              <CheckCircle className="h-12 w-12 text-green-600 mb-3 animate-bounce" />
               <p className="text-lg font-semibold text-gray-900 mb-1">Diário devolvido com sucesso!</p>
               <p className="text-sm text-gray-600 text-center">
-                O professor será notificado sobre a devolução.
+                O professor será notificado sobre a devolução e poderá fazer as correções necessárias.
               </p>
             </div>
           ) : (
@@ -118,7 +168,7 @@ export function DevolverDiarioModal({
                 </label>
                 <textarea
                   value={motivo}
-                  onChange={(e) => setMotivo(e.target.value)}
+                  onChange={(e) => setMotivo(e.target.value.slice(0, 500))}
                   placeholder="Explique o motivo da devolução para o professor..."
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
                   rows={4}
