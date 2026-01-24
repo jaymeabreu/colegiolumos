@@ -1616,17 +1616,38 @@ class SupabaseService {
       
       if (mediaGeral > 0) {
         if (frequencia < 75) {
-          // Reprovado por falta (independente da média)
           situacao = 'Reprovado';
         } else if (mediaGeral >= 6.0) {
-          // Aprovado: média ≥ 6.0 E frequência ≥ 75%
           situacao = 'Aprovado';
         } else if (mediaGeral >= 5.0) {
-          // Recuperação: média entre 5.0-5.9 E frequência ≥ 75%
           situacao = 'Recuperação';
         } else {
-          // Reprovado: média < 5.0 (mesmo com boa frequência)
           situacao = 'Reprovado';
         }
       }
+
+      return {
+        mediaGeral,
+        frequencia,
+        situacao,
+        totalAulas,
+        presencas,
+        faltas,
+        notas: notasDetalhadas
+      };
+    } catch (error) {
+      console.error('Erro ao buscar boletim do aluno:', error);
+      return {
+        mediaGeral: 0,
+        frequencia: 0,
+        situacao: 'Sem Dados',
+        totalAulas: 0,
+        presencas: 0,
+        faltas: 0,
+        notas: []
+      };
+    }
+  }
+}
+
 export const supabaseService = new SupabaseService();
