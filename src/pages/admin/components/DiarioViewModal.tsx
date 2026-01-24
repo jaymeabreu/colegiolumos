@@ -5,7 +5,7 @@ import { Button } from '../../../components/ui/button';
 import { ScrollArea } from '../../../components/ui/scroll-area';
 import { supabaseService } from '../../../services/supabaseService';
 import { MarcarPresencaModal } from './MarcarPresencaModal';
-import type { Diario, Aula, Aluno } from '../../../services/supabaseService';
+import type { Diario, Aula, Aluno, Avaliacao } from '../../../services/supabaseService';
 
 interface DiarioViewModalProps {
   diario: Diario | null;
@@ -24,6 +24,7 @@ interface BoletimRow {
   media: number | null;
   faltas: number | null;
   acompanhamento: string | null;
+  notas: { [avaliacaoId: number]: number };
 }
 
 interface DadosIdentificacao {
@@ -51,6 +52,7 @@ export function DiarioViewModal({
   const [carregando, setCarregando] = useState(true);
   const [identificacao, setIdentificacao] = useState<DadosIdentificacao | null>(null);
   const [aulas, setAulas] = useState<Aula[]>([]);
+  const [avaliacoes, setAvaliacoes] = useState<Avaliacao[]>([]);
   const [alunosData, setAlunosData] = useState<Aluno[]>([]);
   const [isMarcarPresencaOpen, setIsMarcarPresencaOpen] = useState(false);
   const [selectedAula, setSelectedAula] = useState<Aula | null>(null);
@@ -74,16 +76,33 @@ export function DiarioViewModal({
       const alunosDataTemp = await supabaseService.getAlunosByDiario(diario.id);
       setAlunosData(alunosDataTemp);
 
+      // Buscar avaliações do diário
+      const avaliacoesData = await supabaseService.getAvaliacoesByDiario(diario.id);
+      setAvaliacoes(avaliacoesData || []);
+
       // Buscar rendimento real de cada aluno
       const boletimPromises = (alunosDataTemp || []).map(async (aluno, index) => {
         try {
           const boletimAluno = await supabaseService.getBoletimAluno(diario.id, aluno.id);
+          
+          // Buscar notas individuais de cada avaliação
+          const notasAluno = await supabaseService.getNotasByAluno(aluno.id);
+          const notasPorAvaliacao: { [key: number]: number } = {};
+          
+          notasAluno.forEach(nota => {
+            const avaliacaoId = nota.avaliacao_id ?? nota.avaliacaoId;
+            if (avaliacaoId) {
+              notasPorAvaliacao[avaliacaoId] = nota.valor ?? 0;
+            }
+          });
+          
           return {
             numero: index + 1,
             nome: aluno.nome,
             media: boletimAluno.mediaGeral > 0 ? boletimAluno.mediaGeral : null,
             faltas: boletimAluno.faltas > 0 ? boletimAluno.faltas : null,
-            acompanhamento: boletimAluno.situacao
+            acompanhamento: boletimAluno.situacao,
+            notas: notasPorAvaliacao
           };
         } catch (error) {
           console.error(`Erro ao buscar boletim de ${aluno.nome}:`, error);
@@ -92,7 +111,8 @@ export function DiarioViewModal({
             nome: aluno.nome,
             media: null,
             faltas: null,
-            acompanhamento: null
+            acompanhamento: null,
+            notas: {}
           };
         }
       });
@@ -274,11 +294,20 @@ export function DiarioViewModal({
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="bg-gray-100 border-b-2 border-gray-300">
-                          <th className="border px-4 py-3 text-left font-semibold text-gray-700">N°</th>
-                          <th className="border px-4 py-3 text-left font-semibold text-gray-700">Nome</th>
-                          <th className="border px-4 py-3 text-center font-semibold text-gray-700">Média</th>
-                          <th className="border px-4 py-3 text-center font-semibold text-gray-700">Faltas</th>
-                          <th className="border px-4 py-3 text-center font-semibold text-gray-700">Situação</th>
+                          <th className="border px-4 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">N°</th>
+                          <th className="border px-4 py-3 text-left font-semibold text-gray-700 whitespace-nowrap min-w-[200px]">Nome</th>
+                          {/* Colunas dinâmicas de avaliações */}
+                          {avaliacoes.map((avaliacao) => (
+                            <th key={avaliacao.id} className="border px-4 py-3 text-center font-semibold text-gray-700 whitespace-nowrap">
+                              <div>{avaliacao.titulo}</div>
+                              <div className="text-xs text-gray-500 font-normal">
+                                Peso: {avaliacao.peso}
+                              </div>
+                            </th>
+                          ))}
+                          <th className="border px-4 py-3 text-center font-semibold text-gray-700 whitespace-nowrap">Média</th>
+                          <th className="border px-4 py-3 text-center font-semibold text-gray-700 whitespace-nowrap">Faltas</th>
+                          <th className="border px-4 py-3 text-center font-semibold text-gray-700 whitespace-nowrap">Situação</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -287,6 +316,21 @@ export function DiarioViewModal({
                             <tr key={aluno.numero} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                               <td className="border px-4 py-3 text-center font-medium">{aluno.numero}</td>
                               <td className="border px-4 py-3">{aluno.nome}</td>
+                              {/* Notas de cada avaliação */}
+                              {avaliacoes.map((avaliacao) => {
+                                const nota = aluno.notas[avaliacao.id];
+                                return (
+                                  <td key={avaliacao.id} className="border px-4 py-3 text-center">
+                                    <span className={`font-semibold ${
+                                      nota === undefined ? 'text-gray-400' :
+                                      nota >= 7 ? 'text-green-600' :
+                                      nota >= 5 ? 'text-yellow-600' : 'text-red-600'
+                                    }`}>
+                                      {nota !== undefined ? nota.toFixed(1) : '-'}
+                                    </span>
+                                  </td>
+                                );
+                              })}
                               <td className="border px-4 py-3 text-center">
                                 <span className={`font-semibold ${
                                   aluno.media === null ? 'text-gray-400' :
@@ -317,7 +361,7 @@ export function DiarioViewModal({
                           ))
                         ) : (
                           <tr>
-                            <td colSpan={5} className="border px-4 py-8 text-center text-gray-500">
+                            <td colSpan={5 + avaliacoes.length} className="border px-4 py-8 text-center text-gray-500">
                               Nenhum aluno encontrado
                             </td>
                           </tr>
