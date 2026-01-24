@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, AlertCircle, CheckCircle } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { supabaseService } from '../../../services/supabaseService';
@@ -8,7 +8,7 @@ interface DevolverDiarioModalProps {
   diario: Diario | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSuccess?: () => void;
+  onSuccess?: () => void | Promise<void>;
   loading?: boolean;
 }
 
@@ -24,6 +24,16 @@ export function DevolverDiarioModal({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
+  // Reset states quando modal fecha
+  useEffect(() => {
+    if (!open) {
+      setMotivo('');
+      setError(null);
+      setSuccess(false);
+      setIsLoading(false);
+    }
+  }, [open]);
+
   const playSuccessSound = () => {
     try {
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -33,8 +43,7 @@ export function DevolverDiarioModal({
       oscillator.connect(gainNode);
       gainNode.connect(audioContext.destination);
       
-      // Nota musical - Dó maior
-      oscillator.frequency.value = 523.25; // Dó
+      oscillator.frequency.value = 523.25;
       oscillator.type = 'sine';
       
       gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
@@ -43,14 +52,13 @@ export function DevolverDiarioModal({
       oscillator.start(audioContext.currentTime);
       oscillator.stop(audioContext.currentTime + 0.4);
       
-      // Nota 2 - Mi
       const osc2 = audioContext.createOscillator();
       const gain2 = audioContext.createGain();
       
       osc2.connect(gain2);
       gain2.connect(audioContext.destination);
       
-      osc2.frequency.value = 659.25; // Mi
+      osc2.frequency.value = 659.25;
       osc2.type = 'sine';
       
       gain2.gain.setValueAtTime(0.3, audioContext.currentTime + 0.15);
@@ -70,42 +78,43 @@ export function DevolverDiarioModal({
       setIsLoading(true);
       setError(null);
 
-      // Chamar a função do serviço para devolver o diário
       const resultado = await supabaseService.devolverDiario(
         diario.id,
-        1, // usuarioId (você pode pegar do contexto/localStorage)
+        1,
         motivo || undefined
       );
 
       if (resultado) {
-        // Reproduzir som de sucesso
         playSuccessSound();
-        
         setSuccess(true);
         
-        // Fechar TUDO após 2.5 segundos
-        setTimeout(() => {
-          // PASSO 1: Chamar callback para recarregar dados
-          onSuccess?.();
-          
-          // PASSO 2: Resetar states
-          setMotivo('');
-          setSuccess(false);
-          setError(null);
-          setIsLoading(false);
-          
-          // PASSO 3: Fechar o modal (com delay para garantir)
-          setTimeout(() => {
-            onOpenChange(false);
-          }, 50);
-        }, 2500);
+        // Esperar 2 segundos mostrando sucesso
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Chamar callback para recarregar dados
+        if (onSuccess) {
+          const result = onSuccess();
+          if (result instanceof Promise) {
+            await result;
+          }
+        }
+        
+        // Aguardar um pouco para garantir recarregamento
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        // FORÇAR fechamento do modal
+        setMotivo('');
+        setSuccess(false);
+        setError(null);
+        setIsLoading(false);
+        onOpenChange(false);
       } else {
         setError('Erro ao devolver o diário. Tente novamente.');
-        setIsLoading(false);
       }
     } catch (err: any) {
       console.error('Erro ao devolver diário:', err);
       setError(err.message || 'Erro ao devolver o diário');
+    } finally {
       setIsLoading(false);
     }
   };
@@ -113,8 +122,8 @@ export function DevolverDiarioModal({
   if (!open || !diario) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[70] backdrop-blur-sm">
-      <div className="bg-white rounded-lg shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[70] backdrop-blur-sm p-4">
+      <div className="bg-white rounded-lg shadow-2xl w-full max-w-md overflow-hidden">
         
         {/* HEADER */}
         <div className="bg-gradient-to-r from-orange-50 to-red-50 p-6 border-b flex items-start justify-between">
@@ -128,18 +137,21 @@ export function DevolverDiarioModal({
             onClick={() => {
               setMotivo('');
               setError(null);
+              setSuccess(false);
+              setIsLoading(false);
               onOpenChange(false);
             }}
-            className="p-1 hover:bg-white rounded-full transition-colors text-gray-600 hover:text-gray-900"
+            disabled={isLoading}
+            className="p-1 hover:bg-white rounded-full transition-colors text-gray-600 hover:text-gray-900 disabled:opacity-50"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* CONTEÚDO */}
-        <div className="p-6">
+        <div className="p-6 min-h-[300px] flex flex-col">
           {success ? (
-            <div className="flex flex-col items-center justify-center py-8">
+            <div className="flex-1 flex flex-col items-center justify-center py-8">
               <CheckCircle className="h-12 w-12 text-green-600 mb-3 animate-bounce" />
               <p className="text-lg font-semibold text-gray-900 mb-1">Diário devolvido com sucesso!</p>
               <p className="text-sm text-gray-600 text-center">
@@ -167,7 +179,7 @@ export function DevolverDiarioModal({
               )}
 
               {/* Campo de Motivo */}
-              <div className="mb-6">
+              <div className="flex-1">
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Observação (opcional)
                 </label>
@@ -175,8 +187,7 @@ export function DevolverDiarioModal({
                   value={motivo}
                   onChange={(e) => setMotivo(e.target.value.slice(0, 500))}
                   placeholder="Explique o motivo da devolução para o professor..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
-                  rows={4}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none h-32"
                   disabled={isLoading}
                 />
                 <p className="text-xs text-gray-500 mt-1">
@@ -189,12 +200,14 @@ export function DevolverDiarioModal({
 
         {/* FOOTER */}
         {!success && (
-          <div className="border-t bg-gray-50 px-6 py-4 flex gap-3 justify-end">
+          <div className="border-t bg-gray-50 px-6 py-4 flex gap-3 justify-end flex-shrink-0">
             <Button
               variant="outline"
               onClick={() => {
                 setMotivo('');
                 setError(null);
+                setSuccess(false);
+                setIsLoading(false);
                 onOpenChange(false);
               }}
               disabled={isLoading}
