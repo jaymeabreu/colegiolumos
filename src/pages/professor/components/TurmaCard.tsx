@@ -25,6 +25,7 @@ export function TurmaCard({ diario, onClick, onStatusChange }: TurmaCardProps) {
   const [actionLoading, setActionLoading] = useState(false);
   const [disciplinaNome, setDisciplinaNome] = useState<string>('');
   const [turmaNome, setTurmaNome] = useState<string>('');
+  const [diarioAtualizado, setDiarioAtualizado] = useState<Diario>(diario);
   
   const diarioNome = disciplinaNome && turmaNome ? `${disciplinaNome} - ${turmaNome}` : diario.nome;
 
@@ -97,11 +98,19 @@ export function TurmaCard({ diario, onClick, onStatusChange }: TurmaCardProps) {
           osc.stop(audioContext.currentTime + 0.4);
         } catch (e) {}
         
-        // Alertar sucesso
+        // Mostrar sucesso
         alert('✅ Diário entregue com sucesso!');
         
-        // Recarregar imediatamente
-        onStatusChange?.();
+        // ATUALIZAR IMEDIATAMENTE o card
+        setDiarioAtualizado({
+          ...diarioAtualizado,
+          status: 'ENTREGUE'
+        });
+        
+        // Aguardar um pouco e depois chamar callback
+        setTimeout(() => {
+          onStatusChange?.();
+        }, 300);
       }
     } catch (error) {
       console.error('Erro ao entregar diário:', error);
@@ -146,9 +155,11 @@ export function TurmaCard({ diario, onClick, onStatusChange }: TurmaCardProps) {
     }
   };
 
-  const canDeliver = diario.status === 'PENDENTE' || diario.status === 'DEVOLVIDO';
-  const canRequestReturn = diario.status === 'ENTREGUE';
-  const isLocked = diario.status === 'ENTREGUE' || diario.status === 'FINALIZADO';
+  // Usar diarioAtualizado em vez de diario para refletir mudanças imediatamente
+  const statusAtual = diarioAtualizado.status || diario.status;
+  const canDeliver = statusAtual === 'PENDENTE' || statusAtual === 'DEVOLVIDO';
+  const canRequestReturn = statusAtual === 'ENTREGUE';
+  const isLocked = statusAtual === 'ENTREGUE' || statusAtual === 'FINALIZADO';
 
   return (
     <Card className={`hover:shadow-lg transition-shadow ${isLocked ? 'opacity-70 bg-gray-50' : ''}`}>
@@ -157,8 +168,8 @@ export function TurmaCard({ diario, onClick, onStatusChange }: TurmaCardProps) {
           <div className={`flex-1 ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`} onClick={!isLocked ? onClick : undefined}>
             <CardTitle className="text-lg">{diarioNome}</CardTitle>
             <div className="mt-2 space-y-2">
-              <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${getStatusColor(diario.status)}`}>
-                {diario.status}
+              <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${getStatusColor(statusAtual)}`}>
+                {statusAtual}
               </span>
               {isLocked && (
                 <div className="text-xs text-orange-600 font-medium">
@@ -204,7 +215,7 @@ export function TurmaCard({ diario, onClick, onStatusChange }: TurmaCardProps) {
           {isLocked && (
             <div className="p-3 bg-orange-50 border border-orange-200 rounded text-sm text-orange-700">
               <p className="font-medium">
-                {diario.status === 'ENTREGUE' 
+                {statusAtual === 'ENTREGUE' 
                   ? '⏳ Aguardando análise do coordenador. Você não pode editar neste momento.'
                   : '✅ Diário finalizado. Não é possível fazer alterações.'
                 }
@@ -237,6 +248,13 @@ export function TurmaCard({ diario, onClick, onStatusChange }: TurmaCardProps) {
                 <RotateCcw className="h-4 w-4" />
                 {actionLoading ? 'Solicitando...' : 'Solicitar Devolução'}
               </Button>
+            )}
+
+            {/* Mostrar estado bloqueado quando não pode fazer nada */}
+            {isLocked && !canDeliver && !canRequestReturn && (
+              <div className="flex-1 flex items-center justify-center text-sm text-gray-500 py-2">
+                Nenhuma ação disponível
+              </div>
             )}
           </div>
         </div>
