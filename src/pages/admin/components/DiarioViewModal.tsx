@@ -471,4 +471,3 @@ export function DiarioViewModal({
 }
 
 export default DiarioViewModal;
-export { DiarioViewModal };
