@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ChevronRight, Users, BookOpen, Calendar, Send, RotateCcw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
@@ -25,9 +25,14 @@ export function TurmaCard({ diario, onClick, onStatusChange }: TurmaCardProps) {
   const [actionLoading, setActionLoading] = useState(false);
   const [disciplinaNome, setDisciplinaNome] = useState<string>('');
   const [turmaNome, setTurmaNome] = useState<string>('');
-  const [diarioAtualizado, setDiarioAtualizado] = useState<Diario>(diario);
+  const [statusLocal, setStatusLocal] = useState<string>(diario.status || 'PENDENTE');
   
   const diarioNome = disciplinaNome && turmaNome ? `${disciplinaNome} - ${turmaNome}` : diario.nome;
+
+  useEffect(() => {
+    // Atualizar status local quando diario muda
+    setStatusLocal(diario.status || 'PENDENTE');
+  }, [diario.status, diario.id]);
 
   useEffect(() => {
     const carregarStats = async () => {
@@ -62,7 +67,7 @@ export function TurmaCard({ diario, onClick, onStatusChange }: TurmaCardProps) {
     carregarNomes();
   }, [diario.id, diario.disciplina_id, diario.disciplinaId, diario.turma_id, diario.turmaId]);
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = useCallback((status: string) => {
     switch (status) {
       case 'PENDENTE':
         return 'bg-yellow-100 text-yellow-800';
@@ -75,42 +80,42 @@ export function TurmaCard({ diario, onClick, onStatusChange }: TurmaCardProps) {
       default:
         return 'bg-gray-100 text-gray-800';
     }
-  };
+  }, []);
 
-  const handleEntregarDiario = async (e: React.MouseEvent) => {
+  const playSound = useCallback((frequency: number = 523.25) => {
+    try {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const osc = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+      osc.connect(gain);
+      gain.connect(audioContext.destination);
+      osc.frequency.value = frequency;
+      osc.type = 'sine';
+      gain.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+      osc.start(audioContext.currentTime);
+      osc.stop(audioContext.currentTime + 0.4);
+    } catch (e) {}
+  }, []);
+
+  const handleEntregarDiario = useCallback(async (e: React.MouseEvent) => {
     e.stopPropagation();
     setActionLoading(true);
     try {
       const resultado = await supabaseService.entregarDiario(diario.id);
       if (resultado) {
-        // Tocar som de sucesso
-        try {
-          const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-          const osc = audioContext.createOscillator();
-          const gain = audioContext.createGain();
-          osc.connect(gain);
-          gain.connect(audioContext.destination);
-          osc.frequency.value = 523.25;
-          osc.type = 'sine';
-          gain.gain.setValueAtTime(0.3, audioContext.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
-          osc.start(audioContext.currentTime);
-          osc.stop(audioContext.currentTime + 0.4);
-        } catch (e) {}
+        playSound(523.25);
         
-        // Mostrar sucesso
+        // ATUALIZAR STATUS IMEDIATAMENTE (sem esperar callback)
+        setStatusLocal('ENTREGUE');
+        
+        // Mostrar alerta
         alert('✅ Diário entregue com sucesso!');
         
-        // ATUALIZAR IMEDIATAMENTE o card
-        setDiarioAtualizado({
-          ...diarioAtualizado,
-          status: 'ENTREGUE'
-        });
-        
-        // Aguardar um pouco e depois chamar callback
+        // Recarregar dados do pai
         setTimeout(() => {
           onStatusChange?.();
-        }, 300);
+        }, 500);
       }
     } catch (error) {
       console.error('Erro ao entregar diário:', error);
@@ -118,9 +123,9 @@ export function TurmaCard({ diario, onClick, onStatusChange }: TurmaCardProps) {
     } finally {
       setActionLoading(false);
     }
-  };
+  }, [diario.id, onStatusChange, playSound]);
 
-  const handleSolicitarDevolucao = async (e: React.MouseEvent) => {
+  const handleSolicitarDevolucao = useCallback(async (e: React.MouseEvent) => {
     e.stopPropagation();
     const motivo = prompt('Motivo da solicitação de devolução:');
     if (!motivo) return;
@@ -129,20 +134,7 @@ export function TurmaCard({ diario, onClick, onStatusChange }: TurmaCardProps) {
     try {
       const resultado = await supabaseService.solicitarDevolucaoDiario(diario.id, motivo);
       if (resultado) {
-        // Tocar som de sucesso
-        try {
-          const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-          const osc = audioContext.createOscillator();
-          const gain = audioContext.createGain();
-          osc.connect(gain);
-          gain.connect(audioContext.destination);
-          osc.frequency.value = 659.25;
-          osc.type = 'sine';
-          gain.gain.setValueAtTime(0.3, audioContext.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
-          osc.start(audioContext.currentTime);
-          osc.stop(audioContext.currentTime + 0.4);
-        } catch (e) {}
+        playSound(659.25);
         
         alert('✅ Solicitação enviada com sucesso!');
         onStatusChange?.();
@@ -153,23 +145,21 @@ export function TurmaCard({ diario, onClick, onStatusChange }: TurmaCardProps) {
     } finally {
       setActionLoading(false);
     }
-  };
+  }, [diario.id, onStatusChange, playSound]);
 
-  // Usar diarioAtualizado em vez de diario para refletir mudanças imediatamente
-  const statusAtual = diarioAtualizado.status || diario.status;
-  const canDeliver = statusAtual === 'PENDENTE' || statusAtual === 'DEVOLVIDO';
-  const canRequestReturn = statusAtual === 'ENTREGUE';
-  const isLocked = statusAtual === 'ENTREGUE' || statusAtual === 'FINALIZADO';
+  const canDeliver = statusLocal === 'PENDENTE' || statusLocal === 'DEVOLVIDO';
+  const canRequestReturn = statusLocal === 'ENTREGUE';
+  const isLocked = statusLocal === 'ENTREGUE' || statusLocal === 'FINALIZADO';
 
   return (
-    <Card className={`hover:shadow-lg transition-shadow ${isLocked ? 'opacity-70 bg-gray-50' : ''}`}>
+    <Card className={`hover:shadow-lg transition-all ${isLocked ? 'opacity-70 bg-gray-50' : ''}`}>
       <CardHeader>
         <div className="flex items-start justify-between">
           <div className={`flex-1 ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer'}`} onClick={!isLocked ? onClick : undefined}>
             <CardTitle className="text-lg">{diarioNome}</CardTitle>
             <div className="mt-2 space-y-2">
-              <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${getStatusColor(statusAtual)}`}>
-                {statusAtual}
+              <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${getStatusColor(statusLocal)}`}>
+                {statusLocal}
               </span>
               {isLocked && (
                 <div className="text-xs text-orange-600 font-medium">
@@ -215,7 +205,7 @@ export function TurmaCard({ diario, onClick, onStatusChange }: TurmaCardProps) {
           {isLocked && (
             <div className="p-3 bg-orange-50 border border-orange-200 rounded text-sm text-orange-700">
               <p className="font-medium">
-                {statusAtual === 'ENTREGUE' 
+                {statusLocal === 'ENTREGUE' 
                   ? '⏳ Aguardando análise do coordenador. Você não pode editar neste momento.'
                   : '✅ Diário finalizado. Não é possível fazer alterações.'
                 }
@@ -252,7 +242,7 @@ export function TurmaCard({ diario, onClick, onStatusChange }: TurmaCardProps) {
 
             {/* Mostrar estado bloqueado quando não pode fazer nada */}
             {isLocked && !canDeliver && !canRequestReturn && (
-              <div className="flex-1 flex items-center justify-center text-sm text-gray-500 py-2">
+              <div className="flex-1 flex items-center justify-center text-sm text-gray-500 py-2 bg-gray-100 rounded">
                 Nenhuma ação disponível
               </div>
             )}
