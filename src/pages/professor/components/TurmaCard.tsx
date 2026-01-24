@@ -80,11 +80,32 @@ export function TurmaCard({ diario, onClick, onStatusChange }: TurmaCardProps) {
     e.stopPropagation();
     setActionLoading(true);
     try {
-      await supabaseService.entregarDiario(diario.id);
-      onStatusChange?.();
+      const resultado = await supabaseService.entregarDiario(diario.id);
+      if (resultado) {
+        // Tocar som de sucesso
+        try {
+          const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+          const osc = audioContext.createOscillator();
+          const gain = audioContext.createGain();
+          osc.connect(gain);
+          gain.connect(audioContext.destination);
+          osc.frequency.value = 523.25;
+          osc.type = 'sine';
+          gain.gain.setValueAtTime(0.3, audioContext.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+          osc.start(audioContext.currentTime);
+          osc.stop(audioContext.currentTime + 0.4);
+        } catch (e) {}
+        
+        // Alertar sucesso
+        alert('✅ Diário entregue com sucesso!');
+        
+        // Recarregar imediatamente
+        onStatusChange?.();
+      }
     } catch (error) {
       console.error('Erro ao entregar diário:', error);
-      alert('Erro ao entregar diário');
+      alert('❌ Erro ao entregar diário');
     } finally {
       setActionLoading(false);
     }
@@ -97,11 +118,29 @@ export function TurmaCard({ diario, onClick, onStatusChange }: TurmaCardProps) {
 
     setActionLoading(true);
     try {
-      await supabaseService.solicitarDevolucaoDiario(diario.id, motivo);
-      onStatusChange?.();
+      const resultado = await supabaseService.solicitarDevolucaoDiario(diario.id, motivo);
+      if (resultado) {
+        // Tocar som de sucesso
+        try {
+          const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+          const osc = audioContext.createOscillator();
+          const gain = audioContext.createGain();
+          osc.connect(gain);
+          gain.connect(audioContext.destination);
+          osc.frequency.value = 659.25;
+          osc.type = 'sine';
+          gain.gain.setValueAtTime(0.3, audioContext.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+          osc.start(audioContext.currentTime);
+          osc.stop(audioContext.currentTime + 0.4);
+        } catch (e) {}
+        
+        alert('✅ Solicitação enviada com sucesso!');
+        onStatusChange?.();
+      }
     } catch (error) {
       console.error('Erro ao solicitar devolução:', error);
-      alert('Erro ao solicitar devolução');
+      alert('❌ Erro ao solicitar devolução');
     } finally {
       setActionLoading(false);
     }
