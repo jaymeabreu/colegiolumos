@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Textarea } from '../../../components/ui/textarea';
 import { supabaseService } from '../../../services/supabaseService';
 import { DiarioViewModal } from './DiarioViewModal';
+import { DevolverDiarioModal } from './DevolverDiarioModal';
 import type { Diario, Turma, Disciplina, Usuario } from '../../../services/supabaseService';
 
 export function DiariosList() {
@@ -21,7 +22,7 @@ export function DiariosList() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false);
-  const [isDevolverDialogOpen, setIsDevolverDialogOpen] = useState(false);
+  const [isDevolverModalOpen, setIsDevolverModalOpen] = useState(false);
   const [isFinalizarDialogOpen, setIsFinalizarDialogOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [editingDiario, setEditingDiario] = useState<Diario | null>(null);
@@ -221,33 +222,6 @@ export function DiariosList() {
     setSelectedDiario(diario);
     setIsViewModalOpen(true);
   }, []);
-
-  const handleDevolverDiario = useCallback(async () => {
-    if (!selectedDiario || !currentUser) return;
-    
-    try {
-      setLoading(true);
-      const sucesso = await supabaseService.devolverDiario(
-        selectedDiario.id, 
-        currentUser.id, 
-        observacaoDevolucao
-      );
-      
-      if (sucesso) {
-        await loadData();
-        setIsDevolverDialogOpen(false);
-        setIsViewModalOpen(false);
-        setObservacaoDevolucao('');
-        setSelectedDiario(null);
-        alert('Diário devolvido com sucesso!');
-      }
-    } catch (error) {
-      console.error('Erro ao devolver diário:', error);
-      alert('Erro ao devolver diário. Tente novamente.');
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedDiario, currentUser, observacaoDevolucao, loadData]);
 
   const handleFinalizarDiario = useCallback(async () => {
     if (!selectedDiario || !currentUser) return;
@@ -811,7 +785,7 @@ export function DiariosList() {
                               className="inline-flex items-center gap-1 whitespace-nowrap"
                               onClick={() => {
                                 setSelectedDiario(diario);
-                                setIsDevolverDialogOpen(true);
+                                setIsDevolverModalOpen(true);
                               }}
                             >
                               <RotateCcw className="h-4 w-4" />
@@ -874,7 +848,7 @@ export function DiariosList() {
         onOpenChange={setIsViewModalOpen}
         onDevolver={() => {
           setIsViewModalOpen(false);
-          setIsDevolverDialogOpen(true);
+          setIsDevolverModalOpen(true);
         }}
         onFinalizar={() => {
           setIsViewModalOpen(false);
@@ -884,45 +858,18 @@ export function DiariosList() {
         userRole={currentUser?.papel as 'COORDENADOR' | 'PROFESSOR' | 'ADMIN' | undefined}
       />
 
-      {/* Dialog de Devolução */}
-      <Dialog open={isDevolverDialogOpen} onOpenChange={setIsDevolverDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Devolver Diário</DialogTitle>
-            <DialogDescription>
-              Tem certeza que deseja devolver este diário para o professor? Adicione uma observação explicando o motivo.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="observacao">Observação (opcional)</Label>
-              <Textarea
-                id="observacao"
-                value={observacaoDevolucao}
-                onChange={(e) => setObservacaoDevolucao(e.target.value)}
-                placeholder="Explique o motivo da devolução..."
-                rows={3}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => {
-                setIsDevolverDialogOpen(false);
-                setObservacaoDevolucao('');
-                setSelectedDiario(null);
-              }}
-            >
-              Cancelar
-            </Button>
-            <Button type="button" variant="destructive" onClick={handleDevolverDiario} disabled={loading}>
-              {loading ? 'Devolvendo...' : 'Devolver Diário'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Modal de Devolução (NOVO) */}
+      <DevolverDiarioModal
+        diario={selectedDiario}
+        open={isDevolverModalOpen}
+        onOpenChange={setIsDevolverModalOpen}
+        onSuccess={() => {
+          loadData();
+          setSelectedDiario(null);
+          setObservacaoDevolucao('');
+        }}
+        loading={loading}
+      />
 
       {/* Dialog de Finalização */}
       <Dialog open={isFinalizarDialogOpen} onOpenChange={setIsFinalizarDialogOpen}>
