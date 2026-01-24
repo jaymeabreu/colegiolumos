@@ -5,6 +5,7 @@ import { Button } from '../../../components/ui/button';
 import { ScrollArea } from '../../../components/ui/scroll-area';
 import { supabaseService } from '../../../services/supabaseService';
 import { MarcarPresencaModal } from './MarcarPresencaModal';
+import { DevolverDiarioModal } from './DevolverDiarioModal';
 import type { Diario, Aula, Aluno, Avaliacao } from '../../../services/supabaseService';
 
 interface DiarioViewModalProps {
@@ -56,6 +57,7 @@ export function DiarioViewModal({
   const [alunosData, setAlunosData] = useState<Aluno[]>([]);
   const [isMarcarPresencaOpen, setIsMarcarPresencaOpen] = useState(false);
   const [selectedAula, setSelectedAula] = useState<Aula | null>(null);
+  const [isDevolverDiarioOpen, setIsDevolverDiarioOpen] = useState(false);
 
   const isReadOnly = diario?.status === 'ENTREGUE' || diario?.status === 'FINALIZADO';
   const canDevolver = userRole === 'COORDENADOR' && diario?.status === 'ENTREGUE';
@@ -446,7 +448,7 @@ export function DiarioViewModal({
                   <Button
                     variant="outline"
                     className="border-orange-200 text-orange-700 hover:bg-orange-50"
-                    onClick={onDevolver}
+                    onClick={() => setIsDevolverDiarioOpen(true)}
                     disabled={loading}
                   >
                     <RotateCcw className="h-4 w-4 mr-2" />
@@ -478,6 +480,18 @@ export function DiarioViewModal({
         onOpenChange={setIsMarcarPresencaOpen}
         loading={loading}
         onSave={() => carregarDados()}
+      />
+
+      {/* Modal de Devolver Diário */}
+      <DevolverDiarioModal
+        diario={diario}
+        open={isDevolverDiarioOpen}
+        onOpenChange={setIsDevolverDiarioOpen}
+        onSuccess={() => {
+          carregarDados();
+          onDevolver?.();
+        }}
+        loading={loading}
       />
     </>
   );
