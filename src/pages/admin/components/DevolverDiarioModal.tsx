@@ -85,18 +85,19 @@ export function DevolverDiarioModal({
         
         // Fechar TUDO após 2.5 segundos
         setTimeout(() => {
+          // IMPORTANTE: Resetar tudo ANTES de fechar
           setMotivo('');
           setSuccess(false);
           setError(null);
           setIsLoading(false);
           
-          // Fechar o modal de devolver
-          onOpenChange(false);
+          // Chamar callback PRIMEIRO
+          onSuccess?.();
           
-          // Aguardar um pouco e depois chamar callback (que recarrega dados)
+          // DEPOIS fechar o modal (com delay para garantir)
           setTimeout(() => {
-            onSuccess?.();
-          }, 300);
+            onOpenChange(false);
+          }, 100);
         }, 2500);
       } else {
         setError('Erro ao devolver o diário. Tente novamente.');
