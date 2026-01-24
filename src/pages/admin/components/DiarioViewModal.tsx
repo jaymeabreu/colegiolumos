@@ -74,13 +74,30 @@ export function DiarioViewModal({
       const alunosDataTemp = await supabaseService.getAlunosByDiario(diario.id);
       setAlunosData(alunosDataTemp);
 
-      const boletim: BoletimRow[] = (alunosDataTemp || []).map((aluno, index) => ({
-        numero: index + 1,
-        nome: aluno.nome,
-        media: null,
-        faltas: null,
-        acompanhamento: null
-      }));
+      // Buscar rendimento real de cada aluno
+      const boletimPromises = (alunosDataTemp || []).map(async (aluno, index) => {
+        try {
+          const boletimAluno = await supabaseService.getBoletimAluno(diario.id, aluno.id);
+          return {
+            numero: index + 1,
+            nome: aluno.nome,
+            media: boletimAluno.mediaGeral > 0 ? boletimAluno.mediaGeral : null,
+            faltas: boletimAluno.faltas > 0 ? boletimAluno.faltas : null,
+            acompanhamento: boletimAluno.situacao
+          };
+        } catch (error) {
+          console.error(`Erro ao buscar boletim de ${aluno.nome}:`, error);
+          return {
+            numero: index + 1,
+            nome: aluno.nome,
+            media: null,
+            faltas: null,
+            acompanhamento: null
+          };
+        }
+      });
+
+      const boletim = await Promise.all(boletimPromises);
       setAlunos(boletim);
 
       const aulasData = await supabaseService.getAulasByDiario(diario.id);
@@ -106,6 +123,21 @@ export function DiarioViewModal({
     } finally {
       setCarregando(false);
     }
+  };
+
+  const getSituacaoVariant = (situacao: string | null): "default" | "destructive" | "secondary" => {
+    if (!situacao) return "secondary";
+    if (situacao === 'Aprovado') return "default";
+    if (situacao === 'Reprovado') return "destructive";
+    return "secondary";
+  };
+
+  const getSituacaoColor = (situacao: string | null) => {
+    if (!situacao || situacao === 'Em Análise') return 'bg-gray-100 text-gray-800 border-gray-200';
+    if (situacao === 'Aprovado') return 'bg-green-100 text-green-800 border-green-200';
+    if (situacao === 'Reprovado') return 'bg-red-100 text-red-800 border-red-200';
+    if (situacao === 'Recuperação') return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+    return 'bg-gray-100 text-gray-800 border-gray-200';
   };
 
   if (!diario || !open) return null;
@@ -255,13 +287,30 @@ export function DiarioViewModal({
                             <tr key={aluno.numero} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                               <td className="border px-4 py-3 text-center font-medium">{aluno.numero}</td>
                               <td className="border px-4 py-3">{aluno.nome}</td>
-                              <td className="border px-4 py-3 text-center font-semibold text-blue-600">
-                                {aluno.media !== null ? aluno.media.toFixed(1) : '-'}
-                              </td>
-                              <td className="border px-4 py-3 text-center">{aluno.faltas !== null ? aluno.faltas : '-'}</td>
                               <td className="border px-4 py-3 text-center">
-                                <Badge variant={aluno.media && aluno.media >= 6 ? "default" : "destructive"}>
-                                  {aluno.media && aluno.media >= 6 ? 'Aprovado' : 'Em Análise'}
+                                <span className={`font-semibold ${
+                                  aluno.media === null ? 'text-gray-400' :
+                                  aluno.media >= 7 ? 'text-green-600' :
+                                  aluno.media >= 5 ? 'text-yellow-600' : 'text-red-600'
+                                }`}>
+                                  {aluno.media !== null ? aluno.media.toFixed(1) : '-'}
+                                </span>
+                              </td>
+                              <td className="border px-4 py-3 text-center">
+                                <span className={`font-medium ${
+                                  aluno.faltas === null ? 'text-gray-400' :
+                                  aluno.faltas === 0 ? 'text-green-600' :
+                                  aluno.faltas <= 3 ? 'text-yellow-600' : 'text-red-600'
+                                }`}>
+                                  {aluno.faltas !== null ? aluno.faltas : '-'}
+                                </span>
+                              </td>
+                              <td className="border px-4 py-3 text-center">
+                                <Badge 
+                                  variant="outline" 
+                                  className={getSituacaoColor(aluno.acompanhamento)}
+                                >
+                                  {aluno.acompanhamento || 'Em Análise'}
                                 </Badge>
                               </td>
                             </tr>
