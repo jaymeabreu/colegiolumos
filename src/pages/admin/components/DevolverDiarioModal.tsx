@@ -32,6 +32,16 @@ export function DevolverDiarioModal({
     }
   }, [open]);
 
+  // AUTO-FECHAR quando sucesso é setado
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => {
+        onOpenChange(false);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [success, onOpenChange]);
+
   const handleDevolver = async () => {
     if (!diario) return;
 
@@ -48,8 +58,7 @@ export function DevolverDiarioModal({
       if (resultado) {
         setSuccess(true);
         
-        // REGRA DE OURO: A modal apenas avisa que terminou.
-        // Quem fecha é o componente PAI através do onSuccess.
+        // Chamar onSuccess ANTES de fechar
         if (onSuccess) {
           const result = onSuccess();
           if (result instanceof Promise) {
