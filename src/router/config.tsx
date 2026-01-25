@@ -1,7 +1,7 @@
 import { RouteObject } from "react-router-dom"
 import { LoginPage } from "../pages/login/page"
 import { DiarioPage } from "../pages/diario/page"
-import { HomePage } from "../pages/home/page"
+import { HomePage } from "../pages/home/page" 
 import { NotFound } from "../pages/NotFound"
 import { ProfessorPage } from "../pages/professor/page"
 import { AdminPage } from "../pages/admin/page"
