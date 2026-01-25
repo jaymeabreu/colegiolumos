@@ -891,7 +891,7 @@ export function DiariosList() {
               {loading ? 'Finalizando...' : 'Finalizar Diário'}
             </Button>
           </DialogFooter>
-        </Dialog>
+        </DialogContent>
       </Dialog>
     </>
   );
