@@ -33,42 +33,45 @@ export function DevolverDiarioModal({
     }
   }, [open]);
 
-  const handleDevolver = async () => {
-    if (!diario) return;
+ const handleDevolver = async () => {
+  if (!diario) return;
 
-    try {
-      setIsLoading(true);
-      setError(null);
+  try {
+    setIsLoading(true);
+    setError(null);
 
-      const resultado = await supabaseService.devolverDiario(
-        diario.id,
-        1,
-        motivo || undefined
-      );
+    const resultado = await supabaseService.devolverDiario(
+      diario.id,
+      1,
+      motivo || undefined
+    );
 
-      if (resultado) {
-        setSuccess(true); // Mostra sucesso (Regra 3)
-        
-        // Chama o callback e deixa o PAI decidir o que fazer (Regra 1 e 3)
-        if (onSuccess) {
-          const result = onSuccess();
-          if (result instanceof Promise) {
-            await result;
-          }
-        }
-        
-        // NOTA: Não há onOpenChange(false) ou setTimeout aqui. 
-        // O fechamento é responsabilidade do componente pai via onSuccess.
-      } else {
-        setError('Erro ao devolver o diário. Tente novamente.');
-        setIsLoading(false);
-      }
-    } catch (err: any) {
-      console.error('Erro ao devolver diário:', err);
-      setError(err.message || 'Erro ao devolver o diário');
+    if (!resultado) {
+      setError('Erro ao devolver o diário. Tente novamente.');
       setIsLoading(false);
+      return;
     }
-  };
+
+    // 1️⃣ Mostra sucesso
+    setSuccess(true);
+
+    // 2️⃣ Aguarda callback do pai (se existir)
+    if (onSuccess) {
+      await onSuccess();
+    }
+
+    // 3️⃣ FECHA O MODAL COM SEGURANÇA (pulo do gato)
+    setTimeout(() => {
+      onOpenChange(false);
+    }, 300);
+
+  } catch (err: any) {
+    console.error('Erro ao devolver diário:', err);
+    setError(err.message || 'Erro ao devolver o diário');
+    setIsLoading(false);
+  }
+};
+
 
   if (!open || !diario) return null;
 
