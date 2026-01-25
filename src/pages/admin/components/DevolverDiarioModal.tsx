@@ -34,36 +34,7 @@ export function DevolverDiarioModal({
     }
   }, [open]);
 
-  const playSuccessSound = () => {
-    try {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-      
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      oscillator.frequency.value = 523.25;
-      oscillator.type = 'sine';
-      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.4);
-      
-      const osc2 = audioContext.createOscillator();
-      const gain2 = audioContext.createGain();
-      osc2.connect(gain2);
-      gain2.connect(audioContext.destination);
-      osc2.frequency.value = 659.25;
-      osc2.type = 'sine';
-      gain2.gain.setValueAtTime(0.3, audioContext.currentTime + 0.15);
-      gain2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.55);
-      osc2.start(audioContext.currentTime + 0.15);
-      osc2.stop(audioContext.currentTime + 0.55);
-    } catch (e) {
-      console.log('Som não disponível');
-    }
-  };
-
+  // Função simplificada para fechar a modal
   const closeModal = () => {
     onOpenChange(false);
   };
@@ -75,6 +46,7 @@ export function DevolverDiarioModal({
       setIsLoading(true);
       setError(null);
 
+      // Executa a devolução
       const resultado = await supabaseService.devolverDiario(
         diario.id,
         1,
@@ -82,22 +54,27 @@ export function DevolverDiarioModal({
       );
 
       if (resultado) {
-        playSuccessSound();
+        // 1. Marca como sucesso para mostrar o feedback visual
         setSuccess(true);
         
-        // Esperar 1.5 segundos mostrando a mensagem de sucesso
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        // Chamar o callback de sucesso (geralmente para atualizar a lista de diários)
+        // 2. Chama o callback de sucesso imediatamente (para atualizar a lista no fundo)
         if (onSuccess) {
-          const result = onSuccess();
-          if (result instanceof Promise) {
-            await result;
+          try {
+            const result = onSuccess();
+            if (result instanceof Promise) {
+              await result;
+            }
+          } catch (e) {
+            console.error("Erro no callback onSuccess:", e);
           }
         }
         
-        // FECHAR MODAL AUTOMATICAMENTE
-        closeModal();
+        // 3. FECHAMENTO GARANTIDO: 
+        // Esperamos um tempo curto para o usuário ver o "check" verde e fechamos.
+        setTimeout(() => {
+          closeModal();
+        }, 800); // Reduzi para 800ms para ser mais rápido
+
       } else {
         setError('Erro ao devolver o diário. Tente novamente.');
         setIsLoading(false);
@@ -109,11 +86,18 @@ export function DevolverDiarioModal({
     }
   };
 
+  // Se não estiver aberto ou não tiver diário, não renderiza nada
   if (!open || !diario) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[70] backdrop-blur-sm p-4">
-      <div className="bg-white rounded-lg shadow-2xl w-full max-w-md overflow-hidden">
+    <div 
+      className="fixed inset-0 bg-black/60 flex items-center justify-center z-[70] backdrop-blur-sm p-4"
+      onClick={(e) => {
+        // Fecha ao clicar fora da modal (opcional, mas ajuda na UX)
+        if (e.target === e.currentTarget && !isLoading && !success) closeModal();
+      }}
+    >
+      <div className="bg-white rounded-lg shadow-2xl w-full max-w-md overflow-hidden" onClick={e => e.stopPropagation()}>
         
         {/* HEADER */}
         <div className="bg-gradient-to-r from-orange-50 to-red-50 p-6 border-b flex items-start justify-between">
@@ -134,30 +118,30 @@ export function DevolverDiarioModal({
         </div>
 
         {/* CONTEÚDO */}
-        <div className="p-6 min-h-[320px] flex flex-col">
+        <div className="p-6 min-h-[300px] flex flex-col">
           {success ? (
-            <div className="flex-1 flex flex-col items-center justify-center">
-              <CheckCircle className="h-12 w-12 text-green-600 mb-3 animate-bounce" />
-              <p className="text-lg font-semibold text-gray-900 mb-1">Diário devolvido com sucesso!</p>
+            <div className="flex-1 flex flex-col items-center justify-center animate-in fade-in zoom-in duration-300">
+              <CheckCircle className="h-16 w-16 text-green-600 mb-4 animate-bounce" />
+              <p className="text-lg font-bold text-gray-900 mb-1">Sucesso!</p>
               <p className="text-sm text-gray-600 text-center">
-                O professor será notificado sobre a devolução.
+                O diário foi devolvido e a janela fechará em instantes.
               </p>
             </div>
           ) : (
             <>
               {/* Informações do Diário */}
-              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+              <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-100">
                 <p className="text-sm text-gray-600 mb-1">
-                  <span className="font-semibold text-gray-900">{diario.nome}</span>
+                  Diário: <span className="font-semibold text-gray-900">{diario.nome}</span>
                 </p>
                 <p className="text-xs text-gray-500">
-                  Status atual: <span className="font-semibold">{diario.status}</span>
+                  Status: <span className="font-medium">{diario.status}</span>
                 </p>
               </div>
 
               {/* Erro */}
               {error && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex gap-2">
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex gap-2 animate-in slide-in-from-top-2">
                   <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
                   <p className="text-sm text-red-700">{error}</p>
                 </div>
@@ -173,14 +157,15 @@ export function DevolverDiarioModal({
                   name="motivo"
                   value={motivo}
                   onChange={(e) => setMotivo(e.target.value.slice(0, 500))}
-                  placeholder="Explique o motivo da devolução para o professor..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none h-32"
+                  placeholder="Explique o motivo da devolução..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none h-32 transition-all"
                   disabled={isLoading}
-                  autoComplete="off"
                 />
-                <p className="text-xs text-gray-500 mt-1">
-                  {motivo.length}/500 caracteres
-                </p>
+                <div className="flex justify-end mt-1">
+                  <span className={`text-[10px] ${motivo.length >= 500 ? 'text-red-500' : 'text-gray-400'}`}>
+                    {motivo.length}/500
+                  </span>
+                </div>
               </div>
             </>
           )}
@@ -188,7 +173,7 @@ export function DevolverDiarioModal({
 
         {/* FOOTER */}
         {!success && (
-          <div className="border-t bg-gray-50 px-6 py-4 flex gap-3 justify-end flex-shrink-0">
+          <div className="border-t bg-gray-50 px-6 py-4 flex gap-3 justify-end">
             <Button
               type="button"
               variant="outline"
@@ -200,11 +185,16 @@ export function DevolverDiarioModal({
             </Button>
             <Button
               type="button"
-              className="bg-orange-600 hover:bg-orange-700 text-white px-6"
+              className="bg-orange-600 hover:bg-orange-700 text-white px-6 min-w-[140px]"
               onClick={handleDevolver}
               disabled={isLoading}
             >
-              {isLoading ? 'Devolvendo...' : 'Devolver Diário'}
+              {isLoading ? (
+                <div className="flex items-center gap-2">
+                  <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span>Devolvendo...</span>
+                </div>
+              ) : 'Devolver Diário'}
             </Button>
           </div>
         )}
