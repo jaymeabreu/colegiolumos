@@ -20,15 +20,15 @@ export function DevolverDiarioModal({
   const [motivo, setMotivo] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   // Limpar estados quando modal fecha
   useEffect(() => {
     if (!open) {
       setMotivo('');
       setError(null);
-      setSuccess(false);
       setIsLoading(false);
+      setShowSuccessModal(false);
     }
   }, [open]);
 
@@ -46,16 +46,17 @@ export function DevolverDiarioModal({
       );
 
       if (resultado) {
-        setSuccess(true);
-        
-        // REGRA DE OURO: A modal apenas avisa que terminou.
-        // Quem fecha é o componente PAI através do onSuccess.
+        // Chamar callback
         if (onSuccess) {
           const result = onSuccess();
           if (result instanceof Promise) {
             await result;
           }
         }
+
+        // Mostrar modal de sucesso
+        setShowSuccessModal(true);
+        setIsLoading(false);
       } else {
         setError('Erro ao devolver o diário. Tente novamente.');
         setIsLoading(false);
@@ -67,41 +68,41 @@ export function DevolverDiarioModal({
     }
   };
 
+  const handleCloseSuccess = () => {
+    setShowSuccessModal(false);
+    setMotivo('');
+    setError(null);
+    onOpenChange(false);
+  };
+
   if (!open || !diario) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[70] backdrop-blur-sm p-4">
-      <div className="bg-white rounded-lg shadow-2xl w-full max-w-md overflow-hidden border border-gray-200">
-        
-        {/* HEADER */}
-        <div className="bg-white p-6 border-b flex items-start justify-between">
-          <div className="flex-1">
-            <h2 className="text-xl font-bold text-gray-900 mb-1">Devolver Diário</h2>
-            <p className="text-sm text-gray-600">
-              Tem certeza que deseja devolver este diário para o professor?
-            </p>
-          </div>
-          <button
-            onClick={() => onOpenChange(false)}
-            disabled={isLoading || success}
-            type="button"
-            className="p-1 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-gray-600"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        {/* CONTEÚDO */}
-        <div className="p-6 min-h-[300px] flex flex-col bg-white">
-          {success ? (
-            <div className="flex-1 flex flex-col items-center justify-center animate-in fade-in zoom-in duration-300">
-              <CheckCircle className="h-16 w-16 text-green-600 mb-4 animate-bounce" />
-              <p className="text-lg font-bold text-gray-900 mb-1">Sucesso!</p>
-              <p className="text-sm text-gray-600 text-center">
-                O diário foi devolvido com sucesso.
+    <>
+      {/* MODAL DE DEVOLUÇÃO */}
+      <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[70] backdrop-blur-sm p-4">
+        <div className="bg-white rounded-lg shadow-2xl w-full max-w-md overflow-hidden border border-gray-200">
+          
+          {/* HEADER */}
+          <div className="bg-white p-6 border-b flex items-start justify-between">
+            <div className="flex-1">
+              <h2 className="text-xl font-bold text-gray-900 mb-1">Devolver Diário</h2>
+              <p className="text-sm text-gray-600">
+                Tem certeza que deseja devolver este diário para o professor?
               </p>
             </div>
-          ) : (
+            <button
+              onClick={() => onOpenChange(false)}
+              disabled={isLoading}
+              type="button"
+              className="p-1 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-gray-600"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          {/* CONTEÚDO */}
+          <div className="p-6 min-h-[300px] flex flex-col bg-white">
             <>
               {/* Informações do Diário */}
               <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-100">
@@ -121,7 +122,7 @@ export function DevolverDiarioModal({
                 </div>
               )}
 
-              {/* Campo de Motivo - FORÇADO BRANCO */}
+              {/* Campo de Motivo */}
               <div className="flex-1">
                 <label htmlFor="motivo" className="block text-sm font-semibold text-gray-700 mb-2">
                   Observação (opcional)
@@ -143,11 +144,9 @@ export function DevolverDiarioModal({
                 </div>
               </div>
             </>
-          )}
-        </div>
+          </div>
 
-        {/* FOOTER */}
-        {!success && (
+          {/* FOOTER */}
           <div className="border-t bg-gray-50 px-6 py-4 flex gap-3 justify-end">
             <Button
               type="button"
@@ -167,9 +166,48 @@ export function DevolverDiarioModal({
               {isLoading ? 'Devolvendo...' : 'Devolver Diário'}
             </Button>
           </div>
-        )}
+        </div>
       </div>
-    </div>
+
+      {/* MODAL DE SUCESSO */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999] backdrop-blur-sm p-4">
+          <div className="bg-white rounded-lg shadow-2xl w-full max-w-md overflow-hidden border border-gray-200">
+            
+            {/* HEADER SUCESSO */}
+            <div className="bg-white p-6 border-b flex items-start justify-between">
+              <div className="flex-1">
+                <h2 className="text-xl font-bold text-gray-900 mb-1">Sucesso!</h2>
+                <p className="text-sm text-gray-600">
+                  Diário devolvido com sucesso
+                </p>
+              </div>
+            </div>
+
+            {/* CONTEÚDO SUCESSO */}
+            <div className="p-6 min-h-[250px] flex flex-col items-center justify-center bg-white">
+              <CheckCircle className="h-16 w-16 text-green-600 mb-4 animate-bounce" />
+              <p className="text-lg font-bold text-gray-900 mb-2">Diário Devolvido!</p>
+              <p className="text-sm text-gray-600 text-center mb-4">
+                O professor foi notificado e poderá fazer as correções necessárias.
+              </p>
+              <div className="w-full h-1 bg-green-100 rounded-full mb-4"></div>
+            </div>
+
+            {/* FOOTER SUCESSO */}
+            <div className="border-t bg-gray-50 px-6 py-4 flex gap-3 justify-end">
+              <Button
+                type="button"
+                className="bg-green-600 hover:bg-green-700 text-white px-8"
+                onClick={handleCloseSuccess}
+              >
+                Fechar
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
