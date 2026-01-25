@@ -1,18 +1,23 @@
 import { useState } from 'react';
-import { X, AlertCircle, CheckCircle } from 'lucide-react';
+import { AlertCircle, CheckCircle } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '../../../components/ui/dialog';
+import { Label } from '../../../components/ui/label';
+import { Textarea } from '../../../components/ui/textarea';
 import { supabaseService } from '../../../services/supabaseService';
 import type { Diario } from '../../../services/supabaseService';
 
 interface DevolverDiarioModalProps {
-  diario: Diario;
-  onClose: () => void; // Função para fechar/desmontar
-  onSuccess: () => Promise<void> | void; // Função para atualizar e fechar
+  diario: Diario | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSuccess?: () => void | Promise<void>;
 }
 
 export function DevolverDiarioModal({
   diario,
-  onClose,
+  open,
+  onOpenChange,
   onSuccess
 }: DevolverDiarioModalProps) {
   const [motivo, setMotivo] = useState('');
@@ -21,6 +26,8 @@ export function DevolverDiarioModal({
   const [success, setSuccess] = useState(false);
 
   const handleDevolver = async () => {
+    if (!diario) return;
+
     try {
       setIsLoading(true);
       setError(null);
@@ -32,10 +39,25 @@ export function DevolverDiarioModal({
       );
 
       if (resultado) {
+        // Chamar callback para recarregar dados
+        if (onSuccess) {
+          const result = onSuccess();
+          if (result instanceof Promise) {
+            await result;
+          }
+        }
+
         setSuccess(true);
         
-        // Espera o callback do pai (que deve atualizar a lista e desmontar este componente)
-        await onSuccess();
+        // Fechar modal após 1 segundo
+        setTimeout(() => {
+          onOpenChange(false);
+          setMotivo('');
+          setSuccess(false);
+          setError(null);
+          setIsLoading(false);
+        }, 1000);
+
       } else {
         setError('Erro ao devolver o diário. Tente novamente.');
         setIsLoading(false);
@@ -47,89 +69,104 @@ export function DevolverDiarioModal({
     }
   };
 
+  const handleOpenChange = (newOpen: boolean) => {
+    if (!newOpen && !success) {
+      // Resetar ao fechar
+      setMotivo('');
+      setError(null);
+      setSuccess(false);
+      setIsLoading(false);
+    }
+    onOpenChange(newOpen);
+  };
+
+  if (!diario) return null;
+
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[999] backdrop-blur-sm p-4">
-      <div className="bg-white rounded-lg shadow-2xl w-full max-w-md overflow-hidden border border-gray-200">
-        
-        {/* HEADER */}
-        <div className="bg-white p-6 border-b flex items-start justify-between">
-          <div className="flex-1">
-            <h2 className="text-xl font-bold text-gray-900 mb-1">Devolver Diário</h2>
-            <p className="text-sm text-gray-600">
-              Tem certeza que deseja devolver este diário?
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Devolver Diário</DialogTitle>
+          <DialogDescription>
+            Tem certeza que deseja devolver este diário para o professor?
+          </DialogDescription>
+        </DialogHeader>
+
+        {success ? (
+          <div className="flex flex-col items-center justify-center py-8">
+            <CheckCircle className="h-12 w-12 text-green-600 mb-3 animate-bounce" />
+            <p className="text-base font-semibold text-gray-900 mb-1">Sucesso!</p>
+            <p className="text-sm text-gray-600 text-center">
+              O diário foi devolvido com sucesso.
             </p>
           </div>
-          <button
-            onClick={onClose}
-            disabled={isLoading || success}
-            className="p-1 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-gray-600"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        {/* CONTEÚDO */}
-        <div className="p-6 min-h-[280px] flex flex-col bg-white">
-          {success ? (
-            <div className="flex-1 flex flex-col items-center justify-center animate-in fade-in zoom-in duration-300">
-              <CheckCircle className="h-16 w-16 text-green-600 mb-4 animate-bounce" />
-              <p className="text-lg font-bold text-gray-900">Sucesso!</p>
-              <p className="text-sm text-gray-500">Atualizando dados...</p>
+        ) : (
+          <div className="space-y-4">
+            {/* Info do Diário */}
+            <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+              <p className="text-sm text-gray-600">
+                <span className="font-semibold">Diário:</span> {diario.nome}
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                Status: {diario.status}
+              </p>
             </div>
-          ) : (
-            <>
-              <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-100">
-                <p className="text-sm text-gray-700">
-                  Diário: <span className="font-bold text-gray-900">{diario.nome}</span>
-                </p>
+
+            {/* Erro */}
+            {error && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex gap-2">
+                <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-red-700">{error}</p>
               </div>
+            )}
 
-              {error && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex gap-2 text-red-700 text-sm">
-                  <AlertCircle className="h-5 w-5 flex-shrink-0" />
-                  <p>{error}</p>
-                </div>
-              )}
+            {/* Campo de Motivo */}
+            <div className="space-y-2">
+              <Label htmlFor="motivo">Observação (opcional)</Label>
+              <Textarea
+                id="motivo"
+                name="motivo"
+                value={motivo}
+                onChange={(e) => setMotivo(e.target.value.slice(0, 500))}
+                placeholder="Explique o motivo da devolução para o professor..."
+                disabled={isLoading}
+                className="resize-none h-32 !bg-white !text-gray-900"
+              />
+              <p className="text-xs text-gray-500 text-right">
+                {motivo.length}/500
+              </p>
+            </div>
+          </div>
+        )}
 
-              <div className="flex-1">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Observação (opcional)
-                </label>
-                <textarea
-                  value={motivo}
-                  onChange={(e) => setMotivo(e.target.value)}
-                  placeholder="Explique o motivo..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none h-32 resize-none !bg-white !text-gray-900"
-                  style={{ backgroundColor: 'white', color: '#111827' }}
-                  disabled={isLoading}
-                />
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* FOOTER */}
         {!success && (
-          <div className="border-t bg-gray-50 px-6 py-4 flex gap-3 justify-end">
+          <DialogFooter>
             <Button
+              type="button"
               variant="outline"
-              onClick={onClose}
+              onClick={() => {
+                setMotivo('');
+                setError(null);
+                setSuccess(false);
+                setIsLoading(false);
+                onOpenChange(false);
+              }}
               disabled={isLoading}
-              className="bg-white"
             >
               Cancelar
             </Button>
             <Button
+              type="button"
               onClick={handleDevolver}
               disabled={isLoading}
-              className="bg-[#1e4e5f] hover:bg-[#153a47] text-white px-8"
+              className="bg-[#1e4e5f] hover:bg-[#153a47]"
             >
-              {isLoading ? 'Processando...' : 'Devolver Diário'}
+              {isLoading ? 'Devolvendo...' : 'Devolver Diário'}
             </Button>
-          </div>
+          </DialogFooter>
         )}
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
