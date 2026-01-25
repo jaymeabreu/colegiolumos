@@ -7,10 +7,8 @@ import { Badge } from '../../../components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../../../components/ui/dialog';
 import { Label } from '../../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
-import { Textarea } from '../../../components/ui/textarea';
 import { supabaseService } from '../../../services/supabaseService';
 import { DiarioViewModal } from './DiarioViewModal';
-import { DevolverDiarioModal } from './DevolverDiarioModal';
 import { SuccessToast } from './SuccessToast';
 import type { Diario, Turma, Disciplina, Usuario } from '../../../services/supabaseService';
 
@@ -23,16 +21,13 @@ export function DiariosList() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false);
-  const [isDevolverModalOpen, setIsDevolverModalOpen] = useState(false);
   const [isFinalizarDialogOpen, setIsFinalizarDialogOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [editingDiario, setEditingDiario] = useState<Diario | null>(null);
   const [selectedDiario, setSelectedDiario] = useState<Diario | null>(null);
-  const [observacaoDevolucao, setObservacaoDevolucao] = useState('');
   const [currentUser, setCurrentUser] = useState<Usuario | null>(null);
   const [loading, setLoading] = useState(false);
   
-  // Estado para o toast de sucesso
   const [successToast, setSuccessToast] = useState({
     open: false,
     message: '',
@@ -279,12 +274,10 @@ export function DiariosList() {
     }
   }, [selectedDiario, currentUser, loadData]);
 
-  // Handler para quando a devolução é bem sucedida
+  // CORRIGIDO: Callback simples que só atualiza dados e mostra toast
   const handleDevolucaoSuccess = useCallback(async () => {
     await loadData();
-    setIsDevolverModalOpen(false);
     setSelectedDiario(null);
-    // Mostra o toast de sucesso
     setSuccessToast({
       open: true,
       message: 'Diário Enviado!',
@@ -781,33 +774,18 @@ export function DiariosList() {
         </CardContent>
       </Card>
 
+      {/* CORRIGIDO: onDevolver agora só chama o callback, não abre outro modal */}
       <DiarioViewModal
         diario={selectedDiario}
         open={isViewModalOpen}
         onOpenChange={setIsViewModalOpen}
-        onDevolver={() => {
-          setIsViewModalOpen(false);
-          setTimeout(() => setIsDevolverModalOpen(true), 100);
-        }}
+        onDevolver={handleDevolucaoSuccess}
         onFinalizar={() => {
           setIsViewModalOpen(false);
           setTimeout(() => setIsFinalizarDialogOpen(true), 100);
         }}
         loading={loading}
         userRole={currentUser?.papel as any}
-      />
-
-      <DevolverDiarioModal
-        diario={selectedDiario}
-        open={isDevolverModalOpen}
-        onOpenChange={(open) => {
-          setIsDevolverModalOpen(open);
-          if (!open) {
-            setSelectedDiario(null);
-            setObservacaoDevolucao('');
-          }
-        }}
-        onSuccess={handleDevolucaoSuccess}
       />
 
       <Dialog open={isFinalizarDialogOpen} onOpenChange={setIsFinalizarDialogOpen}>
@@ -836,7 +814,6 @@ export function DiariosList() {
         </DialogContent>
       </Dialog>
 
-      {/* Toast de Sucesso */}
       <SuccessToast
         message={successToast.message}
         description={successToast.description}
