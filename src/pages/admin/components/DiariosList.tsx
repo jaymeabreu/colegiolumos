@@ -859,25 +859,17 @@ export function DiariosList() {
       />
 
       {/* Modal de Devolução (NOVO) */}
-      <DevolverDiarioModal
-        diario={selectedDiario}
-        open={isDevolverModalOpen}
-        onOpenChange={(newOpen) => {
-          if (!newOpen) {
-            setIsDevolverModalOpen(false);
-            loadData();
-            setSelectedDiario(null);
-          } else {
-            setIsDevolverModalOpen(newOpen);
-          }
-        }}
-        onSuccess={async () => {
-          // Recarregar dados imediatamente
-          await loadData();
-          setSelectedDiario(null);
-          setObservacaoDevolucao('');
-        }}
-        loading={loading}
+     <DevolverDiarioModal
+  diario={selectedDiario}
+  open={isDevolverModalOpen}
+  onOpenChange={setIsDevolverModalOpen}
+  onSuccess={async () => {
+    await loadData();
+    setSelectedDiario(null);
+    setObservacaoDevolucao('');
+  }}
+  loading={loading}
+/>
       />
 
       {/* Dialog de Finalização */}
