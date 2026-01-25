@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../../../components/ui/dialog';
@@ -16,6 +16,7 @@ interface CriarAulaModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onAulaCriada?: () => void;
+  aulaEditando?: Aula | null;
 }
 
 export function CriarAulaModal({
@@ -23,7 +24,8 @@ export function CriarAulaModal({
   alunos,
   open,
   onOpenChange,
-  onAulaCriada
+  onAulaCriada,
+  aulaEditando
 }: CriarAulaModalProps) {
   const [loading, setLoading] = useState(false);
   const [aulaCriada, setAulaCriada] = useState<Aula | null>(null);
@@ -39,6 +41,31 @@ export function CriarAulaModal({
     observacoes: ''
   });
 
+  // Carregar dados da aula quando estiver editando
+  useEffect(() => {
+    if (aulaEditando) {
+      setFormData({
+        data: aulaEditando.data || new Date().toISOString().split('T')[0],
+        conteudo: aulaEditando.conteudo || '',
+        quantidade_aulas: (aulaEditando.quantidade_aulas || 1).toString(),
+        tipo_aula: aulaEditando.tipo_aula || 'Teórica',
+        aula_assincrona: aulaEditando.aula_assincrona || false,
+        conteudo_detalhado: aulaEditando.conteudo_detalhado || '',
+        observacoes: aulaEditando.observacoes || ''
+      });
+    } else {
+      setFormData({
+        data: new Date().toISOString().split('T')[0],
+        conteudo: '',
+        quantidade_aulas: '1',
+        tipo_aula: 'Teórica',
+        aula_assincrona: false,
+        conteudo_detalhado: '',
+        observacoes: ''
+      });
+    }
+  }, [aulaEditando, open]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -50,39 +77,55 @@ export function CriarAulaModal({
     try {
       setLoading(true);
 
-      const novaAula = await supabaseService.createAula({
-        diario_id: diarioId,
-        data: formData.data,
-        conteudo: formData.conteudo,
-        quantidade_aulas: parseInt(formData.quantidade_aulas),
-        tipo_aula: formData.tipo_aula,
-        aula_assincrona: formData.aula_assincrona,
-        conteudo_detalhado: formData.conteudo_detalhado || undefined,
-        observacoes: formData.observacoes || null
-      });
+      if (aulaEditando) {
+        // Editar aula existente
+        const aulaAtualizada = await supabaseService.updateAula(aulaEditando.id, {
+          data: formData.data,
+          conteudo: formData.conteudo,
+          quantidade_aulas: parseInt(formData.quantidade_aulas),
+          tipo_aula: formData.tipo_aula,
+          aula_assincrona: formData.aula_assincrona,
+          conteudo_detalhado: formData.conteudo_detalhado || undefined,
+          observacoes: formData.observacoes || null
+        });
 
-      setAulaCriada(novaAula);
-      
-      setFormData({
-        data: new Date().toISOString().split('T')[0],
-        conteudo: '',
-        quantidade_aulas: '1',
-        tipo_aula: 'Teórica',
-        aula_assincrona: false,
-        conteudo_detalhado: '',
-        observacoes: ''
-      });
+        setAulaCriada(aulaAtualizada);
+        alert('✅ Aula atualizada com sucesso!');
+      } else {
+        // Criar nova aula
+        const novaAula = await supabaseService.createAula({
+          diario_id: diarioId,
+          data: formData.data,
+          conteudo: formData.conteudo,
+          quantidade_aulas: parseInt(formData.quantidade_aulas),
+          tipo_aula: formData.tipo_aula,
+          aula_assincrona: formData.aula_assincrona,
+          conteudo_detalhado: formData.conteudo_detalhado || undefined,
+          observacoes: formData.observacoes || null
+        });
+
+        setAulaCriada(novaAula);
+        
+        setFormData({
+          data: new Date().toISOString().split('T')[0],
+          conteudo: '',
+          quantidade_aulas: '1',
+          tipo_aula: 'Teórica',
+          aula_assincrona: false,
+          conteudo_detalhado: '',
+          observacoes: ''
+        });
+
+        setTimeout(() => {
+          setIsMarcarPresencaOpen(true);
+        }, 300);
+      }
 
       onOpenChange(false);
-
-      setTimeout(() => {
-        setIsMarcarPresencaOpen(true);
-      }, 300);
-
       onAulaCriada?.();
     } catch (error) {
-      console.error('Erro ao criar aula:', error);
-      alert('Erro ao criar aula. Tente novamente.');
+      console.error('Erro ao salvar aula:', error);
+      alert('Erro ao salvar aula. Tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -101,8 +144,10 @@ export function CriarAulaModal({
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Nova Aula</DialogTitle>
-            <DialogDescription>Conteúdo Ministrado da Aula</DialogDescription>
+            <DialogTitle>{aulaEditando ? 'Editar Aula' : 'Nova Aula'}</DialogTitle>
+            <DialogDescription>
+              {aulaEditando ? 'Atualize os dados da aula' : 'Conteúdo Ministrado da Aula'}
+            </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -199,14 +244,14 @@ export function CriarAulaModal({
                 Cancelar
               </Button>
               <Button type="submit" disabled={loading} className="bg-blue-600 hover:bg-blue-700">
-                {loading ? 'Salvando...' : 'Salvar Aula'}
+                {loading ? 'Salvando...' : aulaEditando ? 'Atualizar Aula' : 'Salvar Aula'}
               </Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
-      {aulaCriada && (
+      {aulaCriada && !aulaEditando && (
         <MarcarPresencaModal
           aula={aulaCriada}
           alunos={alunos}
