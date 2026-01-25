@@ -78,7 +78,6 @@ export function DiariosList() {
     loadData();
   }, [loadData]);
 
-  // Filtrar professores quando disciplina é selecionada
   useEffect(() => {
     const filtrarProfessores = async () => {
       if (!formData.disciplinaId) {
@@ -353,7 +352,6 @@ export function DiariosList() {
     return { canDevolver, canFinalizar };
   }, [currentUser]);
 
-  // Destacar diários entregues
   const diasEntreguesPendentesRevisao = useMemo(() => {
     return filteredDiarios.filter(d => d.status === 'ENTREGUE');
   }, [filteredDiarios]);
@@ -684,7 +682,6 @@ export function DiariosList() {
             </Dialog>
           </div>
 
-          {/* SEÇÃO DESTACADA: Diários Entregues Pendentes de Revisão */}
           {filteredDiarios.filter(d => d.status === 'ENTREGUE').length > 0 && (
             <div className="mb-6 p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
               <div className="flex items-center gap-2 mb-3">
@@ -765,7 +762,6 @@ export function DiariosList() {
                       )}
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
-                      {/* Botão "Ver Diário" - Sempre visível */}
                       <Button
                         variant="outline"
                         size="sm"
@@ -841,7 +837,6 @@ export function DiariosList() {
         </CardContent>
       </Card>
 
-      {/* Modal de Visualização do Diário */}
       <DiarioViewModal
         diario={selectedDiario}
         open={isViewModalOpen}
@@ -858,19 +853,21 @@ export function DiariosList() {
         userRole={currentUser?.papel as 'COORDENADOR' | 'PROFESSOR' | 'ADMIN' | undefined}
       />
 
-      {/* Modal de Devolução */}
       <DevolverDiarioModal
         diario={selectedDiario}
         open={isDevolverModalOpen}
-        onOpenChange={setIsDevolverModalOpen}
+        onOpenChange={(newOpen) => {
+          setIsDevolverModalOpen(newOpen);
+          if (!newOpen) {
+            setSelectedDiario(null);
+            setObservacaoDevolucao('');
+          }
+        }}
         onSuccess={async () => {
           await loadData();
-          setSelectedDiario(null);
-          setObservacaoDevolucao('');
         }}
       />
 
-      {/* Dialog de Finalização */}
       <Dialog open={isFinalizarDialogOpen} onOpenChange={setIsFinalizarDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -894,7 +891,7 @@ export function DiariosList() {
               {loading ? 'Finalizando...' : 'Finalizar Diário'}
             </Button>
           </DialogFooter>
-        </DialogContent>
+        </Dialog>
       </Dialog>
     </>
   );
