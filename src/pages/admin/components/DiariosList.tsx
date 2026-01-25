@@ -11,6 +11,7 @@ import { Textarea } from '../../../components/ui/textarea';
 import { supabaseService } from '../../../services/supabaseService';
 import { DiarioViewModal } from './DiarioViewModal';
 import { DevolverDiarioModal } from './DevolverDiarioModal';
+import { SuccessToast } from './SuccessToast';
 import type { Diario, Turma, Disciplina, Usuario } from '../../../services/supabaseService';
 
 export function DiariosList() {
@@ -30,6 +31,14 @@ export function DiariosList() {
   const [observacaoDevolucao, setObservacaoDevolucao] = useState('');
   const [currentUser, setCurrentUser] = useState<Usuario | null>(null);
   const [loading, setLoading] = useState(false);
+  
+  // Estado para o toast de sucesso
+  const [successToast, setSuccessToast] = useState({
+    open: false,
+    message: '',
+    description: ''
+  });
+  
   const [filters, setFilters] = useState({
     disciplina: '',
     turma: '',
@@ -192,7 +201,11 @@ export function DiariosList() {
       }
       await loadData();
       resetForm();
-      alert(editingDiario ? 'Diário atualizado com sucesso!' : 'Diário criado com sucesso!');
+      setSuccessToast({
+        open: true,
+        message: editingDiario ? 'Diário Atualizado!' : 'Diário Criado!',
+        description: editingDiario ? 'O diário foi atualizado com sucesso.' : 'O diário foi criado com sucesso.'
+      });
     } catch (error) {
       console.error('Erro ao salvar diário:', error);
       alert('Erro ao salvar diário. Tente novamente.');
@@ -221,7 +234,11 @@ export function DiariosList() {
         setLoading(true);
         await supabaseService.deleteDiario(id);
         await loadData();
-        alert('Diário excluído com sucesso!');
+        setSuccessToast({
+          open: true,
+          message: 'Diário Excluído!',
+          description: 'O diário foi excluído com sucesso.'
+        });
       } catch (error) {
         console.error('Erro ao excluir diário:', error);
         alert('Erro ao excluir diário. Tente novamente.');
@@ -248,7 +265,11 @@ export function DiariosList() {
         setIsFinalizarDialogOpen(false);
         setIsViewModalOpen(false);
         setSelectedDiario(null);
-        alert('Diário finalizado com sucesso!');
+        setSuccessToast({
+          open: true,
+          message: 'Diário Finalizado!',
+          description: 'O diário foi finalizado com sucesso.'
+        });
       }
     } catch (error) {
       console.error('Erro ao finalizar diário:', error);
@@ -257,6 +278,19 @@ export function DiariosList() {
       setLoading(false);
     }
   }, [selectedDiario, currentUser, loadData]);
+
+  // Handler para quando a devolução é bem sucedida
+  const handleDevolucaoSuccess = useCallback(async () => {
+    await loadData();
+    setIsDevolverModalOpen(false);
+    setSelectedDiario(null);
+    // Mostra o toast de sucesso
+    setSuccessToast({
+      open: true,
+      message: 'Diário Enviado!',
+      description: 'O diário foi devolvido com sucesso para o professor.'
+    });
+  }, [loadData]);
 
   const handleApplyFilters = useCallback(() => {
     setIsFilterDialogOpen(false);
@@ -773,11 +807,7 @@ export function DiariosList() {
             setObservacaoDevolucao('');
           }
         }}
-        onSuccess={async () => {
-          await loadData();
-          setIsDevolverModalOpen(false);
-          setSelectedDiario(null);
-        }}
+        onSuccess={handleDevolucaoSuccess}
       />
 
       <Dialog open={isFinalizarDialogOpen} onOpenChange={setIsFinalizarDialogOpen}>
@@ -805,6 +835,15 @@ export function DiariosList() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Toast de Sucesso */}
+      <SuccessToast
+        message={successToast.message}
+        description={successToast.description}
+        open={successToast.open}
+        onClose={() => setSuccessToast({ ...successToast, open: false })}
+        autoCloseDelay={3000}
+      />
     </div>
   );
 }
