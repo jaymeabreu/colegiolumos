@@ -1,10 +1,10 @@
 import { useState, useRef } from 'react';
 import { ArrowLeft, Upload, Save, X } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
-import { Button } from '../../../components/ui/button';
-import { Input } from '../../../components/ui/input';
-import { Label } from '../../../components/ui/label';
-import { Textarea } from '../../../components/ui/textarea';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
+import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import { Textarea } from '../../components/ui/textarea';
 import { useNavigate } from 'react-router-dom';
 
 interface ConfigData {
@@ -111,7 +111,7 @@ export function Configuracoes() {
         {/* HEADER */}
         <div className="flex items-center gap-4 mb-8">
           <button
-            onClick={() => navigate('/admin')}
+            onClick={() => navigate('/app/admin/dashboard')}
             className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
           >
             <ArrowLeft className="h-6 w-6" />
@@ -330,7 +330,7 @@ export function Configuracoes() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => navigate('/admin')}
+              onClick={() => navigate('/app/admin/dashboard')}
             >
               Cancelar
             </Button>
