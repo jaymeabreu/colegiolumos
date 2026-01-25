@@ -22,7 +22,6 @@ export function DevolverDiarioModal({
   const [error, setError] = useState<string | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
-  // Limpar estados quando modal fecha
   useEffect(() => {
     if (!open) {
       setMotivo('');
@@ -46,7 +45,6 @@ export function DevolverDiarioModal({
       );
 
       if (resultado) {
-        // Chamar callback para recarregar dados
         if (onSuccess) {
           const result = onSuccess();
           if (result instanceof Promise) {
@@ -54,10 +52,8 @@ export function DevolverDiarioModal({
           }
         }
 
-        // Fechar modal de devolução
         onOpenChange(false);
         
-        // Mostrar modal de sucesso após fechar
         setTimeout(() => {
           setShowSuccessModal(true);
         }, 300);
@@ -88,7 +84,6 @@ export function DevolverDiarioModal({
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[70] backdrop-blur-sm p-4">
           <div className="bg-white rounded-lg shadow-2xl w-full max-w-md overflow-hidden border border-gray-200">
             
-            {/* HEADER */}
             <div className="bg-white p-6 border-b flex items-start justify-between">
               <div className="flex-1">
                 <h2 className="text-xl font-bold text-gray-900 mb-1">Devolver Diário</h2>
@@ -106,9 +101,7 @@ export function DevolverDiarioModal({
               </button>
             </div>
 
-            {/* CONTEÚDO */}
             <div className="p-6 min-h-[300px] flex flex-col bg-white">
-              {/* Informações do Diário */}
               <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-100">
                 <p className="text-sm text-gray-600 mb-1">
                   Diário: <span className="font-semibold text-gray-900">{diario?.nome}</span>
@@ -118,7 +111,6 @@ export function DevolverDiarioModal({
                 </p>
               </div>
 
-              {/* Erro */}
               {error && (
                 <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex gap-2 animate-in slide-in-from-top-2">
                   <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
@@ -126,7 +118,6 @@ export function DevolverDiarioModal({
                 </div>
               )}
 
-              {/* Campo de Motivo */}
               <div className="flex-1">
                 <label htmlFor="motivo" className="block text-sm font-semibold text-gray-700 mb-2">
                   Observação (opcional)
@@ -149,7 +140,6 @@ export function DevolverDiarioModal({
               </div>
             </div>
 
-            {/* FOOTER */}
             <div className="border-t bg-gray-50 px-6 py-4 flex gap-3 justify-end">
               <Button
                 type="button"
@@ -173,12 +163,11 @@ export function DevolverDiarioModal({
         </div>
       )}
 
-      {/* MODAL DE SUCESSO - SIMPLES */}
+      {/* MODAL DE SUCESSO */}
       {showSuccessModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999] backdrop-blur-sm p-4">
           <div className="bg-white rounded-lg shadow-2xl w-full max-w-sm overflow-hidden border border-gray-200">
             
-            {/* CONTEÚDO SUCESSO */}
             <div className="p-8 flex flex-col items-center justify-center text-center">
               <CheckCircle className="h-16 w-16 text-green-600 mb-4" />
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Diário Enviado!</h2>
