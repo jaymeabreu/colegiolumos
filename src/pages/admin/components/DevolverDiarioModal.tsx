@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { X, AlertCircle, CheckCircle } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { supabaseService } from '../../../services/supabaseService';
@@ -24,21 +24,6 @@ export function DevolverDiarioModal({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  // Limpar estados quando modal fecha
-  useEffect(() => {
-    if (!open) {
-      setMotivo('');
-      setError(null);
-      setSuccess(false);
-      setIsLoading(false);
-    }
-  }, [open]);
-
-  const closeModal = () => {
-    // Chamada direta para fechar a modal no componente pai
-    onOpenChange(false);
-  };
-
   const handleDevolver = async () => {
     if (!diario) return;
 
@@ -46,7 +31,7 @@ export function DevolverDiarioModal({
       setIsLoading(true);
       setError(null);
 
-      // 1. Tenta realizar a operação no banco de dados
+      // Devolver no banco de dados
       const resultado = await supabaseService.devolverDiario(
         diario.id,
         1,
@@ -54,22 +39,23 @@ export function DevolverDiarioModal({
       );
 
       if (resultado) {
-        // 2. Se deu certo, chamamos o onSuccess imediatamente
+        // Sucesso - chamar callback
         if (onSuccess) {
-          try {
-            const res = onSuccess();
-            if (res instanceof Promise) await res;
-          } catch (e) {
-            console.error("Erro no onSuccess:", e);
-          }
+          const res = onSuccess();
+          if (res instanceof Promise) await res;
         }
 
-        // 3. FEEDBACK E FECHAMENTO IMEDIATO
-        // Mostramos o sucesso por apenas meio segundo e fechamos
+        // Mostrar sucesso brevemente
         setSuccess(true);
+        
+        // Fechar modal após 500ms
         setTimeout(() => {
-          closeModal();
-        }, 500); 
+          setMotivo('');
+          setSuccess(false);
+          setError(null);
+          setIsLoading(false);
+          onOpenChange(false);
+        }, 500);
 
       } else {
         setError('Erro ao devolver o diário. Tente novamente.');
@@ -85,68 +71,75 @@ export function DevolverDiarioModal({
   if (!open || !diario) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999] backdrop-blur-sm p-4">
-      <div className="bg-white rounded-lg shadow-2xl w-full max-w-md overflow-hidden border border-gray-200">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
         
         {/* HEADER */}
-        <div className="bg-white p-6 border-b flex items-start justify-between">
-          <div className="flex-1">
-            <h2 className="text-xl font-bold text-gray-900 mb-1">Devolver Diário</h2>
-            <p className="text-sm text-gray-600">
+        <div className="border-b px-6 py-4 flex items-start justify-between">
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">Devolver Diário</h2>
+            <p className="text-sm text-gray-600 mt-1">
               Tem certeza que deseja devolver este diário para o professor?
             </p>
           </div>
           <button
-            onClick={closeModal}
+            onClick={() => {
+              setMotivo('');
+              setError(null);
+              setSuccess(false);
+              setIsLoading(false);
+              onOpenChange(false);
+            }}
             disabled={isLoading || success}
-            className="p-1 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-gray-600"
+            className="text-gray-400 hover:text-gray-600 p-1"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* CONTEÚDO */}
-        <div className="p-6 min-h-[280px] flex flex-col bg-white">
+        <div className="px-6 py-4 min-h-[280px]">
           {success ? (
-            <div className="flex-1 flex flex-col items-center justify-center">
-              <CheckCircle className="h-16 w-16 text-green-600 mb-4 animate-bounce" />
-              <p className="text-lg font-bold text-gray-900">Sucesso!</p>
-              <p className="text-sm text-gray-500">Fechando janela...</p>
+            <div className="flex flex-col items-center justify-center h-full">
+              <CheckCircle className="h-12 w-12 text-green-600 mb-3 animate-pulse" />
+              <p className="text-base font-semibold text-gray-900">Diário devolvido com sucesso!</p>
+              <p className="text-sm text-gray-500 mt-2">Fechando...</p>
             </div>
           ) : (
             <>
               {/* Info do Diário */}
-              <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-100">
-                <p className="text-sm text-gray-700">
+              <div className="mb-4 p-3 bg-gray-50 rounded border border-gray-200">
+                <p className="text-sm text-gray-600">
                   Diário: <span className="font-bold text-gray-900">{diario.nome}</span>
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
-                  Status: {diario.status}
+                  Status atual: {diario.status}
                 </p>
               </div>
 
               {/* Erro */}
               {error && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex gap-2 text-red-700 text-sm">
-                  <AlertCircle className="h-5 w-5 flex-shrink-0" />
-                  <p>{error}</p>
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded flex gap-2 text-red-700 text-sm">
+                  <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                  <span>{error}</span>
                 </div>
               )}
 
-              {/* Campo de Motivo - FORÇADO BRANCO */}
-              <div className="flex-1">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+              {/* Campo de Motivo */}
+              <div>
+                <label htmlFor="motivo" className="block text-sm font-semibold text-gray-700 mb-2">
                   Observação (opcional)
                 </label>
                 <textarea
+                  id="motivo"
+                  name="motivo"
                   value={motivo}
-                  onChange={(e) => setMotivo(e.target.value)}
-                  placeholder="Explique o motivo da devolução..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none h-32 resize-none !bg-white !text-gray-900 placeholder:text-gray-400"
-                  style={{ backgroundColor: 'white', color: '#111827' }}
+                  onChange={(e) => setMotivo(e.target.value.slice(0, 500))}
+                  placeholder="Explique o motivo da devolução para o professor..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none h-28 text-gray-900"
                   disabled={isLoading}
                 />
-                <p className="text-[10px] text-gray-400 mt-1 text-right">
+                <p className="text-xs text-gray-500 mt-1 text-right">
                   {motivo.length}/500
                 </p>
               </div>
@@ -156,19 +149,26 @@ export function DevolverDiarioModal({
 
         {/* FOOTER */}
         {!success && (
-          <div className="border-t bg-gray-50 px-6 py-4 flex gap-3 justify-end">
+          <div className="border-t bg-gray-50 px-6 py-3 flex gap-2 justify-end">
             <Button
               variant="outline"
-              onClick={closeModal}
+              onClick={() => {
+                setMotivo('');
+                setError(null);
+                setSuccess(false);
+                setIsLoading(false);
+                onOpenChange(false);
+              }}
               disabled={isLoading}
-              className="bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+              size="sm"
             >
               Cancelar
             </Button>
             <Button
               onClick={handleDevolver}
               disabled={isLoading}
-              className="bg-[#1e4e5f] hover:bg-[#153a47] text-white px-8"
+              size="sm"
+              className="bg-blue-600 hover:bg-blue-700 text-white"
             >
               {isLoading ? 'Processando...' : 'Devolver Diário'}
             </Button>
