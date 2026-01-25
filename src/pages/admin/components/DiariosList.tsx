@@ -121,10 +121,13 @@ export function DiariosList() {
 
   const filteredDiarios = useMemo(() => {
     if (!searchTerm && !Object.values(filters).some(v => v && v !== 'all')) {
-      return diarios;
+      return diarios.filter(d => !d.solicitacao_devolucao);
     }
 
     return diarios.filter(diario => {
+      // NÃO mostrar na lista diários com solicitação de devolução
+      if (diario.solicitacao_devolucao) return false;
+
       if (searchTerm && diario.nome && !diario.nome.toLowerCase().includes(searchTerm.toLowerCase())) {
         return false;
       }
@@ -274,7 +277,6 @@ export function DiariosList() {
     }
   }, [selectedDiario, currentUser, loadData]);
 
-  // CORRIGIDO: Callback simples que só atualiza dados e mostra toast
   const handleDevolucaoSuccess = useCallback(async () => {
     await loadData();
     setSelectedDiario(null);
@@ -348,8 +350,9 @@ export function DiariosList() {
     };
   };
 
-  const diasEntreguesPendentesRevisao = useMemo(() => {
-    return diarios.filter(d => d.status === 'ENTREGUE');
+  // DIÁRIOS COM SOLICITAÇÃO DE DEVOLUÇÃO (mostrados apenas no card azul)
+  const diasComSolicitacaoDevolucao = useMemo(() => {
+    return diarios.filter(d => d.solicitacao_devolucao);
   }, [diarios]);
 
   return (
@@ -652,29 +655,44 @@ export function DiariosList() {
             </Dialog>
           </div>
 
-          {diasEntreguesPendentesRevisao.length > 0 && (
-            <div className="mb-6 p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
+          {/* CARD AZUL - SÓ COM DIÁRIOS QUE TÊM SOLICITAÇÃO DE DEVOLUÇÃO */}
+          {diasComSolicitacaoDevolucao.length > 0 && (
+            <div className="mb-6 p-4 bg-orange-50 border-2 border-orange-200 rounded-lg">
               <div className="flex items-center gap-2 mb-3">
-                <Eye className="h-5 w-5 text-blue-600" />
-                <h4 className="font-semibold text-blue-900">
-                  {diasEntreguesPendentesRevisao.length} Diário(s) Pendente(s) de Revisão
+                <AlertCircle className="h-5 w-5 text-orange-600" />
+                <h4 className="font-semibold text-orange-900">
+                  {diasComSolicitacaoDevolucao.length} Diário(s) com Solicitação de Devolução
                 </h4>
               </div>
-              <div className="space-y-2">
-                {diasEntreguesPendentesRevisao.map(diario => (
-                  <div key={diario.id} className="p-3 bg-white rounded border border-blue-100 flex items-center justify-between">
-                    <div className="flex-1">
-                      <p className="font-medium text-gray-800">{diario.nome}</p>
-                      <p className="text-sm text-gray-600">
-                        {getDisciplinaNome(diario.disciplina_id)} - {getTurmaNome(diario.turma_id)}
-                      </p>
+              <div className="space-y-3">
+                {diasComSolicitacaoDevolucao.map(diario => (
+                  <div key={diario.id} className="p-3 bg-white rounded border border-orange-100">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-900">{diario.nome}</p>
+                        <p className="text-sm text-gray-600 mb-2">
+                          {getDisciplinaNome(diario.disciplina_id)} - {getTurmaNome(diario.turma_id)}
+                        </p>
+                        {diario.solicitacao_devolucao && (
+                          <div className="bg-orange-50 p-2 rounded border border-orange-100">
+                            <p className="text-xs font-semibold text-orange-800 mb-1">Motivo da Devolução:</p>
+                            <p className="text-sm text-orange-700">
+                              {diario.solicitacao_devolucao.motivo || diario.solicitacao_devolucao.comentario || 'Sem motivo especificado'}
+                            </p>
+                            <p className="text-xs text-orange-600 mt-1">
+                              Solicitado em: {new Date(diario.solicitacao_devolucao.at || diario.solicitacao_devolucao.dataSolicitacao).toLocaleDateString('pt-BR')}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={() => handleViewDiario(diario)}
+                        className="whitespace-nowrap"
+                      >
+                        Revisar
+                      </Button>
                     </div>
-                    <Button
-                      size="sm"
-                      onClick={() => handleViewDiario(diario)}
-                    >
-                      Revisar
-                    </Button>
                   </div>
                 ))}
               </div>
@@ -774,7 +792,6 @@ export function DiariosList() {
         </CardContent>
       </Card>
 
-      {/* CORRIGIDO: onDevolver agora só chama o callback, não abre outro modal */}
       <DiarioViewModal
         diario={selectedDiario}
         open={isViewModalOpen}
