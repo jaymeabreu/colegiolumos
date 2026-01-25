@@ -34,8 +34,8 @@ export function DevolverDiarioModal({
     }
   }, [open]);
 
-  // Função simplificada para fechar a modal
   const closeModal = () => {
+    // Chamada direta para fechar a modal no componente pai
     onOpenChange(false);
   };
 
@@ -46,7 +46,7 @@ export function DevolverDiarioModal({
       setIsLoading(true);
       setError(null);
 
-      // Executa a devolução
+      // 1. Tenta realizar a operação no banco de dados
       const resultado = await supabaseService.devolverDiario(
         diario.id,
         1,
@@ -54,26 +54,22 @@ export function DevolverDiarioModal({
       );
 
       if (resultado) {
-        // 1. Marca como sucesso para mostrar o feedback visual
-        setSuccess(true);
-        
-        // 2. Chama o callback de sucesso imediatamente (para atualizar a lista no fundo)
+        // 2. Se deu certo, chamamos o onSuccess imediatamente
         if (onSuccess) {
           try {
-            const result = onSuccess();
-            if (result instanceof Promise) {
-              await result;
-            }
+            const res = onSuccess();
+            if (res instanceof Promise) await res;
           } catch (e) {
-            console.error("Erro no callback onSuccess:", e);
+            console.error("Erro no onSuccess:", e);
           }
         }
-        
-        // 3. FECHAMENTO GARANTIDO: 
-        // Esperamos um tempo curto para o usuário ver o "check" verde e fechamos.
+
+        // 3. FEEDBACK E FECHAMENTO IMEDIATO
+        // Mostramos o sucesso por apenas meio segundo e fechamos
+        setSuccess(true);
         setTimeout(() => {
           closeModal();
-        }, 800); // Reduzi para 800ms para ser mais rápido
+        }, 500); 
 
       } else {
         setError('Erro ao devolver o diário. Tente novamente.');
@@ -86,21 +82,14 @@ export function DevolverDiarioModal({
     }
   };
 
-  // Se não estiver aberto ou não tiver diário, não renderiza nada
   if (!open || !diario) return null;
 
   return (
-    <div 
-      className="fixed inset-0 bg-black/60 flex items-center justify-center z-[70] backdrop-blur-sm p-4"
-      onClick={(e) => {
-        // Fecha ao clicar fora da modal (opcional, mas ajuda na UX)
-        if (e.target === e.currentTarget && !isLoading && !success) closeModal();
-      }}
-    >
-      <div className="bg-white rounded-lg shadow-2xl w-full max-w-md overflow-hidden" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999] backdrop-blur-sm p-4">
+      <div className="bg-white rounded-lg shadow-2xl w-full max-w-md overflow-hidden border border-gray-200">
         
         {/* HEADER */}
-        <div className="bg-gradient-to-r from-orange-50 to-red-50 p-6 border-b flex items-start justify-between">
+        <div className="bg-white p-6 border-b flex items-start justify-between">
           <div className="flex-1">
             <h2 className="text-xl font-bold text-gray-900 mb-1">Devolver Diário</h2>
             <p className="text-sm text-gray-600">
@@ -110,62 +99,56 @@ export function DevolverDiarioModal({
           <button
             onClick={closeModal}
             disabled={isLoading || success}
-            type="button"
-            className="p-1 hover:bg-white rounded-full transition-colors text-gray-600 hover:text-gray-900 disabled:opacity-50"
+            className="p-1 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-gray-600"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* CONTEÚDO */}
-        <div className="p-6 min-h-[300px] flex flex-col">
+        <div className="p-6 min-h-[280px] flex flex-col bg-white">
           {success ? (
-            <div className="flex-1 flex flex-col items-center justify-center animate-in fade-in zoom-in duration-300">
+            <div className="flex-1 flex flex-col items-center justify-center">
               <CheckCircle className="h-16 w-16 text-green-600 mb-4 animate-bounce" />
-              <p className="text-lg font-bold text-gray-900 mb-1">Sucesso!</p>
-              <p className="text-sm text-gray-600 text-center">
-                O diário foi devolvido e a janela fechará em instantes.
-              </p>
+              <p className="text-lg font-bold text-gray-900">Sucesso!</p>
+              <p className="text-sm text-gray-500">Fechando janela...</p>
             </div>
           ) : (
             <>
-              {/* Informações do Diário */}
+              {/* Info do Diário */}
               <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-100">
-                <p className="text-sm text-gray-600 mb-1">
-                  Diário: <span className="font-semibold text-gray-900">{diario.nome}</span>
+                <p className="text-sm text-gray-700">
+                  Diário: <span className="font-bold text-gray-900">{diario.nome}</span>
                 </p>
-                <p className="text-xs text-gray-500">
-                  Status: <span className="font-medium">{diario.status}</span>
+                <p className="text-xs text-gray-500 mt-1">
+                  Status: {diario.status}
                 </p>
               </div>
 
               {/* Erro */}
               {error && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex gap-2 animate-in slide-in-from-top-2">
-                  <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
-                  <p className="text-sm text-red-700">{error}</p>
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex gap-2 text-red-700 text-sm">
+                  <AlertCircle className="h-5 w-5 flex-shrink-0" />
+                  <p>{error}</p>
                 </div>
               )}
 
-              {/* Campo de Motivo */}
+              {/* Campo de Motivo - FORÇADO BRANCO */}
               <div className="flex-1">
-                <label htmlFor="motivo" className="block text-sm font-semibold text-gray-700 mb-2">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Observação (opcional)
                 </label>
                 <textarea
-                  id="motivo"
-                  name="motivo"
                   value={motivo}
-                  onChange={(e) => setMotivo(e.target.value.slice(0, 500))}
+                  onChange={(e) => setMotivo(e.target.value)}
                   placeholder="Explique o motivo da devolução..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none h-32 transition-all"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none h-32 resize-none !bg-white !text-gray-900 placeholder:text-gray-400"
+                  style={{ backgroundColor: 'white', color: '#111827' }}
                   disabled={isLoading}
                 />
-                <div className="flex justify-end mt-1">
-                  <span className={`text-[10px] ${motivo.length >= 500 ? 'text-red-500' : 'text-gray-400'}`}>
-                    {motivo.length}/500
-                  </span>
-                </div>
+                <p className="text-[10px] text-gray-400 mt-1 text-right">
+                  {motivo.length}/500
+                </p>
               </div>
             </>
           )}
@@ -175,26 +158,19 @@ export function DevolverDiarioModal({
         {!success && (
           <div className="border-t bg-gray-50 px-6 py-4 flex gap-3 justify-end">
             <Button
-              type="button"
               variant="outline"
               onClick={closeModal}
               disabled={isLoading}
-              className="px-6"
+              className="bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
             >
               Cancelar
             </Button>
             <Button
-              type="button"
-              className="bg-orange-600 hover:bg-orange-700 text-white px-6 min-w-[140px]"
               onClick={handleDevolver}
               disabled={isLoading}
+              className="bg-[#1e4e5f] hover:bg-[#153a47] text-white px-8"
             >
-              {isLoading ? (
-                <div className="flex items-center gap-2">
-                  <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  <span>Devolvendo...</span>
-                </div>
-              ) : 'Devolver Diário'}
+              {isLoading ? 'Processando...' : 'Devolver Diário'}
             </Button>
           </div>
         )}
