@@ -5,7 +5,6 @@ import { Button } from '../../../components/ui/button';
 import { ScrollArea } from '../../../components/ui/scroll-area';
 import { supabaseService } from '../../../services/supabaseService';
 import { MarcarPresencaModal } from './MarcarPresencaModal';
-import { DevolverDiarioModal } from './DevolverDiarioModal';
 import type { Diario, Aula, Aluno, Avaliacao } from '../../../services/supabaseService';
 
 interface DiarioViewModalProps {
@@ -57,7 +56,12 @@ export function DiarioViewModal({
   const [alunosData, setAlunosData] = useState<Aluno[]>([]);
   const [isMarcarPresencaOpen, setIsMarcarPresencaOpen] = useState(false);
   const [selectedAula, setSelectedAula] = useState<Aula | null>(null);
-  const [isDevolverDiarioOpen, setIsDevolverDiarioOpen] = useState(false);
+  
+  // Estados do modal de devolver INLINE
+  const [isDevolverOpen, setIsDevolverOpen] = useState(false);
+  const [motivoDevolucao, setMotivoDevolucao] = useState('');
+  const [devolvendoDiario, setDevolvendoDiario] = useState(false);
+  const [erroDevolver, setErroDevolver] = useState<string | null>(null);
 
   const isReadOnly = diario?.status === 'ENTREGUE' || diario?.status === 'FINALIZADO';
   const canDevolver = userRole === 'COORDENADOR' && diario?.status === 'ENTREGUE';
@@ -69,6 +73,14 @@ export function DiarioViewModal({
     }
   }, [diario?.id, open]);
 
+  useEffect(() => {
+    if (!isDevolverOpen) {
+      setMotivoDevolucao('');
+      setErroDevolver(null);
+      setDevolvendoDiario(false);
+    }
+  }, [isDevolverOpen]);
+
   const carregarDados = async () => {
     if (!diario) return;
     
@@ -78,16 +90,12 @@ export function DiarioViewModal({
       const alunosDataTemp = await supabaseService.getAlunosByDiario(diario.id);
       setAlunosData(alunosDataTemp);
 
-      // Buscar avaliações do diário
       const avaliacoesData = await supabaseService.getAvaliacoesByDiario(diario.id);
       setAvaliacoes(avaliacoesData || []);
 
-      // Buscar rendimento real de cada aluno
       const boletimPromises = (alunosDataTemp || []).map(async (aluno, index) => {
         try {
           const boletimAluno = await supabaseService.getBoletimAluno(diario.id, aluno.id);
-          
-          // Buscar notas individuais de cada avaliação
           const notasAluno = await supabaseService.getNotasByAluno(aluno.id);
           const notasPorAvaliacao: { [key: number]: number } = {};
           
@@ -107,7 +115,6 @@ export function DiarioViewModal({
             notas: notasPorAvaliacao
           };
         } catch (error) {
-          console.error(`Erro ao buscar boletim de ${aluno.nome}:`, error);
           return {
             numero: index + 1,
             nome: aluno.nome,
@@ -121,7 +128,6 @@ export function DiarioViewModal({
 
       let boletim = await Promise.all(boletimPromises);
       
-      // Aplicar lógica: a média é o status final
       boletim = boletim.map(aluno => ({
         ...aluno,
         acompanhamento: aluno.media === null 
@@ -160,11 +166,36 @@ export function DiarioViewModal({
     }
   };
 
-  const getSituacaoVariant = (situacao: string | null): "default" | "destructive" | "secondary" => {
-    if (!situacao) return "secondary";
-    if (situacao === 'Aprovado') return "default";
-    if (situacao === 'Reprovado') return "destructive";
-    return "secondary";
+  // FUNÇÃO PRINCIPAL - Devolver diário com 1 clique
+  const handleDevolverDiario = async () => {
+    if (!diario) return;
+
+    try {
+      setDevolvendoDiario(true);
+      setErroDevolver(null);
+
+      const resultado = await supabaseService.devolverDiario(
+        diario.id,
+        1,
+        motivoDevolucao || undefined
+      );
+
+      if (resultado) {
+        // 1. Fecha modal de devolver
+        setIsDevolverOpen(false);
+        // 2. Fecha modal principal  
+        onOpenChange(false);
+        // 3. Chama callback do pai para mostrar sucesso
+        onDevolver?.();
+      } else {
+        setErroDevolver('Erro ao devolver o diário. Tente novamente.');
+      }
+    } catch (err: any) {
+      console.error('Erro ao devolver diário:', err);
+      setErroDevolver(err.message || 'Erro ao devolver o diário');
+    } finally {
+      setDevolvendoDiario(false);
+    }
   };
 
   const getSituacaoColor = (situacao: string | null) => {
@@ -311,7 +342,6 @@ export function DiarioViewModal({
                         <tr className="bg-gray-100 border-b-2 border-gray-300">
                           <th className="border px-4 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">N°</th>
                           <th className="border px-4 py-3 text-left font-semibold text-gray-700 whitespace-nowrap min-w-[200px]">Nome</th>
-                          {/* Colunas dinâmicas de avaliações */}
                           {avaliacoes.map((avaliacao) => (
                             <th key={avaliacao.id} className="border px-4 py-3 text-center font-semibold text-gray-700 whitespace-nowrap">
                               <div>{avaliacao.titulo}</div>
@@ -331,7 +361,6 @@ export function DiarioViewModal({
                             <tr key={aluno.numero} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                               <td className="border px-4 py-3 text-center font-medium">{aluno.numero}</td>
                               <td className="border px-4 py-3">{aluno.nome}</td>
-                              {/* Notas de cada avaliação */}
                               {avaliacoes.map((avaliacao) => {
                                 const nota = aluno.notas[avaliacao.id];
                                 return (
@@ -444,11 +473,11 @@ export function DiarioViewModal({
                   </Button>
                 )}
                 
-                {canDevolver && onDevolver && (
+                {canDevolver && (
                   <Button
                     variant="outline"
                     className="border-orange-200 text-orange-700 hover:bg-orange-50"
-                    onClick={() => setIsDevolverDiarioOpen(true)}
+                    onClick={() => setIsDevolverOpen(true)}
                     disabled={loading}
                   >
                     <RotateCcw className="h-4 w-4 mr-2" />
@@ -482,17 +511,85 @@ export function DiarioViewModal({
         onSave={() => carregarDados()}
       />
 
-      {/* Modal de Devolver Diário */}
-      <DevolverDiarioModal
-        diario={diario}
-        open={isDevolverDiarioOpen}
-        onOpenChange={setIsDevolverDiarioOpen}
-        onSuccess={() => {
-          carregarDados();
-          onDevolver?.();
-        }}
-        loading={loading}
-      />
+      {/* Modal de Devolver Diário - INLINE (sem componente separado) */}
+      {isDevolverOpen && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[70] backdrop-blur-sm p-4">
+          <div className="bg-white rounded-lg shadow-2xl w-full max-w-md overflow-hidden border border-gray-200">
+            
+            <div className="bg-white p-6 border-b flex items-start justify-between">
+              <div className="flex-1">
+                <h2 className="text-xl font-bold text-gray-900 mb-1">Devolver Diário</h2>
+                <p className="text-sm text-gray-600">
+                  Tem certeza que deseja devolver este diário para o professor?
+                </p>
+              </div>
+              <button
+                onClick={() => setIsDevolverOpen(false)}
+                disabled={devolvendoDiario}
+                type="button"
+                className="p-1 hover:bg-gray-100 rounded-full transition-colors text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="p-6 bg-white">
+              <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-100">
+                <p className="text-sm text-gray-600 mb-1">
+                  Diário: <span className="font-semibold text-gray-900">{diario.nome}</span>
+                </p>
+                <p className="text-xs text-gray-500">
+                  Status: <span className="font-medium">{diario.status}</span>
+                </p>
+              </div>
+
+              {erroDevolver && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex gap-2">
+                  <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-red-700">{erroDevolver}</p>
+                </div>
+              )}
+
+              <div>
+                <label htmlFor="motivo" className="block text-sm font-semibold text-gray-700 mb-2">
+                  Observação (opcional)
+                </label>
+                <textarea
+                  id="motivo"
+                  value={motivoDevolucao}
+                  onChange={(e) => setMotivoDevolucao(e.target.value.slice(0, 500))}
+                  placeholder="Explique o motivo da devolução..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none h-32 bg-white text-gray-900 placeholder:text-gray-400"
+                  disabled={devolvendoDiario}
+                />
+                <div className="flex justify-end mt-1">
+                  <span className="text-[10px] text-gray-400">{motivoDevolucao.length}/500</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t bg-gray-50 px-6 py-4 flex gap-3 justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsDevolverOpen(false)}
+                disabled={devolvendoDiario}
+                className="px-6 bg-white"
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                className="bg-[#1e4e5f] hover:bg-[#153a47] text-white px-6 min-w-[140px]"
+                onClick={handleDevolverDiario}
+                disabled={devolvendoDiario}
+              >
+                {devolvendoDiario ? 'Devolvendo...' : 'Devolver Diário'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
