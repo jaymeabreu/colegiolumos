@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Settings, FileText, Users, BarChart3, Cog, LogOut } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
-import { Button } from '../../../components/ui/button';
+import { Settings, FileText, Users, BarChart3, Cog } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
+import { Button } from '../../components/ui/button';
 import { useNavigate } from 'react-router-dom';
 
 interface DashboardSection {
@@ -24,7 +24,7 @@ export function AdminDashboard() {
       title: 'Diários de Classe',
       description: 'Gerencie os diários de classe, acompanhe entregas e devoluções',
       icon: <FileText className="h-8 w-8" />,
-      path: '/admin/diarios',
+      path: '/app/admin/diarios',
       color: 'bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700'
     },
     {
@@ -32,7 +32,7 @@ export function AdminDashboard() {
       title: 'Professores',
       description: 'Gerencie professores, disciplinas e vinculações',
       icon: <Users className="h-8 w-8" />,
-      path: '/admin/professores',
+      path: '/app/admin/professores',
       color: 'bg-green-50 hover:bg-green-100 border-green-200 text-green-700'
     },
     {
@@ -40,7 +40,7 @@ export function AdminDashboard() {
       title: 'Alunos',
       description: 'Gerencie matriculas, turmas e informações dos alunos',
       icon: <Users className="h-8 w-8" />,
-      path: '/admin/alunos',
+      path: '/app/admin/alunos',
       color: 'bg-purple-50 hover:bg-purple-100 border-purple-200 text-purple-700'
     },
     {
@@ -48,7 +48,7 @@ export function AdminDashboard() {
       title: 'Relatórios',
       description: 'Visualize gráficos, estatísticas e relatórios da instituição',
       icon: <BarChart3 className="h-8 w-8" />,
-      path: '/admin/relatorios',
+      path: '/app/admin/relatorios',
       color: 'bg-orange-50 hover:bg-orange-100 border-orange-200 text-orange-700'
     },
     {
@@ -56,7 +56,7 @@ export function AdminDashboard() {
       title: 'Configurações',
       description: 'Configure a instituição, logo, informações e preferências',
       icon: <Settings className="h-8 w-8" />,
-      path: '/admin/configuracoes',
+      path: '/app/admin/configuracoes',
       color: 'bg-red-50 hover:bg-red-100 border-red-200 text-red-700'
     }
   ];
