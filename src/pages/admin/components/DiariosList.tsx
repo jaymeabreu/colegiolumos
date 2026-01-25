@@ -858,18 +858,16 @@ export function DiariosList() {
         userRole={currentUser?.papel as 'COORDENADOR' | 'PROFESSOR' | 'ADMIN' | undefined}
       />
 
-      {/* Modal de Devolução (NOVO) */}
-     <DevolverDiarioModal
-  diario={selectedDiario}
-  open={isDevolverModalOpen}
-  onOpenChange={setIsDevolverModalOpen}
-  onSuccess={async () => {
-    await loadData();
-    setSelectedDiario(null);
-    setObservacaoDevolucao('');
-  }}
-  loading={loading}
-/>
+      {/* Modal de Devolução */}
+      <DevolverDiarioModal
+        diario={selectedDiario}
+        open={isDevolverModalOpen}
+        onOpenChange={setIsDevolverModalOpen}
+        onSuccess={async () => {
+          await loadData();
+          setSelectedDiario(null);
+          setObservacaoDevolucao('');
+        }}
       />
 
       {/* Dialog de Finalização */}
