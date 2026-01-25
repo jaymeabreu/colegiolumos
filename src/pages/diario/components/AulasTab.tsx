@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Trash2, Users } from 'lucide-react';
+import { Trash2, Users, Edit } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
 import { supabaseService } from '../../../services/supabaseService';
@@ -20,6 +20,7 @@ export function AulasTab({ diarioId, readOnly = false }: AulasTabProps) {
   const [isCriarAulaOpen, setIsCriarAulaOpen] = useState(false);
   const [selectedAula, setSelectedAula] = useState<Aula | null>(null);
   const [isPresencaDialogOpen, setIsPresencaDialogOpen] = useState(false);
+  const [isEditingAula, setIsEditingAula] = useState<Aula | null>(null);
 
   useEffect(() => {
     loadAulas();
@@ -68,6 +69,11 @@ export function AulasTab({ diarioId, readOnly = false }: AulasTabProps) {
     setIsPresencaDialogOpen(true);
   };
 
+  const handleEditAula = (aula: Aula) => {
+    setIsEditingAula(aula);
+    setIsCriarAulaOpen(true);
+  };
+
   return (
     <>
       <Card>
@@ -84,8 +90,14 @@ export function AulasTab({ diarioId, readOnly = false }: AulasTabProps) {
                 diarioId={diarioId}
                 alunos={alunos}
                 open={isCriarAulaOpen}
-                onOpenChange={setIsCriarAulaOpen}
+                onOpenChange={(open) => {
+                  setIsCriarAulaOpen(open);
+                  if (!open) {
+                    setIsEditingAula(null);
+                  }
+                }}
                 onAulaCriada={loadAulas}
+                aulaEditando={isEditingAula}
               />
             )}
           </div>
@@ -130,6 +142,15 @@ export function AulasTab({ diarioId, readOnly = false }: AulasTabProps) {
                     >
                       <Users className="h-4 w-4 mr-1" />
                       Presença
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEditAula(aula)}
+                      className="bg-blue-50 hover:bg-blue-100 text-blue-700"
+                    >
+                      <Edit className="h-4 w-4 mr-1" />
+                      Editar
                     </Button>
                     <Button
                       variant="destructive"
