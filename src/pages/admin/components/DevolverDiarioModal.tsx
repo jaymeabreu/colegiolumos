@@ -9,7 +9,6 @@ interface DevolverDiarioModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void | Promise<void>;
-  // Removido o loading vindo do pai para evitar conflitos (Regra 4)
 }
 
 export function DevolverDiarioModal({
@@ -19,7 +18,7 @@ export function DevolverDiarioModal({
   onSuccess
 }: DevolverDiarioModalProps) {
   const [motivo, setMotivo] = useState('');
-  const [isLoading, setIsLoading] = useState(false); // Único loading (Regra 4)
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
@@ -33,51 +32,46 @@ export function DevolverDiarioModal({
     }
   }, [open]);
 
- const handleDevolver = async () => {
-  if (!diario) return;
+  const handleDevolver = async () => {
+    if (!diario) return;
 
-  try {
-    setIsLoading(true);
-    setError(null);
+    try {
+      setIsLoading(true);
+      setError(null);
 
-    const resultado = await supabaseService.devolverDiario(
-      diario.id,
-      1,
-      motivo || undefined
-    );
+      const resultado = await supabaseService.devolverDiario(
+        diario.id,
+        1,
+        motivo || undefined
+      );
 
-    if (!resultado) {
-      setError('Erro ao devolver o diário. Tente novamente.');
+      if (resultado) {
+        setSuccess(true);
+        
+        // REGRA DE OURO: A modal apenas avisa que terminou.
+        // Quem fecha é o componente PAI através do onSuccess.
+        if (onSuccess) {
+          const result = onSuccess();
+          if (result instanceof Promise) {
+            await result;
+          }
+        }
+      } else {
+        setError('Erro ao devolver o diário. Tente novamente.');
+        setIsLoading(false);
+      }
+    } catch (err: any) {
+      console.error('Erro ao devolver diário:', err);
+      setError(err.message || 'Erro ao devolver o diário');
       setIsLoading(false);
-      return;
     }
-
-    // 1️⃣ Mostra sucesso
-    setSuccess(true);
-
-    // 2️⃣ Aguarda callback do pai (se existir)
-    if (onSuccess) {
-      await onSuccess();
-    }
-
-    // 3️⃣ FECHA O MODAL COM SEGURANÇA (pulo do gato)
-    setTimeout(() => {
-      onOpenChange(false);
-    }, 300);
-
-  } catch (err: any) {
-    console.error('Erro ao devolver diário:', err);
-    setError(err.message || 'Erro ao devolver o diário');
-    setIsLoading(false);
-  }
-};
-
+  };
 
   if (!open || !diario) return null;
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[70] backdrop-blur-sm p-4">
-      <div className="bg-white rounded-lg shadow-2xl w-full max-w-md overflow-hidden">
+      <div className="bg-white rounded-lg shadow-2xl w-full max-w-md overflow-hidden border border-gray-200">
         
         {/* HEADER */}
         <div className="bg-white p-6 border-b flex items-start justify-between">
