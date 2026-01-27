@@ -76,18 +76,10 @@ export function AdminPage() {
     loadComunicados();
   }, []);
 
-  // Quando activeTab muda, atualiza a URL
+  // Sincronizar activeTab com a URL quando muda
   useEffect(() => {
     setSearchParams({ tab: activeTab });
   }, [activeTab, setSearchParams]);
-
-  // Quando a URL muda, atualiza activeTab
-  useEffect(() => {
-    const tabFromUrl = searchParams.get('tab');
-    if (tabFromUrl) {
-      setActiveTab(tabFromUrl);
-    }
-  }, [searchParams]);
 
   const loadUserProfile = async () => {
     try {
