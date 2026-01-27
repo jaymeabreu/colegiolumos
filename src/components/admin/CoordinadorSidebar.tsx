@@ -19,10 +19,15 @@ interface MenuItem {
   icon: React.ReactNode;
   path?: string;
   color?: string;
+  tabId?: string;
   items?: MenuItem[];
 }
 
-export function CoordinadorSidebar() {
+interface CoordinadorSidebarProps {
+  onTabChange?: (tabId: string) => void;
+}
+
+export function CoordinadorSidebar({ onTabChange }: CoordinadorSidebarProps) {
   const navigate = useNavigate();
   const [config, setConfig] = useState<ConfiguracaoEscola | null>(null);
   const [loading, setLoading] = useState(true);
@@ -35,9 +40,9 @@ export function CoordinadorSidebar() {
       icon: <BarChart3 className="h-5 w-5" />,
       color: 'bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-600',
       items: [
-        { id: 'visao-geral', label: 'Visão geral', icon: <BarChart3 className="h-4 w-4" />, path: '/app/admin' },
-        { id: 'comunicados', label: 'Comunicados', icon: <MessageSquare className="h-4 w-4" />, path: '/app/admin' },
-        { id: 'ocorrencias', label: 'Ocorrências', icon: <Clipboard className="h-4 w-4" />, path: '/app/admin' },
+        { id: 'visao-geral', label: 'Visão geral', icon: <BarChart3 className="h-4 w-4" />, tabId: 'visao-geral' },
+        { id: 'comunicados', label: 'Comunicados', icon: <MessageSquare className="h-4 w-4" />, tabId: 'comunicados' },
+        { id: 'ocorrencias', label: 'Ocorrências', icon: <Clipboard className="h-4 w-4" />, tabId: 'ocorrencias' },
       ]
     },
     {
@@ -46,12 +51,12 @@ export function CoordinadorSidebar() {
       icon: <GraduationCap className="h-5 w-5" />,
       color: 'bg-green-50 dark:bg-green-900/20 border-l-4 border-green-600',
       items: [
-        { id: 'disciplinas', label: 'Disciplinas', icon: <School className="h-4 w-4" />, path: '/app/admin' },
-        { id: 'turmas', label: 'Turmas', icon: <Users className="h-4 w-4" />, path: '/app/admin' },
-        { id: 'alunos', label: 'Alunos', icon: <Users className="h-4 w-4" />, path: '/app/admin' },
-        { id: 'professores', label: 'Professores', icon: <Users className="h-4 w-4" />, path: '/app/admin' },
-        { id: 'funcionarios', label: 'Funcionários', icon: <Users className="h-4 w-4" />, path: '/app/admin' },
-        { id: 'responsaveis', label: 'Responsáveis', icon: <Users className="h-4 w-4" />, path: '/app/admin' },
+        { id: 'disciplinas', label: 'Disciplinas', icon: <School className="h-4 w-4" />, tabId: 'disciplinas' },
+        { id: 'turmas', label: 'Turmas', icon: <Users className="h-4 w-4" />, tabId: 'turmas' },
+        { id: 'alunos', label: 'Alunos', icon: <Users className="h-4 w-4" />, tabId: 'alunos' },
+        { id: 'professores', label: 'Professores', icon: <Users className="h-4 w-4" />, tabId: 'professores' },
+        { id: 'funcionarios', label: 'Funcionários', icon: <Users className="h-4 w-4" />, tabId: 'funcionarios' },
+        { id: 'responsaveis', label: 'Responsáveis', icon: <Users className="h-4 w-4" />, tabId: 'responsaveis' },
       ]
     },
     {
@@ -60,9 +65,9 @@ export function CoordinadorSidebar() {
       icon: <BookOpen className="h-5 w-5" />,
       color: 'bg-cyan-50 dark:bg-cyan-900/20 border-l-4 border-cyan-600',
       items: [
-        { id: 'diarios', label: 'Diários', icon: <FileText className="h-4 w-4" />, path: '/app/admin' },
-        { id: 'calendario-escolar', label: 'Calendário Escolar', icon: <Calendar className="h-4 w-4" />, path: '/app/admin' },
-        { id: 'agenda-recados', label: 'Agenda de Recados', icon: <Clipboard className="h-4 w-4" />, path: '/app/admin' },
+        { id: 'diarios', label: 'Diários', icon: <FileText className="h-4 w-4" />, tabId: 'diarios' },
+        { id: 'calendario-escolar', label: 'Calendário Escolar', icon: <Calendar className="h-4 w-4" />, tabId: 'calendario-escolar' },
+        { id: 'agenda-recados', label: 'Agenda de Recados', icon: <Clipboard className="h-4 w-4" />, tabId: 'agenda-recados' },
       ]
     },
     {
@@ -71,10 +76,10 @@ export function CoordinadorSidebar() {
       icon: <FileText className="h-5 w-5" />,
       color: 'bg-purple-50 dark:bg-purple-900/20 border-l-4 border-purple-600',
       items: [
-        { id: 'matriculas', label: 'Matrículas', icon: <Clipboard className="h-4 w-4" />, path: '/app/admin' },
-        { id: 'historico-escolar', label: 'Histórico escolar', icon: <FileText className="h-4 w-4" />, path: '/app/admin' },
-        { id: 'transferencias', label: 'Transferências', icon: <Users className="h-4 w-4" />, path: '/app/admin' },
-        { id: 'portal-aluno', label: 'Portal do aluno', icon: <Users className="h-4 w-4" />, path: '/app/admin' },
+        { id: 'matriculas', label: 'Matrículas', icon: <Clipboard className="h-4 w-4" />, tabId: 'matriculas' },
+        { id: 'historico-escolar', label: 'Histórico escolar', icon: <FileText className="h-4 w-4" />, tabId: 'historico-escolar' },
+        { id: 'transferencias', label: 'Transferências', icon: <Users className="h-4 w-4" />, tabId: 'transferencias' },
+        { id: 'portal-aluno', label: 'Portal do aluno', icon: <Users className="h-4 w-4" />, tabId: 'portal-aluno' },
       ]
     },
     {
@@ -82,14 +87,14 @@ export function CoordinadorSidebar() {
       label: 'Relatórios',
       icon: <BarChart3 className="h-5 w-5" />,
       color: 'bg-orange-50 dark:bg-orange-900/20 border-l-4 border-orange-600',
-      path: '/app/admin'
+      tabId: 'relatorios'
     },
     {
       id: 'documentacao',
       label: 'Documentação',
       icon: <FileText className="h-5 w-5" />,
       color: 'bg-gray-100 dark:bg-gray-700 border-l-4 border-gray-600',
-      path: '/app/admin'
+      tabId: 'documentacao'
     },
   ];
 
@@ -129,9 +134,9 @@ export function CoordinadorSidebar() {
     );
   };
 
-  const handleMenuItemClick = (path?: string) => {
-    if (path) {
-      navigate(path);
+  const handleMenuItemClick = (tabId?: string) => {
+    if (tabId && onTabChange) {
+      onTabChange(tabId);
     }
   };
 
@@ -169,7 +174,7 @@ export function CoordinadorSidebar() {
                 if (menu.items) {
                   toggleMenu(menu.id);
                 } else {
-                  handleMenuItemClick(menu.path);
+                  handleMenuItemClick(menu.tabId);
                 }
               }}
               className={`w-full flex items-center justify-between px-4 py-3 rounded-lg font-medium transition-all ${
@@ -193,7 +198,7 @@ export function CoordinadorSidebar() {
                 {menu.items.map((item) => (
                   <button
                     key={item.id}
-                    onClick={() => handleMenuItemClick(item.path)}
+                    onClick={() => handleMenuItemClick(item.tabId)}
                     className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-sm"
                   >
                     <span>•</span>
