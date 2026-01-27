@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Save, Upload, Building2, Palette, ArrowLeft } from 'lucide-react';
+import { Save, Upload, Building2, ArrowLeft } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Textarea } from '../../components/ui/textarea';
-import { supabaseService } from '../../services/supabaseService';
+import { createClient } from '@supabase/supabase-js';
 
 interface ConfiguracaoEscola {
   id?: number;
@@ -17,6 +17,11 @@ interface ConfiguracaoEscola {
   email?: string;
   endereco?: string;
 }
+
+// Inicializar cliente Supabase
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 export function Configuracoes() {
   const navigate = useNavigate();
@@ -40,7 +45,7 @@ export function Configuracoes() {
   const loadConfig = async () => {
     try {
       setLoadingData(true);
-      const { data, error } = await supabaseService.supabase
+      const { data, error } = await supabase
         .from('configuracoes_escola')
         .select('*')
         .maybeSingle();
@@ -73,7 +78,7 @@ export function Configuracoes() {
   const uploadLogoToSupabase = async (file: File): Promise<string | null> => {
     try {
       const fileName = `logo-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      const { data, error } = await supabaseService.supabase.storage
+      const { data, error } = await supabase.storage
         .from('logos')
         .upload(fileName, file, {
           cacheControl: '3600',
@@ -82,7 +87,7 @@ export function Configuracoes() {
 
       if (error) throw error;
 
-      const { data: urlData } = supabaseService.supabase.storage
+      const { data: urlData } = supabase.storage
         .from('logos')
         .getPublicUrl(fileName);
 
@@ -122,14 +127,14 @@ export function Configuracoes() {
 
       // Se existe ID, atualiza; senão cria novo
       if (instituicao.id) {
-        const { error } = await supabaseService.supabase
+        const { error } = await supabase
           .from('configuracoes_escola')
           .update(payload)
           .eq('id', instituicao.id);
 
         if (error) throw error;
       } else {
-        const { data, error } = await supabaseService.supabase
+        const { data, error } = await supabase
           .from('configuracoes_escola')
           .insert(payload)
           .select()
