@@ -18,6 +18,7 @@ interface MenuItem {
   label: string;
   icon: React.ReactNode;
   path?: string;
+  color?: string;
   items?: MenuItem[];
 }
 
@@ -31,7 +32,8 @@ export function CoordinadorSidebar() {
     {
       id: 'painel',
       label: 'Painel',
-      icon: <BarChart3 className="h-4 w-4" />,
+      icon: <BarChart3 className="h-5 w-5" />,
+      color: 'bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-600',
       items: [
         { id: 'visao-geral', label: 'Visão geral', icon: <BarChart3 className="h-4 w-4" />, path: '/app/admin' },
         { id: 'comunicados', label: 'Comunicados', icon: <MessageSquare className="h-4 w-4" />, path: '/app/admin' },
@@ -41,7 +43,8 @@ export function CoordinadorSidebar() {
     {
       id: 'gestao-escolar',
       label: 'Gestão Escolar',
-      icon: <GraduationCap className="h-4 w-4" />,
+      icon: <GraduationCap className="h-5 w-5" />,
+      color: 'bg-green-50 dark:bg-green-900/20 border-l-4 border-green-600',
       items: [
         { id: 'disciplinas', label: 'Disciplinas', icon: <School className="h-4 w-4" />, path: '/app/admin' },
         { id: 'turmas', label: 'Turmas', icon: <Users className="h-4 w-4" />, path: '/app/admin' },
@@ -54,7 +57,8 @@ export function CoordinadorSidebar() {
     {
       id: 'area-pedagogica',
       label: 'Área Pedagógica',
-      icon: <BookOpen className="h-4 w-4" />,
+      icon: <BookOpen className="h-5 w-5" />,
+      color: 'bg-cyan-50 dark:bg-cyan-900/20 border-l-4 border-cyan-600',
       items: [
         { id: 'diarios', label: 'Diários', icon: <FileText className="h-4 w-4" />, path: '/app/admin' },
         { id: 'calendario-escolar', label: 'Calendário Escolar', icon: <Calendar className="h-4 w-4" />, path: '/app/admin' },
@@ -64,7 +68,8 @@ export function CoordinadorSidebar() {
     {
       id: 'secretaria',
       label: 'Secretaria',
-      icon: <FileText className="h-4 w-4" />,
+      icon: <FileText className="h-5 w-5" />,
+      color: 'bg-purple-50 dark:bg-purple-900/20 border-l-4 border-purple-600',
       items: [
         { id: 'matriculas', label: 'Matrículas', icon: <Clipboard className="h-4 w-4" />, path: '/app/admin' },
         { id: 'historico-escolar', label: 'Histórico escolar', icon: <FileText className="h-4 w-4" />, path: '/app/admin' },
@@ -75,13 +80,15 @@ export function CoordinadorSidebar() {
     {
       id: 'relatorios',
       label: 'Relatórios',
-      icon: <BarChart3 className="h-4 w-4" />,
+      icon: <BarChart3 className="h-5 w-5" />,
+      color: 'bg-orange-50 dark:bg-orange-900/20 border-l-4 border-orange-600',
       path: '/app/admin'
     },
     {
       id: 'documentacao',
       label: 'Documentação',
-      icon: <FileText className="h-4 w-4" />,
+      icon: <FileText className="h-5 w-5" />,
+      color: 'bg-gray-100 dark:bg-gray-700 border-l-4 border-gray-600',
       path: '/app/admin'
     },
   ];
@@ -154,7 +161,7 @@ export function CoordinadorSidebar() {
       </div>
 
       {/* MENUS - SCROLLÁVEL */}
-      <div className="flex-1 overflow-y-auto px-2 py-4 space-y-1">
+      <div className="flex-1 overflow-y-auto px-3 py-4 space-y-2">
         {menuItems.map((menu) => (
           <div key={menu.id}>
             <button
@@ -165,11 +172,13 @@ export function CoordinadorSidebar() {
                   handleMenuItemClick(menu.path);
                 }
               }}
-              className="w-full flex items-center justify-between px-4 py-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-sm font-medium"
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-lg font-medium transition-all ${
+                menu.color || 'hover:bg-gray-100 dark:hover:bg-gray-800'
+              } text-gray-800 dark:text-gray-200`}
             >
               <div className="flex items-center gap-3">
                 {menu.icon}
-                <span>{menu.label}</span>
+                <span className="text-sm">{menu.label}</span>
               </div>
               {menu.items && (
                 expandedMenus.includes(menu.id) ? 
@@ -180,14 +189,14 @@ export function CoordinadorSidebar() {
 
             {/* SUB-MENUS */}
             {menu.items && expandedMenus.includes(menu.id) && (
-              <div className="ml-4 space-y-1 mt-1">
+              <div className="ml-2 space-y-1 mt-1 pl-2 border-l-2 border-gray-200 dark:border-gray-700">
                 {menu.items.map((item) => (
                   <button
                     key={item.id}
                     onClick={() => handleMenuItemClick(item.path)}
-                    className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-200 transition-colors text-sm"
+                    className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-sm"
                   >
-                    {item.icon}
+                    <span>•</span>
                     <span>{item.label}</span>
                   </button>
                 ))}
