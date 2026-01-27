@@ -37,6 +37,7 @@ interface UserProfile {
 interface Ocorrencia {
   id: string;
   aluno_id: string;
+  aluno_nome?: string;
   turma_id?: number;
   tipo: string;
   data: string;
@@ -115,12 +116,20 @@ export function AdminPage() {
     try {
       const { data, error } = await supabase
         .from('ocorrencias')
-        .select('*')
+        .select(`
+          *,
+          alunos:aluno_id (nome)
+        `)
         .order('data', { ascending: false })
         .limit(5);
 
       if (data) {
-        setOcorrencias(data);
+        // Mapeia os dados para incluir o nome do aluno
+        const ocorrenciasComNome = data.map((occ: any) => ({
+          ...occ,
+          aluno_nome: occ.alunos?.nome || 'Desconhecido'
+        }));
+        setOcorrencias(ocorrenciasComNome);
       }
     } catch (error) {
       console.error('Erro ao carregar ocorrências:', error);
@@ -400,7 +409,7 @@ export function AdminPage() {
                           </span>
                         </div>
                         <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                          Aluno #{ocorrencia.aluno_id}
+                          {ocorrencia.aluno_nome || `Aluno #${ocorrencia.aluno_id}`}
                         </p>
                         <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                           Turma: <strong>{getTurmaNome(ocorrencia.turma_id)}</strong>
