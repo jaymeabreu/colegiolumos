@@ -63,9 +63,14 @@ export function DiarioViewModal({
   const [devolvendoDiario, setDevolvendoDiario] = useState(false);
   const [erroDevolver, setErroDevolver] = useState<string | null>(null);
 
+  // Estado para desfinalizar
+  const [isDesfinalizar, setIsDesfinalizar] = useState(false);
+  const [desfinalizado, setDesfinalizado] = useState(false);
+
   const isReadOnly = diario?.status === 'ENTREGUE' || diario?.status === 'FINALIZADO';
   const canDevolver = userRole === 'COORDENADOR' && diario?.status === 'ENTREGUE';
   const canFinalizar = userRole === 'COORDENADOR' && (diario?.status === 'DEVOLVIDO' || diario?.status === 'ENTREGUE');
+  const canDesfinalizar = userRole === 'COORDENADOR' && diario?.status === 'FINALIZADO';
 
   useEffect(() => {
     if (diario && open) {
@@ -198,6 +203,32 @@ export function DiarioViewModal({
     }
   };
 
+  // FUNÇÃO PARA DESFINALIZAR
+  const handleDesfinalizar = async () => {
+    if (!diario) return;
+
+    try {
+      setDesfinalizado(true);
+      
+      // Atualizar status de FINALIZADO para ENTREGUE
+      await supabaseService.updateDiario(diario.id, {
+        status: 'ENTREGUE'
+      });
+
+      // Fecha modal
+      onOpenChange(false);
+      
+      // Mostra sucesso
+      alert('Diário desfinalizado com sucesso! Status voltou para ENTREGUE.');
+      
+    } catch (error) {
+      console.error('Erro ao desfinalizar diário:', error);
+      alert('Erro ao desfinalizar diário. Tente novamente.');
+    } finally {
+      setDesfinalizado(false);
+    }
+  };
+
   const getSituacaoColor = (situacao: string | null) => {
     if (!situacao || situacao === 'Em Análise') return 'bg-gray-100 text-gray-800 border-gray-300';
     if (situacao === 'Aprovado') return 'bg-green-100 text-green-800 border-green-300';
@@ -309,18 +340,6 @@ export function DiarioViewModal({
                             <p className="text-xs text-gray-600">{aula.observacoes}</p>
                           )}
                         </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="border-green-200 text-green-700 hover:bg-green-50 mt-3 w-full"
-                          onClick={() => {
-                            setSelectedAula(aula);
-                            setIsMarcarPresencaOpen(true);
-                          }}
-                        >
-                          <Eye className="h-4 w-4 mr-2" />
-                          Presença
-                        </Button>
                       </div>
                     ))}
                   </div>
@@ -493,6 +512,18 @@ export function DiarioViewModal({
                   >
                     <CheckCircle className="h-4 w-4 mr-2" />
                     Finalizar
+                  </Button>
+                )}
+
+                {canDesfinalizar && (
+                  <Button
+                    variant="outline"
+                    className="border-red-200 text-red-700 hover:bg-red-50"
+                    onClick={handleDesfinalizar}
+                    disabled={desfinalizado || loading}
+                  >
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    {desfinalizado ? 'Desfinalizado...' : 'Desfinalizar'}
                   </Button>
                 )}
               </div>
