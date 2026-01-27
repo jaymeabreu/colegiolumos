@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Settings, FileText, Users, BarChart3, Cog } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { useNavigate } from 'react-router-dom';
-import AdminSidebar from '../../components/admin/AdminSidebar';
+
 
 interface DashboardSection {
   id: string;
@@ -64,7 +64,7 @@ export function AdminDashboard() {
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
       {/* SIDEBAR */}
-      <AdminSidebar />
+
 
       {/* CONTEÚDO PRINCIPAL - COM MARGEM ESQUERDA PARA O SIDEBAR */}
       <div className="flex-1 ml-64 p-4 md:p-8">
