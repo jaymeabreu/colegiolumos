@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { Users, BookOpen, School, GraduationCap, FileText, Download, UserCheck, MessageSquare, BarChart3 } from 'lucide-react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { Users, BookOpen, School, GraduationCap, FileText, Download, UserCheck, MessageSquare, BarChart3, LogOut } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { Button } from '../../components/ui/button'; 
@@ -54,6 +54,7 @@ const COLORS_CHART = ['#1e40af', '#fbbf24'];
 
 export function AdminPage() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'visao-geral');
   const [loading, setLoading] = useState(true);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -182,6 +183,17 @@ export function AdminPage() {
         return 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-300';
       default:
         return 'bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300';
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      localStorage.removeItem('user');
+      navigate('/login');
+    } catch (error) {
+      console.error('Erro ao fazer logout:', error);
+      alert('Erro ao fazer logout. Tente novamente.');
     }
   };
 
@@ -437,8 +449,19 @@ export function AdminPage() {
               </h1>
               <p className="text-sm text-teal-100 mt-1">Tenha um bom dia de trabalho.</p>
             </div>
-            <div className="text-teal-100 text-sm">
-              Atualizado recentemente em 3 de maio de 2025
+            <div className="flex items-center gap-4">
+              <div className="text-teal-100 text-sm">
+                Atualizado recentemente em 3 de maio de 2025
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleLogout}
+                className="text-teal-100 hover:text-white hover:bg-teal-600 flex items-center gap-2"
+              >
+                <LogOut className="h-4 w-4" />
+                <span className="hidden sm:inline">Sair</span>
+              </Button>
             </div>
           </div>
         </header>
