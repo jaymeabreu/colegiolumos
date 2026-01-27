@@ -21,21 +21,15 @@ const routes: RouteObject[] = [
       <ProtectedRoute requiredRole="COORDENADOR">
         <AdminPage />
       </ProtectedRoute>
-    ),
-    children: [
-      {
-        path: "dashboard",
-        element: <AdminDashboard />
-      },
-      {
-        path: "diarios",
-        element: <AdminPage />
-      },
-      {
-        path: "configuracoes",
-        element: <Configuracoes />
-      }
-    ]
+    )
+  },
+  {
+    path: "/app/admin/configuracoes",
+    element: (
+      <ProtectedRoute requiredRole="COORDENADOR">
+        <Configuracoes />
+      </ProtectedRoute>
+    )
   },
   {
     path: "/app/professor",
