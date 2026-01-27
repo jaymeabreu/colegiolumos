@@ -118,16 +118,17 @@ export function AdminPage() {
         .from('ocorrencias')
         .select(`
           *,
-          alunos:aluno_id (nome)
+          alunos:aluno_id (nome, turma_id)
         `)
         .order('data', { ascending: false })
         .limit(5);
 
       if (data) {
-        // Mapeia os dados para incluir o nome do aluno
+        // Mapeia os dados para incluir o nome do aluno e turma_id
         const ocorrenciasComNome = data.map((occ: any) => ({
           ...occ,
-          aluno_nome: occ.alunos?.nome || 'Desconhecido'
+          aluno_nome: occ.alunos?.nome || 'Desconhecido',
+          turma_id: occ.alunos?.turma_id
         }));
         setOcorrencias(ocorrenciasComNome);
       }
