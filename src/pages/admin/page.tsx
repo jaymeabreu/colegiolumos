@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Users, BookOpen, School, GraduationCap, FileText, Download, UserCheck, MessageSquare, BarChart3 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
@@ -29,7 +30,8 @@ interface DashboardStats {
 const COLORS_CHART = ['#1e40af', '#fbbf24'];
 
 export function AdminPage() {
-  const [activeTab, setActiveTab] = useState('visao-geral');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'visao-geral');
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<DashboardStats>({
     totalAlunos: 0,
@@ -43,6 +45,19 @@ export function AdminPage() {
   useEffect(() => {
     loadStats();
   }, []);
+
+  // Quando activeTab muda, atualiza a URL
+  useEffect(() => {
+    setSearchParams({ tab: activeTab });
+  }, [activeTab, setSearchParams]);
+
+  // Quando a URL muda, atualiza activeTab
+  useEffect(() => {
+    const tabFromUrl = searchParams.get('tab');
+    if (tabFromUrl) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [searchParams]);
 
   const loadStats = async () => {
     try {
@@ -231,7 +246,7 @@ export function AdminPage() {
   return (
     <div className="min-h-screen flex bg-background">
       {/* SIDEBAR FIXO NA ESQUERDA */}
-      <CoordinadorSidebar />
+      <CoordinadorSidebar onTabChange={setActiveTab} />
 
       {/* CONTEÚDO PRINCIPAL COM MARGEM ESQUERDA */}
       <div className="flex-1 flex flex-col ml-64">
