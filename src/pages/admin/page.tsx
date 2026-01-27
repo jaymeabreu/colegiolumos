@@ -190,10 +190,10 @@ export function AdminPage() {
     try {
       localStorage.removeItem('user');
       sessionStorage.clear();
-      navigate('/', { replace: true });
+      window.location.href = '/';
     } catch (error) {
       console.error('Erro ao fazer logout:', error);
-      navigate('/', { replace: true });
+      window.location.href = '/';
     }
   };
 
