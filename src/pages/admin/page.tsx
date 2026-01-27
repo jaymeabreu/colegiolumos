@@ -12,6 +12,7 @@ import { DisciplinasList } from './components/DisciplinasList';
 import { TurmasList } from './components/TurmasList';
 import { UsuariosList } from './components/UsuariosList';
 import { ComunicadosList } from './components/ComunicadosList';
+import { OcorrenciasList } from './components/OcorrenciasList';
 import { ExportacaoTab } from './components/ExportacaoTab';
 import { ScrollArea } from '../../components/ui/scroll-area';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
@@ -76,10 +77,18 @@ export function AdminPage() {
     loadComunicados();
   }, []);
 
-  // Sincronizar activeTab com a URL
+  // Quando activeTab muda, atualiza a URL
   useEffect(() => {
     setSearchParams({ tab: activeTab });
   }, [activeTab, setSearchParams]);
+
+  // Quando a URL muda, atualiza activeTab
+  useEffect(() => {
+    const tabFromUrl = searchParams.get('tab');
+    if (tabFromUrl) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [searchParams]);
 
   const loadUserProfile = async () => {
     try {
@@ -180,9 +189,14 @@ export function AdminPage() {
 
   const handleLogout = async () => {
     try {
+      // Remove tudo do localStorage
       localStorage.clear();
       sessionStorage.clear();
+      
+      // Tira a sessão do Supabase
       await supabase.auth.signOut().catch(() => {});
+      
+      // Redireciona pra login
       window.location.href = '/';
     } catch (error) {
       console.error('Erro ao fazer logout:', error);
@@ -429,7 +443,7 @@ export function AdminPage() {
   return (
     <div className="min-h-screen flex bg-background">
       {/* SIDEBAR FIXO NA ESQUERDA */}
-      <CoordinadorSidebar onTabChange={setActiveTab} activeTab={activeTab} />
+      <CoordinadorSidebar onTabChange={setActiveTab} />
 
       {/* CONTEÚDO PRINCIPAL COM MARGEM ESQUERDA */}
       <div className="flex-1 flex flex-col ml-64">
@@ -480,6 +494,10 @@ export function AdminPage() {
 
                 <TabsContent value="comunicados">
                   <ComunicadosList />
+                </TabsContent>
+
+                <TabsContent value="ocorrencias">
+                  <OcorrenciasList />
                 </TabsContent>
 
                 <TabsContent value="alunos">
