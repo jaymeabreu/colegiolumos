@@ -8,6 +8,7 @@ import { AdminPage } from "../pages/admin/page"
 import { AlunoPage } from "../pages/aluno/page"
 import { AdminDashboard } from "../pages/admin/AdminDashboard"
 import { Configuracoes } from "../pages/admin/Configuracoes"
+import { OcorrenciasPage } from "../pages/admin/OcorrenciasPage"
 import { ProtectedRoute } from "../components/auth/ProtectedRoute"
 
 const routes: RouteObject[] = [
@@ -28,6 +29,14 @@ const routes: RouteObject[] = [
     element: (
       <ProtectedRoute requiredRole="COORDENADOR">
         <Configuracoes />
+      </ProtectedRoute>
+    )
+  },
+  {
+    path: "/app/admin/ocorrencias",
+    element: (
+      <ProtectedRoute requiredRole="COORDENADOR">
+        <OcorrenciasPage />
       </ProtectedRoute>
     )
   },
@@ -64,5 +73,4 @@ const routes: RouteObject[] = [
     element: <NotFound />
   }
 ]
-
 export default routes
