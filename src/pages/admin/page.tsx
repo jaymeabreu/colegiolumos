@@ -442,7 +442,7 @@ export function AdminPage() {
   return (
     <div className="min-h-screen flex bg-background">
       {/* SIDEBAR FIXO NA ESQUERDA */}
-      <CoordinadorSidebar onTabChange={setActiveTab} />
+      <CoordinadorSidebar onTabChange={setActiveTab} activeTab={activeTab} />
 
       {/* CONTEÚDO PRINCIPAL COM MARGEM ESQUERDA */}
       <div className="flex-1 flex flex-col ml-64">
