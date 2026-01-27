@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Settings, ChevronDown, ChevronUp, BarChart3, FileText, MessageSquare, Users, BookOpen, GraduationCap, School, Calendar, Clipboard } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 
@@ -25,10 +25,12 @@ interface MenuItem {
 
 interface CoordinadorSidebarProps {
   onTabChange?: (tabId: string) => void;
+  activeTab?: string;
 }
 
-export function CoordinadorSidebar({ onTabChange }: CoordinadorSidebarProps) {
+export function CoordinadorSidebar({ onTabChange, activeTab }: CoordinadorSidebarProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [config, setConfig] = useState<ConfiguracaoEscola | null>(null);
   const [loading, setLoading] = useState(true);
   const [expandedMenus, setExpandedMenus] = useState<string[]>(['painel']);
@@ -143,6 +145,19 @@ export function CoordinadorSidebar({ onTabChange }: CoordinadorSidebarProps) {
     }
   };
 
+  // Verificar se um item está ativo
+  const isItemActive = (item: MenuItem): boolean => {
+    // Se tem path, verifica pela URL
+    if (item.path) {
+      return location.pathname === item.path;
+    }
+    // Se tem tabId, verifica pelo activeTab
+    if (item.tabId) {
+      return activeTab === item.tabId;
+    }
+    return false;
+  };
+
   return (
     <div className="fixed left-0 top-0 h-screen w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col overflow-hidden">
       {/* HEADER - LOGO E NOME DA ESCOLA */}
@@ -202,7 +217,11 @@ export function CoordinadorSidebar({ onTabChange }: CoordinadorSidebarProps) {
                   <button
                     key={item.id}
                     onClick={() => handleMenuItemClick(item)}
-                    className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-sm"
+                    className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg transition-colors text-sm ${
+                      isItemActive(item)
+                        ? 'text-gray-900 dark:text-gray-100 bg-gray-200 dark:bg-gray-700 font-semibold'
+                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800'
+                    }`}
                   >
                     <span>•</span>
                     <span>{item.label}</span>
@@ -218,7 +237,11 @@ export function CoordinadorSidebar({ onTabChange }: CoordinadorSidebarProps) {
       <div className="border-t border-gray-200 dark:border-gray-800 p-4 flex-shrink-0">
         <button 
           onClick={() => navigate('/app/admin/configuracoes')}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300"
+          className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+            location.pathname === '/app/admin/configuracoes'
+              ? 'text-gray-900 dark:text-gray-100 bg-gray-200 dark:bg-gray-700 font-semibold'
+              : 'hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300'
+          }`}
         >
           <Settings className="h-5 w-5" />
           <span className="text-sm font-medium">Configurações</span>
