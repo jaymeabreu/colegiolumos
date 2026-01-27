@@ -13,6 +13,7 @@ import { supabase } from '../../../lib/supabaseClient';
 interface Ocorrencia {
   id: string;
   aluno_id: string;
+  aluno_nome?: string;
   tipo: string;
   data: string;
   descricao: string;
@@ -47,11 +48,19 @@ export function OcorrenciasList() {
       setLoading(true);
       const { data, error } = await supabase
         .from('ocorrencias')
-        .select('*')
+        .select(`
+          *,
+          alunos:aluno_id (nome)
+        `)
         .order('data', { ascending: false });
 
       if (data) {
-        setOcorrencias(data);
+        // Mapeia os dados para incluir o nome do aluno
+        const ocorrenciasComNome = data.map((occ: any) => ({
+          ...occ,
+          aluno_nome: occ.alunos?.nome || 'Desconhecido'
+        }));
+        setOcorrencias(ocorrenciasComNome);
       }
     } catch (error) {
       console.error('Erro ao carregar ocorrências:', error);
@@ -376,7 +385,7 @@ export function OcorrenciasList() {
                         {ocorrencia.tipo}
                       </Badge>
                       <span className="text-sm font-medium text-gray-600">
-                        Aluno #{ocorrencia.aluno_id}
+                        {ocorrencia.aluno_nome || `Aluno #${ocorrencia.aluno_id}`}
                       </span>
                     </div>
                     <p className="text-sm text-gray-700 mb-2">{ocorrencia.descricao}</p>
