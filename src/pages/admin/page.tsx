@@ -186,10 +186,16 @@ export function AdminPage() {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     try {
-      localStorage.removeItem('user');
+      // Remove tudo do localStorage
+      localStorage.clear();
       sessionStorage.clear();
+      
+      // Tira a sessão do Supabase
+      await supabase.auth.signOut().catch(() => {});
+      
+      // Redireciona pra login
       window.location.href = '/';
     } catch (error) {
       console.error('Erro ao fazer logout:', error);
