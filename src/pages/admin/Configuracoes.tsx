@@ -6,7 +6,7 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Textarea } from '../../components/ui/textarea';
-import { supabaseService } from '../../services/supabaseService';
+import { supabase } from '../../lib/supabaseClient';
 
 interface ConfiguracaoEscola {
   id?: number;
@@ -39,7 +39,7 @@ export function Configuracoes() {
   const loadConfig = async () => {
     try {
       setLoadingData(true);
-      const { data, error } = await supabaseService.supabase
+      const { data, error } = await supabase
         .from('configuracoes_escola')
         .select('*')
         .maybeSingle();
@@ -85,14 +85,14 @@ export function Configuracoes() {
 
       // Se existe ID, atualiza; senão cria novo
       if (instituicao.id) {
-        const { error } = await supabaseService.supabase
+        const { error } = await supabase
           .from('configuracoes_escola')
           .update(payload)
           .eq('id', instituicao.id);
 
         if (error) throw error;
       } else {
-        const { data, error } = await supabaseService.supabase
+        const { data, error } = await supabase
           .from('configuracoes_escola')
           .insert(payload)
           .select()
