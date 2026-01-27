@@ -351,149 +351,148 @@ export function DiariosList() {
   };
 
   // DIÁRIOS COM SOLICITAÇÃO DE DEVOLUÇÃO (mostrados apenas no card azul)
+  // NÃO mostrar se o diário já foi FINALIZADO
   const diasComSolicitacaoDevolucao = useMemo(() => {
-    return diarios.filter(d => d.solicitacao_devolucao);
+    return diarios.filter(d => d.solicitacao_devolucao && d.status !== 'FINALIZADO');
   }, [diarios]);
 
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+        <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-4">
           <div>
             <CardTitle className="text-2xl font-bold">Diários de Classe</CardTitle>
             <CardDescription>Gerencie os diários de classe da instituição</CardDescription>
           </div>
-          <div className="flex items-center gap-2">
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button onClick={() => { resetForm(); setIsDialogOpen(true); }}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Novo Diário
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>{editingDiario ? 'Editar Diário' : 'Novo Diário'}</DialogTitle>
-                  <DialogDescription>
-                    Preencha as informações abaixo para {editingDiario ? 'atualizar o' : 'criar um novo'} diário.
-                  </DialogDescription>
-                </DialogHeader>
-                <form onSubmit={handleSubmit}>
-                  <div className="grid gap-4 py-4">
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={() => { resetForm(); setIsDialogOpen(true); }}>
+                <Plus className="h-4 w-4 mr-2" />
+                Novo Diário
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>{editingDiario ? 'Editar Diário' : 'Novo Diário'}</DialogTitle>
+                <DialogDescription>
+                  Preencha as informações abaixo para {editingDiario ? 'atualizar o' : 'criar um novo'} diário.
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleSubmit}>
+                <div className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="nome">Nome do Diário</Label>
+                    <Input
+                      id="nome"
+                      value={formData.nome}
+                      onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+                      placeholder="Ex: Matemática - 1º Ano A - 2024"
+                      required
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
                     <div className="grid gap-2">
-                      <Label htmlFor="nome">Nome do Diário</Label>
+                      <Label htmlFor="disciplina">Disciplina</Label>
+                      <Select 
+                        value={formData.disciplinaId} 
+                        onValueChange={(value) => setFormData({ ...formData, disciplinaId: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione a disciplina" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {disciplinas.map((d) => (
+                            <SelectItem key={d.id} value={d.id.toString()}>{d.nome}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="turma">Turma</Label>
+                      <Select 
+                        value={formData.turmaId} 
+                        onValueChange={(value) => setFormData({ ...formData, turmaId: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione a turma" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {turmas.map((t) => (
+                            <SelectItem key={t.id} value={t.id.toString()}>{t.nome}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="professor">Professor</Label>
+                      <Select 
+                        value={formData.professorId} 
+                        onValueChange={(value) => setFormData({ ...formData, professorId: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o professor" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {professoresFiltrados.map((p) => (
+                            <SelectItem key={p.id} value={p.id.toString()}>{p.nome}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="bimestre">Bimestre</Label>
+                      <Select 
+                        value={formData.bimestre} 
+                        onValueChange={(value) => setFormData({ ...formData, bimestre: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o bimestre" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1">1º Bimestre</SelectItem>
+                          <SelectItem value="2">2º Bimestre</SelectItem>
+                          <SelectItem value="3">3º Bimestre</SelectItem>
+                          <SelectItem value="4">4º Bimestre</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="dataInicio">Data de Início</Label>
                       <Input
-                        id="nome"
-                        value={formData.nome}
-                        onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                        placeholder="Ex: Matemática - 1º Ano A - 2024"
+                        id="dataInicio"
+                        type="date"
+                        value={formData.dataInicio}
+                        onChange={(e) => setFormData({ ...formData, dataInicio: e.target.value })}
                         required
                       />
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="grid gap-2">
-                        <Label htmlFor="disciplina">Disciplina</Label>
-                        <Select 
-                          value={formData.disciplinaId} 
-                          onValueChange={(value) => setFormData({ ...formData, disciplinaId: value })}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione a disciplina" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {disciplinas.map((d) => (
-                              <SelectItem key={d.id} value={d.id.toString()}>{d.nome}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="turma">Turma</Label>
-                        <Select 
-                          value={formData.turmaId} 
-                          onValueChange={(value) => setFormData({ ...formData, turmaId: value })}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione a turma" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {turmas.map((t) => (
-                              <SelectItem key={t.id} value={t.id.toString()}>{t.nome}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="grid gap-2">
-                        <Label htmlFor="professor">Professor</Label>
-                        <Select 
-                          value={formData.professorId} 
-                          onValueChange={(value) => setFormData({ ...formData, professorId: value })}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione o professor" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {professoresFiltrados.map((p) => (
-                              <SelectItem key={p.id} value={p.id.toString()}>{p.nome}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="bimestre">Bimestre</Label>
-                        <Select 
-                          value={formData.bimestre} 
-                          onValueChange={(value) => setFormData({ ...formData, bimestre: value })}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione o bimestre" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="1">1º Bimestre</SelectItem>
-                            <SelectItem value="2">2º Bimestre</SelectItem>
-                            <SelectItem value="3">3º Bimestre</SelectItem>
-                            <SelectItem value="4">4º Bimestre</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="grid gap-2">
-                        <Label htmlFor="dataInicio">Data de Início</Label>
-                        <Input
-                          id="dataInicio"
-                          type="date"
-                          value={formData.dataInicio}
-                          onChange={(e) => setFormData({ ...formData, dataInicio: e.target.value })}
-                          required
-                        />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="dataTermino">Data de Término</Label>
-                        <Input
-                          id="dataTermino"
-                          type="date"
-                          value={formData.dataTermino}
-                          onChange={(e) => setFormData({ ...formData, dataTermino: e.target.value })}
-                          required
-                        />
-                      </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="dataTermino">Data de Término</Label>
+                      <Input
+                        id="dataTermino"
+                        type="date"
+                        value={formData.dataTermino}
+                        onChange={(e) => setFormData({ ...formData, dataTermino: e.target.value })}
+                        required
+                      />
                     </div>
                   </div>
-                  <DialogFooter className="mt-6">
-                    <Button type="button" variant="outline" onClick={resetForm}>
-                      Cancelar
-                    </Button>
-                    <Button type="submit" disabled={loading}>
-                      {loading ? 'Salvando...' : (editingDiario ? 'Salvar Alterações' : 'Criar Diário')}
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </DialogContent>
-            </Dialog>
-          </div>
+                </div>
+                <DialogFooter className="mt-6">
+                  <Button type="button" variant="outline" onClick={resetForm}>
+                    Cancelar
+                  </Button>
+                  <Button type="submit" disabled={loading}>
+                    {loading ? 'Salvando...' : (editingDiario ? 'Salvar Alterações' : 'Criar Diário')}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
         </CardHeader>
         <CardContent>
           <div className="flex gap-4 mb-4">
@@ -655,7 +654,7 @@ export function DiariosList() {
             </Dialog>
           </div>
 
-          {/* CARD AZUL - SÓ COM DIÁRIOS QUE TÊM SOLICITAÇÃO DE DEVOLUÇÃO */}
+          {/* CARD AZUL - SÓ COM DIÁRIOS QUE TÊM SOLICITAÇÃO DE DEVOLUÇÃO E NÃO ESTÃO FINALIZADOS */}
           {diasComSolicitacaoDevolucao.length > 0 && (
             <div className="mb-6 p-4 bg-orange-50 border-2 border-orange-200 rounded-lg">
               <div className="flex items-center gap-2 mb-3">
