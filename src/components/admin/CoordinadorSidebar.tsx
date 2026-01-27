@@ -42,7 +42,7 @@ export function CoordinadorSidebar({ onTabChange }: CoordinadorSidebarProps) {
       items: [
         { id: 'visao-geral', label: 'Visão geral', icon: <BarChart3 className="h-4 w-4" />, tabId: 'visao-geral' },
         { id: 'comunicados', label: 'Comunicados', icon: <MessageSquare className="h-4 w-4" />, tabId: 'comunicados' },
-        { id: 'ocorrencias', label: 'Ocorrências', icon: <Clipboard className="h-4 w-4" />, tabId: 'ocorrencias' },
+        { id: 'ocorrencias', label: 'Ocorrências', icon: <Clipboard className="h-4 w-4" />, path: '/app/admin/ocorrencias' },
       ]
     },
     {
@@ -132,9 +132,14 @@ export function CoordinadorSidebar({ onTabChange }: CoordinadorSidebarProps) {
     );
   };
 
-  const handleMenuItemClick = (tabId?: string) => {
-    if (tabId && onTabChange) {
-      onTabChange(tabId);
+  const handleMenuItemClick = (item: MenuItem) => {
+    // Se tem path, navega
+    if (item.path) {
+      navigate(item.path);
+    }
+    // Se tem tabId, chama onTabChange
+    else if (item.tabId && onTabChange) {
+      onTabChange(item.tabId);
     }
   };
 
@@ -172,7 +177,7 @@ export function CoordinadorSidebar({ onTabChange }: CoordinadorSidebarProps) {
                 if (menu.items) {
                   toggleMenu(menu.id);
                 } else {
-                  handleMenuItemClick(menu.tabId);
+                  handleMenuItemClick(menu);
                 }
               }}
               className={`w-full flex items-center justify-between px-4 py-3 rounded-lg font-medium transition-all ${
@@ -196,7 +201,7 @@ export function CoordinadorSidebar({ onTabChange }: CoordinadorSidebarProps) {
                 {menu.items.map((item) => (
                   <button
                     key={item.id}
-                    onClick={() => handleMenuItemClick(item.tabId)}
+                    onClick={() => handleMenuItemClick(item)}
                     className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-sm"
                   >
                     <span>•</span>
