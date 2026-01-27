@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Users, BookOpen, School, GraduationCap, FileText, Download, UserCheck, MessageSquare, BarChart3 } from 'lucide-react';
+import { Users, BookOpen, School, GraduationCap, FileText, Download, UserCheck, MessageSquare, BarChart3, ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { Button } from '../../components/ui/button'; 
@@ -16,6 +16,7 @@ import { ExportacaoTab } from './components/ExportacaoTab';
 import { ScrollArea } from '../../components/ui/scroll-area';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { supabaseService } from '../../services/supabaseService';
+import { supabase } from '../../lib/supabaseClient';
 import { CoordinadorSidebar } from '../../components/admin/CoordinadorSidebar';
 
 interface DashboardStats {
@@ -27,12 +28,19 @@ interface DashboardStats {
   professoresInativos: number;
 }
 
+interface UserProfile {
+  nome: string;
+  email: string;
+}
+
 const COLORS_CHART = ['#1e40af', '#fbbf24'];
 
 export function AdminPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'visao-geral');
   const [loading, setLoading] = useState(true);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [currentDate, setCurrentDate] = useState(new Date());
   const [stats, setStats] = useState<DashboardStats>({
     totalAlunos: 0,
     alunosAtivos: 0,
@@ -44,6 +52,7 @@ export function AdminPage() {
 
   useEffect(() => {
     loadStats();
+    loadUserProfile();
   }, []);
 
   // Quando activeTab muda, atualiza a URL
@@ -58,6 +67,25 @@ export function AdminPage() {
       setActiveTab(tabFromUrl);
     }
   }, [searchParams]);
+
+  const loadUserProfile = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase
+          .from('usuarios')
+          .select('nome, email')
+          .eq('id', user.id)
+          .single();
+        
+        if (data) {
+          setUserProfile(data);
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao carregar perfil:', error);
+    }
+  };
 
   const loadStats = async () => {
     try {
@@ -88,6 +116,45 @@ export function AdminPage() {
     }
   };
 
+  const getDaysInMonth = (date: Date) => {
+    return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+  };
+
+  const getFirstDayOfMonth = (date: Date) => {
+    return new Date(date.getFullYear(), date.getMonth(), 1).getDay();
+  };
+
+  const generateCalendarDays = () => {
+    const daysInMonth = getDaysInMonth(currentDate);
+    const firstDay = getFirstDayOfMonth(currentDate);
+    const days = [];
+
+    // Dias vazios do mês anterior
+    for (let i = 0; i < firstDay; i++) {
+      days.push(null);
+    }
+
+    // Dias do mês atual
+    for (let i = 1; i <= daysInMonth; i++) {
+      days.push(i);
+    }
+
+    return days;
+  };
+
+  const previousMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1));
+  };
+
+  const nextMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1));
+  };
+
+  const getMonthYear = () => {
+    const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+    return `${months[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
+  };
+
   const renderVisaoGeral = () => {
     const dataAlunos = [
       { name: 'Ativos', value: stats.alunosAtivos },
@@ -98,6 +165,11 @@ export function AdminPage() {
       { name: 'Ativos', value: stats.professoresAtivos },
       { name: 'Inativos', value: stats.professoresInativos }
     ].filter(item => item.value > 0);
+
+    const calendarDays = generateCalendarDays();
+    const today = new Date();
+    const isCurrentMonth = today.getMonth() === currentDate.getMonth() && today.getFullYear() === currentDate.getFullYear();
+    const todayDate = today.getDate();
 
     return (
       <div className="space-y-6">
@@ -239,6 +311,106 @@ export function AdminPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* CALENDÁRIO + PRÓXIMOS EVENTOS */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* CALENDÁRIO */}
+          <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 lg:col-span-1">
+            <CardHeader className="pb-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold text-gray-900 dark:text-white">Calendário</h3>
+                <button className="text-blue-600 hover:text-blue-700 text-sm">+ Adicionar um evento</button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Navegação do mês */}
+              <div className="flex items-center justify-between">
+                <button onClick={previousMonth} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <span className="font-medium text-gray-900 dark:text-white text-sm">{getMonthYear()}</span>
+                <button onClick={nextMonth} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+
+              {/* Cabeçalho dias da semana */}
+              <div className="grid grid-cols-7 gap-2 text-center text-xs font-semibold text-gray-600 dark:text-gray-400">
+                <div>D</div>
+                <div>S</div>
+                <div>T</div>
+                <div>Q</div>
+                <div>Q</div>
+                <div>S</div>
+                <div>S</div>
+              </div>
+
+              {/* Dias do calendário */}
+              <div className="grid grid-cols-7 gap-2">
+                {calendarDays.map((day, index) => (
+                  <div key={index} className="text-center">
+                    {day ? (
+                      <button
+                        className={`w-full aspect-square rounded-lg text-sm font-medium transition-colors ${
+                          isCurrentMonth && day === todayDate
+                            ? 'bg-green-500 text-white'
+                            : day === 3 || day === 4 || day === 20 || day === 29
+                            ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300'
+                            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                        }`}
+                      >
+                        {day}
+                      </button>
+                    ) : (
+                      <div className="text-gray-400 text-xs">{}</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* PRÓXIMOS EVENTOS */}
+          <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 lg:col-span-2">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg">Próximos eventos</CardTitle>
+                <a href="#" className="text-blue-600 dark:text-blue-400 text-sm hover:underline">Ver todo</a>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Evento 1 */}
+              <div className="flex gap-4 pb-4 border-b border-gray-200 dark:border-gray-700">
+                <div className="w-1 bg-green-500 rounded-full"></div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-semibold text-gray-900 dark:text-white text-sm">Aniversário do Natan Gabriel da Silva</h4>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">📅 4 de abril de 2025</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">⏰ 07:00 - 80:00</p>
+                </div>
+              </div>
+
+              {/* Evento 2 */}
+              <div className="flex gap-4 pb-4 border-b border-gray-200 dark:border-gray-700">
+                <div className="w-1 bg-red-500 rounded-full"></div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-semibold text-gray-900 dark:text-white text-sm">Reunião de férias</h4>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">📅 20 de abril de 2025</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">⏰ 09:10 - 10:10</p>
+                </div>
+              </div>
+
+              {/* Evento 3 */}
+              <div className="flex gap-4">
+                <div className="w-1 bg-cyan-500 rounded-full"></div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-semibold text-gray-900 dark:text-white text-sm">Reunião de pais e professores</h4>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">📅 29 de abril de 2025</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">⏰ 09:10 - 10:10</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   };
@@ -251,17 +423,17 @@ export function AdminPage() {
       {/* CONTEÚDO PRINCIPAL COM MARGEM ESQUERDA */}
       <div className="flex-1 flex flex-col ml-64">
         {/* Header Fixo */}
-        <header className="sticky top-0 z-50 border-b bg-card px-6 py-4 flex-shrink-0 flex items-center">
+        <header className="sticky top-0 z-50 border-b bg-teal-700 dark:bg-teal-900 px-6 py-4 flex-shrink-0 flex items-center">
           <div className="flex items-center justify-between w-full">
             <div>
-              <h1 className="text-2xl font-bold">
-                Painel Administrativo
+              <h1 className="text-lg font-semibold text-white">
+                Bem-vindo de volta, {userProfile?.nome || 'Coordenador'} ✏️
               </h1>
-              <p className="text-base text-muted-foreground">
-                Gerencie usuários, turmas e configurações
-              </p>
+              <p className="text-sm text-teal-100 mt-1">Tenha um bom dia de trabalho.</p>
             </div>
-            <AuthHeader />
+            <div className="text-teal-100 text-sm">
+              Atualizado recentemente em 3 de maio de 2025
+            </div>
           </div>
         </header>
 
