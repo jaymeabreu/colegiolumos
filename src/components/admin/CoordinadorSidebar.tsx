@@ -135,13 +135,18 @@ export function CoordinadorSidebar({ onTabChange, activeTab }: CoordinadorSideba
   };
 
   const handleMenuItemClick = (item: MenuItem) => {
+    console.log('Clicou em:', item.id, 'tabId:', item.tabId, 'path:', item.path);
+    
     // Se tem path, navega
     if (item.path) {
       navigate(item.path);
     }
     // Se tem tabId, chama onTabChange
-    else if (item.tabId && onTabChange) {
-      onTabChange(item.tabId);
+    else if (item.tabId) {
+      console.log('Chamando onTabChange com:', item.tabId);
+      if (onTabChange) {
+        onTabChange(item.tabId);
+      }
     }
   };
 
