@@ -8,6 +8,7 @@ import { AdminPage } from "../pages/admin/page"
 import { AlunoPage } from "../pages/aluno/page"
 import { AdminDashboard } from "../pages/admin/AdminDashboard"
 import { Configuracoes } from "../pages/admin/Configuracoes"
+import { CoordinadorPanel } from "../pages/admin/CoordinadorPanel"
 import { ProtectedRoute } from "../components/auth/ProtectedRoute"
 
 const routes: RouteObject[] = [
@@ -19,23 +20,9 @@ const routes: RouteObject[] = [
     path: "/app/admin",
     element: (
       <ProtectedRoute requiredRole="COORDENADOR">
-        <AdminPage />
+        <CoordinadorPanel />
       </ProtectedRoute>
-    ),
-    children: [
-      {
-        path: "dashboard",
-        element: <AdminDashboard />
-      },
-      {
-        path: "diarios",
-        element: <AdminPage />
-      },
-      {
-        path: "configuracoes",
-        element: <Configuracoes />
-      }
-    ]
+    )
   },
   {
     path: "/app/professor",
