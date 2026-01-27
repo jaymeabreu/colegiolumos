@@ -55,8 +55,6 @@ export function CoordinadorSidebar({ onTabChange }: CoordinadorSidebarProps) {
         { id: 'turmas', label: 'Turmas', icon: <Users className="h-4 w-4" />, tabId: 'turmas' },
         { id: 'alunos', label: 'Alunos', icon: <Users className="h-4 w-4" />, tabId: 'alunos' },
         { id: 'professores', label: 'Professores', icon: <Users className="h-4 w-4" />, tabId: 'professores' },
-        { id: 'funcionarios', label: 'Funcionários', icon: <Users className="h-4 w-4" />, tabId: 'funcionarios' },
-        { id: 'responsaveis', label: 'Responsáveis', icon: <Users className="h-4 w-4" />, tabId: 'responsaveis' },
       ]
     },
     {
