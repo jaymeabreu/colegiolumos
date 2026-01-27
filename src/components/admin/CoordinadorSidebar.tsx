@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Settings, ChevronDown } from 'lucide-react';
-import { supabaseService } from '../../services/supabaseService';
+import { Settings } from 'lucide-react';
+import { supabase } from '../../lib/supabaseClient';
 
 interface ConfiguracaoEscola {
   id?: number;
@@ -20,22 +20,28 @@ export function CoordinadorSidebar() {
 
   useEffect(() => {
     loadConfig();
+    
+    // Recarregar quando configurações forem salvas
+    window.addEventListener('configuracoesAtualizadas', loadConfig);
+    
+    return () => {
+      window.removeEventListener('configuracoesAtualizadas', loadConfig);
+    };
   }, []);
 
   const loadConfig = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabaseService.supabase
+      const { data, error } = await supabase
         .from('configuracoes_escola')
         .select('*')
-        .single();
+        .maybeSingle();
 
       if (data) {
         setConfig(data);
       }
     } catch (error) {
       console.error('Erro ao carregar configurações:', error);
-      // Se não existe, deixa vazio mesmo
     } finally {
       setLoading(false);
     }
