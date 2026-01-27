@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Users, BookOpen, School, GraduationCap, FileText, Download, UserCheck, MessageSquare, BarChart3, ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
+import { Users, BookOpen, School, GraduationCap, FileText, Download, UserCheck, MessageSquare, BarChart3 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { Button } from '../../components/ui/button'; 
@@ -33,20 +33,21 @@ interface UserProfile {
   email: string;
 }
 
-interface Aluno {
+interface Ocorrencia {
   id: string;
-  nome: string;
-  data_nascimento: string;
-  turma_id: string;
-  situacao: string;
+  aluno_id: string;
+  tipo: string;
+  data: string;
+  descricao: string;
+  acao_tomada?: string;
 }
 
-interface Aniversario {
+interface Comunicado {
   id: string;
-  nome: string;
-  dataNascimento: string;
-  turma: string;
-  diasAte: number;
+  titulo: string;
+  conteudo: string;
+  data_criacao: string;
+  autor: string;
 }
 
 const COLORS_CHART = ['#1e40af', '#fbbf24'];
@@ -56,8 +57,8 @@ export function AdminPage() {
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'visao-geral');
   const [loading, setLoading] = useState(true);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [aniversarios, setAniversarios] = useState<Aniversario[]>([]);
+  const [ocorrencias, setOcorrencias] = useState<Ocorrencia[]>([]);
+  const [comunicados, setComunicados] = useState<Comunicado[]>([]);
   const [stats, setStats] = useState<DashboardStats>({
     totalAlunos: 0,
     alunosAtivos: 0,
@@ -70,7 +71,8 @@ export function AdminPage() {
   useEffect(() => {
     loadStats();
     loadUserProfile();
-    loadAniversarios();
+    loadOcorrencias();
+    loadComunicados();
   }, []);
 
   // Quando activeTab muda, atualiza a URL
@@ -104,46 +106,35 @@ export function AdminPage() {
     }
   };
 
-  const loadAniversarios = async () => {
+  const loadOcorrencias = async () => {
     try {
-      const alunos = await supabaseService.getAlunos();
-      
-      // Calcular próximos aniversários
-      const hoje = new Date();
-      const proximosAniversarios: Aniversario[] = [];
+      const { data, error } = await supabase
+        .from('ocorrencias')
+        .select('*')
+        .order('data', { ascending: false })
+        .limit(5);
 
-      alunos.forEach((aluno: Aluno) => {
-        if (!aluno.data_nascimento) return;
-
-        const dataNasc = new Date(aluno.data_nascimento);
-        let proximoAniversario = new Date(hoje.getFullYear(), dataNasc.getMonth(), dataNasc.getDate());
-
-        // Se o aniversário já passou este ano, pega do próximo ano
-        if (proximoAniversario < hoje) {
-          proximoAniversario = new Date(hoje.getFullYear() + 1, dataNasc.getMonth(), dataNasc.getDate());
-        }
-
-        // Calcula dias até o aniversário
-        const diferenca = proximoAniversario.getTime() - hoje.getTime();
-        const diasAte = Math.ceil(diferenca / (1000 * 60 * 60 * 24));
-
-        // Pega apenas próximos 30 dias
-        if (diasAte <= 30 && diasAte >= 0) {
-          proximosAniversarios.push({
-            id: aluno.id,
-            nome: aluno.nome,
-            dataNascimento: aluno.data_nascimento,
-            turma: aluno.turma_id || 'Sem turma',
-            diasAte
-          });
-        }
-      });
-
-      // Ordena por dias até aniversário
-      proximosAniversarios.sort((a, b) => a.diasAte - b.diasAte);
-      setAniversarios(proximosAniversarios.slice(0, 5)); // Pega apenas os 5 próximos
+      if (data) {
+        setOcorrencias(data);
+      }
     } catch (error) {
-      console.error('Erro ao carregar aniversários:', error);
+      console.error('Erro ao carregar ocorrências:', error);
+    }
+  };
+
+  const loadComunicados = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('comunicados')
+        .select('*')
+        .order('data_criacao', { ascending: false })
+        .limit(5);
+
+      if (data) {
+        setComunicados(data);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar comunicados:', error);
     }
   };
 
@@ -176,54 +167,22 @@ export function AdminPage() {
     }
   };
 
-  const getDaysInMonth = (date: Date) => {
-    return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-  };
-
-  const getFirstDayOfMonth = (date: Date) => {
-    return new Date(date.getFullYear(), date.getMonth(), 1).getDay();
-  };
-
-  const generateCalendarDays = () => {
-    const daysInMonth = getDaysInMonth(currentDate);
-    const firstDay = getFirstDayOfMonth(currentDate);
-    const days = [];
-
-    // Dias vazios do mês anterior
-    for (let i = 0; i < firstDay; i++) {
-      days.push(null);
-    }
-
-    // Dias do mês atual
-    for (let i = 1; i <= daysInMonth; i++) {
-      days.push(i);
-    }
-
-    return days;
-  };
-
-  const previousMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1));
-  };
-
-  const nextMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1));
-  };
-
-  const getMonthYear = () => {
-    const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-    return `${months[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
-  };
-
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('pt-BR');
   };
 
-  const getAniversarioColor = (diasAte: number) => {
-    if (diasAte === 0) return 'border-l-red-500 bg-red-50 dark:bg-red-900/20';
-    if (diasAte <= 7) return 'border-l-orange-500 bg-orange-50 dark:bg-orange-900/20';
-    return 'border-l-blue-500 bg-blue-50 dark:bg-blue-900/20';
+  const getTipoColor = (tipo: string) => {
+    switch(tipo?.toLowerCase()) {
+      case 'comportamento':
+        return 'bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-300';
+      case 'falta':
+        return 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-300';
+      case 'positivo':
+        return 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-300';
+      default:
+        return 'bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300';
+    }
   };
 
   const renderVisaoGeral = () => {
@@ -236,11 +195,6 @@ export function AdminPage() {
       { name: 'Ativos', value: stats.professoresAtivos },
       { name: 'Inativos', value: stats.professoresInativos }
     ].filter(item => item.value > 0);
-
-    const calendarDays = generateCalendarDays();
-    const today = new Date();
-    const isCurrentMonth = today.getMonth() === currentDate.getMonth() && today.getFullYear() === currentDate.getFullYear();
-    const todayDate = today.getDate();
 
     return (
       <div className="space-y-6">
@@ -383,87 +337,81 @@ export function AdminPage() {
           </Card>
         </div>
 
-        {/* CALENDÁRIO + PRÓXIMOS ANIVERSÁRIOS */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* CALENDÁRIO */}
-          <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 lg:col-span-1">
-            <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-gray-900 dark:text-white">Calendário</h3>
-                <button className="text-blue-600 hover:text-blue-700 text-sm">+ Adicionar um evento</button>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Navegação do mês */}
-              <div className="flex items-center justify-between">
-                <button onClick={previousMonth} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
-                  <ChevronLeft className="h-4 w-4" />
-                </button>
-                <span className="font-medium text-gray-900 dark:text-white text-sm">{getMonthYear()}</span>
-                <button onClick={nextMonth} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-              </div>
-
-              {/* Cabeçalho dias da semana */}
-              <div className="grid grid-cols-7 gap-2 text-center text-xs font-semibold text-gray-600 dark:text-gray-400">
-                <div>D</div>
-                <div>S</div>
-                <div>T</div>
-                <div>Q</div>
-                <div>Q</div>
-                <div>S</div>
-                <div>S</div>
-              </div>
-
-              {/* Dias do calendário */}
-              <div className="grid grid-cols-7 gap-2">
-                {calendarDays.map((day, index) => (
-                  <div key={index} className="text-center">
-                    {day ? (
-                      <button
-                        className={`w-full aspect-square rounded-lg text-sm font-medium transition-colors ${
-                          isCurrentMonth && day === todayDate
-                            ? 'bg-green-500 text-white'
-                            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                        }`}
-                      >
-                        {day}
-                      </button>
-                    ) : (
-                      <div className="text-gray-400 text-xs">{}</div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* PRÓXIMOS ANIVERSÁRIOS */}
-          <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 lg:col-span-2">
+        {/* OCORRÊNCIAS + COMUNICADOS */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* OCORRÊNCIAS */}
+          <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">Próximos aniversários</CardTitle>
-                <a href="#" className="text-blue-600 dark:text-blue-400 text-sm hover:underline">Ver todo</a>
+                <CardTitle className="text-lg">Ocorrências Recentes</CardTitle>
+                <a href="#" className="text-blue-600 dark:text-blue-400 text-sm hover:underline">Ver tudo</a>
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
-              {aniversarios.length > 0 ? (
-                aniversarios.map((aniversario, index) => (
-                  <div key={aniversario.id} className={`flex gap-4 pb-3 border-l-4 px-4 py-2 rounded-lg ${getAniversarioColor(aniversario.diasAte)} ${index !== aniversarios.length - 1 ? 'border-b border-gray-200 dark:border-gray-700' : ''}`}>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-semibold text-gray-900 dark:text-white text-sm">{aniversario.nome}</h4>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">📅 {formatDate(aniversario.dataNascimento)}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">📚 Turma: {aniversario.turma}</p>
-                      {aniversario.diasAte === 0 && <p className="text-xs text-red-600 dark:text-red-400 font-semibold mt-1">🎉 Hoje é o aniversário!</p>}
-                      {aniversario.diasAte === 1 && <p className="text-xs text-orange-600 dark:text-orange-400 font-semibold mt-1">⏰ Amanhã faz aniversário!</p>}
-                      {aniversario.diasAte > 1 && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Em {aniversario.diasAte} dias</p>}
+              {ocorrencias.length > 0 ? (
+                ocorrencias.map((ocorrencia) => (
+                  <div key={ocorrencia.id} className="pb-3 border-b border-gray-200 dark:border-gray-700 last:border-0">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className={`px-2 py-1 rounded text-xs font-semibold ${getTipoColor(ocorrencia.tipo)}`}>
+                            {ocorrencia.tipo}
+                          </span>
+                        </div>
+                        <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                          Aluno #{ocorrencia.aluno_id}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          {ocorrencia.descricao}
+                        </p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
+                          📅 {formatDate(ocorrencia.data)}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 ))
               ) : (
                 <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                  <p>Nenhum aniversário próximo nos próximos 30 dias</p>
+                  <p>Nenhuma ocorrência registrada</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* COMUNICADOS */}
+          <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg">Comunicados Recentes</CardTitle>
+                <a href="#" className="text-blue-600 dark:text-blue-400 text-sm hover:underline">Ver tudo</a>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {comunicados.length > 0 ? (
+                comunicados.map((comunicado) => (
+                  <div key={comunicado.id} className="pb-3 border-b border-gray-200 dark:border-gray-700 last:border-0">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                          {comunicado.titulo}
+                        </p>
+                        <p className="text-xs text-gray-600 dark:text-gray-300 mt-1 line-clamp-2">
+                          {comunicado.conteudo}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                          Por: {comunicado.autor}
+                        </p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                          📅 {formatDate(comunicado.data_criacao)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                  <p>Nenhum comunicado registrado</p>
                 </div>
               )}
             </CardContent>
