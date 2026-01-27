@@ -15,6 +15,7 @@ import { ExportacaoTab } from './components/ExportacaoTab';
 import { ScrollArea } from '../../components/ui/scroll-area';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { supabaseService } from '../../services/supabaseService';
+import { CoordinadorSidebar } from '../../components/admin/CoordinadorSidebar';
 
 interface DashboardStats {
   totalAlunos: number;
@@ -228,102 +229,108 @@ export function AdminPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      {/* Header Fixo */}
-      <header className="sticky top-0 z-50 border-b bg-card px-6 py-4 flex-shrink-0 flex items-center">
-        <div className="flex items-center justify-between w-full">
-          <div>
-            <h1 className="text-2xl font-bold">
-              Painel Administrativo
-            </h1>
-            <p className="text-base text-muted-foreground">
-              Gerencie usuários, turmas e configurações
-            </p>
+    <div className="min-h-screen flex bg-background">
+      {/* SIDEBAR FIXO NA ESQUERDA */}
+      <CoordinadorSidebar />
+
+      {/* CONTEÚDO PRINCIPAL COM MARGEM ESQUERDA */}
+      <div className="flex-1 flex flex-col ml-64">
+        {/* Header Fixo */}
+        <header className="sticky top-0 z-50 border-b bg-card px-6 py-4 flex-shrink-0 flex items-center">
+          <div className="flex items-center justify-between w-full">
+            <div>
+              <h1 className="text-2xl font-bold">
+                Painel Administrativo
+              </h1>
+              <p className="text-base text-muted-foreground">
+                Gerencie usuários, turmas e configurações
+              </p>
+            </div>
+            <AuthHeader />
           </div>
-          <AuthHeader />
+        </header>
+
+        {/* Tabs Navigation Fixas */}
+        <div className="sticky top-16 z-40 border-b bg-card px-6 flex-shrink-0">
+          <nav className="flex space-x-8 py-0 overflow-x-auto">
+            {[
+              { id: 'visao-geral', label: 'Visão geral', icon: BarChart3 },
+              { id: 'diarios', label: 'Diários', icon: BookOpen },
+              { id: 'comunicados', label: 'Comunicados', icon: MessageSquare },
+              { id: 'alunos', label: 'Alunos', icon: Users },
+              { id: 'professores', label: 'Professores', icon: UserCheck },
+              { id: 'disciplinas', label: 'Disciplinas', icon: School },
+              { id: 'turmas', label: 'Turmas', icon: GraduationCap },
+              { id: 'usuarios', label: 'Usuários', icon: Users },
+              { id: 'exportacao', label: 'Exportação', icon: Download }
+            ].map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                onClick={() => setActiveTab(id)}
+                className={`flex items-center gap-2 py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-fast ${
+                  activeTab === id
+                    ? 'text-primary border-primary'
+                    : 'text-muted-foreground border-transparent hover:text-foreground hover:border-border'
+                }`}
+              >
+                <Icon className="h-4 w-4" />
+                {label}
+              </button>
+            ))}
+          </nav>
         </div>
-      </header>
 
-      {/* Tabs Navigation Fixas */}
-      <div className="sticky top-16 z-40 border-b bg-card px-6 flex-shrink-0">
-        <nav className="flex space-x-8 py-0 overflow-x-auto">
-          {[
-            { id: 'visao-geral', label: 'Visão geral', icon: BarChart3 },
-            { id: 'diarios', label: 'Diários', icon: BookOpen },
-            { id: 'comunicados', label: 'Comunicados', icon: MessageSquare },
-            { id: 'alunos', label: 'Alunos', icon: Users },
-            { id: 'professores', label: 'Professores', icon: UserCheck },
-            { id: 'disciplinas', label: 'Disciplinas', icon: School },
-            { id: 'turmas', label: 'Turmas', icon: GraduationCap },
-            { id: 'usuarios', label: 'Usuários', icon: Users },
-            { id: 'exportacao', label: 'Exportação', icon: Download }
-          ].map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              onClick={() => setActiveTab(id)}
-              className={`flex items-center gap-2 py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-fast ${
-                activeTab === id
-                  ? 'text-primary border-primary'
-                  : 'text-muted-foreground border-transparent hover:text-foreground hover:border-border'
-              }`}
-            >
-              <Icon className="h-4 w-4" />
-              {label}
-            </button>
-          ))}
-        </nav>
+        {/* Content Scrollável */}
+        <main className="flex-1 overflow-hidden">
+          <ScrollArea className="h-full scrollbar-thin">
+            <div className="p-6">
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+                <TabsContent value="visao-geral">
+                  {loading ? (
+                    <div className="flex items-center justify-center h-96">
+                      <div className="text-muted-foreground">Carregando...</div>
+                    </div>
+                  ) : (
+                    renderVisaoGeral()
+                  )}
+                </TabsContent>
+
+                <TabsContent value="diarios">
+                  <DiariosList />
+                </TabsContent>
+
+                <TabsContent value="comunicados">
+                  <ComunicadosList />
+                </TabsContent>
+
+                <TabsContent value="alunos">
+                  <AlunosList />
+                </TabsContent>
+
+                <TabsContent value="professores">
+                  <ProfessoresList />
+                </TabsContent>
+
+                <TabsContent value="disciplinas">
+                  <DisciplinasList />
+                </TabsContent>
+
+                <TabsContent value="turmas">
+                  <TurmasList />
+                </TabsContent>
+
+                <TabsContent value="usuarios">
+                  <UsuariosList />
+                </TabsContent>
+
+                <TabsContent value="exportacao">
+                  <ExportacaoTab />
+                </TabsContent>
+              </Tabs>
+            </div>
+          </ScrollArea>
+        </main>
       </div>
-
-      {/* Content Scrollável */}
-      <main className="flex-1 overflow-hidden">
-        <ScrollArea className="h-full scrollbar-thin">
-          <div className="p-6">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-              <TabsContent value="visao-geral">
-                {loading ? (
-                  <div className="flex items-center justify-center h-96">
-                    <div className="text-muted-foreground">Carregando...</div>
-                  </div>
-                ) : (
-                  renderVisaoGeral()
-                )}
-              </TabsContent>
-
-              <TabsContent value="diarios">
-                <DiariosList />
-              </TabsContent>
-
-              <TabsContent value="comunicados">
-                <ComunicadosList />
-              </TabsContent>
-
-              <TabsContent value="alunos">
-                <AlunosList />
-              </TabsContent>
-
-              <TabsContent value="professores">
-                <ProfessoresList />
-              </TabsContent>
-
-              <TabsContent value="disciplinas">
-                <DisciplinasList />
-              </TabsContent>
-
-              <TabsContent value="turmas">
-                <TurmasList />
-              </TabsContent>
-
-              <TabsContent value="usuarios">
-                <UsuariosList />
-              </TabsContent>
-
-              <TabsContent value="exportacao">
-                <ExportacaoTab />
-              </TabsContent>
-            </Tabs>
-          </div>
-        </ScrollArea>
-      </main>
     </div>
   );
 }
