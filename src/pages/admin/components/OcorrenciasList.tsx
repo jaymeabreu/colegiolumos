@@ -9,11 +9,13 @@ import { Label } from '../../../components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
 import { Textarea } from '../../../components/ui/textarea';
 import { supabase } from '../../../lib/supabaseClient';
+import { supabaseService } from '../../../services/supabaseService';
 
 interface Ocorrencia {
   id: string;
   aluno_id: string;
   aluno_nome?: string;
+  turma_id?: number;
   tipo: string;
   data: string;
   descricao: string;
@@ -23,6 +25,7 @@ interface Ocorrencia {
 
 export function OcorrenciasList() {
   const [ocorrencias, setOcorrencias] = useState<Ocorrencia[]>([]);
+  const [turmas, setTurmas] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false);
@@ -43,6 +46,15 @@ export function OcorrenciasList() {
     acao_tomada: ''
   });
 
+  const loadTurmas = useCallback(async () => {
+    try {
+      const turmasData = await supabaseService.getTurmas();
+      setTurmas(turmasData);
+    } catch (error) {
+      console.error('Erro ao carregar turmas:', error);
+    }
+  }, []);
+
   const loadOcorrencias = useCallback(async () => {
     try {
       setLoading(true);
@@ -50,15 +62,16 @@ export function OcorrenciasList() {
         .from('ocorrencias')
         .select(`
           *,
-          alunos:aluno_id (nome)
+          alunos:aluno_id (nome, turma_id)
         `)
         .order('data', { ascending: false });
 
       if (data) {
-        // Mapeia os dados para incluir o nome do aluno
+        // Mapeia os dados para incluir o nome do aluno e turma_id
         const ocorrenciasComNome = data.map((occ: any) => ({
           ...occ,
-          aluno_nome: occ.alunos?.nome || 'Desconhecido'
+          aluno_nome: occ.alunos?.nome || 'Desconhecido',
+          turma_id: occ.alunos?.turma_id
         }));
         setOcorrencias(ocorrenciasComNome);
       }
@@ -72,7 +85,8 @@ export function OcorrenciasList() {
 
   useEffect(() => {
     loadOcorrencias();
-  }, [loadOcorrencias]);
+    loadTurmas();
+  }, [loadOcorrencias, loadTurmas]);
 
   const filteredOcorrencias = useMemo(() => {
     return ocorrencias.filter(ocorrencia => {
@@ -193,6 +207,11 @@ export function OcorrenciasList() {
     }
   };
 
+  const getTurmaNome = (turmaId?: number) => {
+    if (!turmaId) return 'N/A';
+    return turmas.find(t => t.id === turmaId)?.nome || 'N/A';
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('pt-BR');
   };
@@ -245,6 +264,7 @@ export function OcorrenciasList() {
                           <SelectItem value="Comportamento">Comportamento</SelectItem>
                           <SelectItem value="Falta">Falta</SelectItem>
                           <SelectItem value="Positivo">Positivo</SelectItem>
+                          <SelectItem value="Disciplinar">Disciplinar</SelectItem>
                           <SelectItem value="Outro">Outro</SelectItem>
                         </SelectContent>
                       </Select>
@@ -333,6 +353,7 @@ export function OcorrenciasList() {
                         <SelectItem value="Comportamento">Comportamento</SelectItem>
                         <SelectItem value="Falta">Falta</SelectItem>
                         <SelectItem value="Positivo">Positivo</SelectItem>
+                        <SelectItem value="Disciplinar">Disciplinar</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -385,9 +406,12 @@ export function OcorrenciasList() {
                         {ocorrencia.tipo}
                       </Badge>
                       <span className="text-sm font-medium text-gray-600">
-                        {ocorrencia.aluno_nome || `Aluno #${ocorrencia.aluno_id}`}
+                        {ocorrencia.aluno_nome}
                       </span>
                     </div>
+                    <p className="text-xs text-gray-600 mb-2">
+                      Turma: <strong>{getTurmaNome(ocorrencia.turma_id)}</strong>
+                    </p>
                     <p className="text-sm text-gray-700 mb-2">{ocorrencia.descricao}</p>
                     {ocorrencia.acao_tomada && (
                       <p className="text-xs text-gray-600 mb-2">
