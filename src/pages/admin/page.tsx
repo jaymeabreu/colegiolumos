@@ -190,7 +190,7 @@ export function AdminPage() {
     try {
       await supabase.auth.signOut();
       localStorage.removeItem('user');
-      navigate('/login');
+      navigate('/', { replace: true });
     } catch (error) {
       console.error('Erro ao fazer logout:', error);
       alert('Erro ao fazer logout. Tente novamente.');
