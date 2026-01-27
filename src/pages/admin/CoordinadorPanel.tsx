@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabaseService, Aluno, Professor } from '@/services/supabaseService';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
-import { Users, FileText, MessageSquare, Folder, Settings, BarChart3, LogOut, Menu, X } from 'lucide-react';
+import { Users, FileText, MessageSquare, Folder, Settings, BarChart3, LogOut, Menu, X } from 'lucide-react'; 
 
 type TabId = 'visao-geral' | 'diarios' | 'comunicados' | 'alunos' | 'professores' | 'disciplinas' | 'turmas' | 'usuarios' | 'exportacao';
 
