@@ -79,7 +79,7 @@ export function Configuracoes() {
     try {
       const fileName = `logo-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       const { data, error } = await supabase.storage
-        .from('logos')
+        .from('logo')
         .upload(fileName, file, {
           cacheControl: '3600',
           upsert: false
