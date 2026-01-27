@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Settings, ChevronDown } from 'lucide-react';
 import { supabaseService } from '../../services/supabaseService';
 
@@ -13,6 +14,7 @@ interface ConfiguracaoEscola {
 }
 
 export function CoordinadorSidebar() {
+  const navigate = useNavigate();
   const [config, setConfig] = useState<ConfiguracaoEscola | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -70,9 +72,9 @@ export function CoordinadorSidebar() {
       {/* CONFIGURAÇÕES - EMBAIXO */}
       <div className="p-4 border-t border-gray-200 dark:border-gray-800">
         <button 
-  onClick={() => window.REACT_APP_NAVIGATE?.('/app/admin/configuracoes')}
-  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300"
->
+          onClick={() => navigate('/app/admin/configuracoes')}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-700 dark:text-gray-300"
+        >
           <Settings className="h-5 w-5" />
           <span className="text-sm font-medium">Configurações</span>
         </button>
