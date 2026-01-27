@@ -6,7 +6,7 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Textarea } from '../../components/ui/textarea';
-import { createClient } from '@supabase/supabase-js';
+import { supabaseService } from '../../services/supabaseService';
 
 interface ConfiguracaoEscola {
   id?: number;
@@ -17,11 +17,6 @@ interface ConfiguracaoEscola {
   email?: string;
   endereco?: string;
 }
-
-// Inicializar cliente Supabase
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
 
 export function Configuracoes() {
   const navigate = useNavigate();
@@ -36,7 +31,6 @@ export function Configuracoes() {
     telefone: '',
     email: '',
   });
-  const [logoFile, setLogoFile] = useState<File | null>(null);
 
   useEffect(() => {
     loadConfig();
@@ -45,7 +39,7 @@ export function Configuracoes() {
   const loadConfig = async () => {
     try {
       setLoadingData(true);
-      const { data, error } = await supabase
+      const { data, error } = await supabaseService.supabase
         .from('configuracoes_escola')
         .select('*')
         .maybeSingle();
@@ -66,36 +60,13 @@ export function Configuracoes() {
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setLogoFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
-        setLogoPreview(reader.result as string);
+        const base64 = reader.result as string;
+        setLogoPreview(base64);
+        setInstituicao({ ...instituicao, logo_url: base64 });
       };
       reader.readAsDataURL(file);
-    }
-  };
-
-  const uploadLogoToSupabase = async (file: File): Promise<string | null> => {
-    try {
-      const fileName = `logo-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      const { data, error } = await supabase.storage
-        .from('logo')
-        .upload(fileName, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
-
-      if (error) throw error;
-
-      const { data: urlData } = supabase.storage
-        .from('logos')
-        .getPublicUrl(fileName);
-
-      return urlData.publicUrl;
-    } catch (error) {
-      console.error('Erro ao fazer upload da logo:', error);
-      alert('Erro ao fazer upload da logo. Tente novamente.');
-      return null;
     }
   };
 
@@ -103,22 +74,9 @@ export function Configuracoes() {
     try {
       setLoading(true);
 
-      let logoUrl = instituicao.logo_url;
-
-      // Se houver novo logo, fazer upload
-      if (logoFile) {
-        const uploadedUrl = await uploadLogoToSupabase(logoFile);
-        if (uploadedUrl) {
-          logoUrl = uploadedUrl;
-        } else {
-          setLoading(false);
-          return;
-        }
-      }
-
       const payload: any = {
         nome_escola: instituicao.nome_escola,
-        logo_url: logoUrl || null,
+        logo_url: instituicao.logo_url || null,
         cnpj: instituicao.cnpj || null,
         telefone: instituicao.telefone || null,
         email: instituicao.email || null,
@@ -127,14 +85,14 @@ export function Configuracoes() {
 
       // Se existe ID, atualiza; senão cria novo
       if (instituicao.id) {
-        const { error } = await supabase
+        const { error } = await supabaseService.supabase
           .from('configuracoes_escola')
           .update(payload)
           .eq('id', instituicao.id);
 
         if (error) throw error;
       } else {
-        const { data, error } = await supabase
+        const { data, error } = await supabaseService.supabase
           .from('configuracoes_escola')
           .insert(payload)
           .select()
@@ -146,7 +104,6 @@ export function Configuracoes() {
         }
       }
 
-      setLogoFile(null);
       alert('Configurações salvas com sucesso!');
     } catch (error) {
       console.error('Erro ao salvar:', error);
@@ -295,7 +252,7 @@ export function Configuracoes() {
                   />
                 </Label>
                 <p className="text-sm text-gray-500 mt-2">
-                  Qualquer formato de imagem (PNG, JPG, SVG, etc)
+                  Qualquer formato de imagem (PNG, JPG, SVG, etc) - Sem limite de tamanho
                 </p>
               </div>
             </div>
