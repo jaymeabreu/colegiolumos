@@ -186,14 +186,14 @@ export function AdminPage() {
     }
   };
 
-  const handleLogout = async () => {
+  const handleLogout = () => {
     try {
-      await supabase.auth.signOut();
       localStorage.removeItem('user');
+      sessionStorage.clear();
       navigate('/', { replace: true });
     } catch (error) {
       console.error('Erro ao fazer logout:', error);
-      alert('Erro ao fazer logout. Tente novamente.');
+      navigate('/', { replace: true });
     }
   };
 
