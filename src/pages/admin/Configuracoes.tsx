@@ -1,51 +1,185 @@
-import { useState } from 'react';
-import { Save, Upload, Building2, Palette, Globe, Bell } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Save, Upload, Building2, Palette, ArrowLeft } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Textarea } from '../../components/ui/textarea';
+import { supabaseService } from '../../services/supabaseService';
+
+interface ConfiguracaoEscola {
+  id?: number;
+  nome_escola?: string;
+  logo_url?: string;
+  cnpj?: string;
+  telefone?: string;
+  email?: string;
+  endereco?: string;
+}
 
 export function Configuracoes() {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [instituicao, setInstituicao] = useState({
-    nome: 'Colégio Lumos',
+  const [loadingData, setLoadingData] = useState(true);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [instituicao, setInstituicao] = useState<ConfiguracaoEscola>({
+    nome_escola: '',
+    logo_url: '',
     cnpj: '',
     endereco: '',
     telefone: '',
     email: '',
-    logo: null as File | null
   });
+  const [logoFile, setLogoFile] = useState<File | null>(null);
 
-  const handleSave = async () => {
-    setLoading(true);
-    // Aqui você implementará a lógica de salvar no Supabase
-    setTimeout(() => {
-      setLoading(false);
-      alert('Configurações salvas com sucesso!');
-    }, 1000);
+  useEffect(() => {
+    loadConfig();
+  }, []);
+
+  const loadConfig = async () => {
+    try {
+      setLoadingData(true);
+      const { data, error } = await supabaseService.supabase
+        .from('configuracoes_escola')
+        .select('*')
+        .maybeSingle();
+
+      if (data) {
+        setInstituicao(data);
+        if (data.logo_url) {
+          setLogoPreview(data.logo_url);
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao carregar configurações:', error);
+    } finally {
+      setLoadingData(false);
+    }
   };
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setInstituicao({ ...instituicao, logo: file });
+      setLogoFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
     }
   };
+
+  const uploadLogoToSupabase = async (file: File): Promise<string | null> => {
+    try {
+      const fileName = `logo-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const { data, error } = await supabaseService.supabase.storage
+        .from('logos')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (error) throw error;
+
+      const { data: urlData } = supabaseService.supabase.storage
+        .from('logos')
+        .getPublicUrl(fileName);
+
+      return urlData.publicUrl;
+    } catch (error) {
+      console.error('Erro ao fazer upload da logo:', error);
+      alert('Erro ao fazer upload da logo. Tente novamente.');
+      return null;
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      setLoading(true);
+
+      let logoUrl = instituicao.logo_url;
+
+      // Se houver novo logo, fazer upload
+      if (logoFile) {
+        const uploadedUrl = await uploadLogoToSupabase(logoFile);
+        if (uploadedUrl) {
+          logoUrl = uploadedUrl;
+        } else {
+          setLoading(false);
+          return;
+        }
+      }
+
+      const payload: any = {
+        nome_escola: instituicao.nome_escola,
+        logo_url: logoUrl || null,
+        cnpj: instituicao.cnpj || null,
+        telefone: instituicao.telefone || null,
+        email: instituicao.email || null,
+        endereco: instituicao.endereco || null,
+      };
+
+      // Se existe ID, atualiza; senão cria novo
+      if (instituicao.id) {
+        const { error } = await supabaseService.supabase
+          .from('configuracoes_escola')
+          .update(payload)
+          .eq('id', instituicao.id);
+
+        if (error) throw error;
+      } else {
+        const { data, error } = await supabaseService.supabase
+          .from('configuracoes_escola')
+          .insert(payload)
+          .select()
+          .single();
+
+        if (error) throw error;
+        if (data) {
+          setInstituicao(data);
+        }
+      }
+
+      setLogoFile(null);
+      alert('Configurações salvas com sucesso!');
+    } catch (error) {
+      console.error('Erro ao salvar:', error);
+      alert('Erro ao salvar configurações. Tente novamente.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loadingData) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="text-gray-500">Carregando...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
       <div className="max-w-5xl mx-auto space-y-6">
-        {/* HEADER */}
+        {/* HEADER COM BOTÃO VOLTAR */}
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-              <Building2 className="h-8 w-8 text-red-600" />
-              Configurações da Instituição
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">
-              Gerencie as informações e personalização do sistema
-            </p>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => navigate('/app/admin')}
+              className="p-2 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-lg transition"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                <Building2 className="h-8 w-8 text-blue-600" />
+                Configurações da Instituição
+              </h1>
+              <p className="text-gray-600 dark:text-gray-400 mt-1">
+                Gerencie as informações e personalização do sistema
+              </p>
+            </div>
           </div>
         </div>
 
@@ -66,8 +200,8 @@ export function Configuracoes() {
                 <Label htmlFor="nome">Nome da Instituição</Label>
                 <Input
                   id="nome"
-                  value={instituicao.nome}
-                  onChange={(e) => setInstituicao({ ...instituicao, nome: e.target.value })}
+                  value={instituicao.nome_escola || ''}
+                  onChange={(e) => setInstituicao({ ...instituicao, nome_escola: e.target.value })}
                   placeholder="Ex: Colégio Lumos"
                 />
               </div>
@@ -76,7 +210,7 @@ export function Configuracoes() {
                 <Label htmlFor="cnpj">CNPJ</Label>
                 <Input
                   id="cnpj"
-                  value={instituicao.cnpj}
+                  value={instituicao.cnpj || ''}
                   onChange={(e) => setInstituicao({ ...instituicao, cnpj: e.target.value })}
                   placeholder="00.000.000/0000-00"
                 />
@@ -86,7 +220,7 @@ export function Configuracoes() {
                 <Label htmlFor="telefone">Telefone</Label>
                 <Input
                   id="telefone"
-                  value={instituicao.telefone}
+                  value={instituicao.telefone || ''}
                   onChange={(e) => setInstituicao({ ...instituicao, telefone: e.target.value })}
                   placeholder="(00) 0000-0000"
                 />
@@ -97,7 +231,7 @@ export function Configuracoes() {
                 <Input
                   id="email"
                   type="email"
-                  value={instituicao.email}
+                  value={instituicao.email || ''}
                   onChange={(e) => setInstituicao({ ...instituicao, email: e.target.value })}
                   placeholder="contato@colegiolumos.com.br"
                 />
@@ -108,7 +242,7 @@ export function Configuracoes() {
               <Label htmlFor="endereco">Endereço</Label>
               <Textarea
                 id="endereco"
-                value={instituicao.endereco}
+                value={instituicao.endereco || ''}
                 onChange={(e) => setInstituicao({ ...instituicao, endereco: e.target.value })}
                 placeholder="Rua, número, bairro, cidade - Estado"
                 rows={3}
@@ -131,9 +265,9 @@ export function Configuracoes() {
           <CardContent>
             <div className="flex items-center gap-4">
               <div className="w-32 h-32 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg flex items-center justify-center bg-gray-50 dark:bg-gray-800">
-                {instituicao.logo ? (
+                {logoPreview ? (
                   <img 
-                    src={URL.createObjectURL(instituicao.logo)} 
+                    src={logoPreview}
                     alt="Logo preview" 
                     className="w-full h-full object-contain rounded-lg"
                   />
@@ -156,48 +290,21 @@ export function Configuracoes() {
                   />
                 </Label>
                 <p className="text-sm text-gray-500 mt-2">
-                  PNG, JPG ou SVG (máx. 2MB)
+                  Qualquer formato de imagem (PNG, JPG, SVG, etc)
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* PERSONALIZAÇÃO */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Palette className="h-5 w-5" />
-              Personalização
-            </CardTitle>
-            <CardDescription>
-              Cores e tema do sistema
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {[
-                { name: 'Azul', color: 'bg-blue-500' },
-                { name: 'Verde', color: 'bg-green-500' },
-                { name: 'Roxo', color: 'bg-purple-500' },
-                { name: 'Vermelho', color: 'bg-red-500' }
-              ].map((tema) => (
-                <button
-                  key={tema.name}
-                  className="flex flex-col items-center gap-2 p-4 border-2 border-gray-200 dark:border-gray-700 rounded-lg hover:border-blue-500 transition-colors"
-                >
-                  <div className={`w-12 h-12 rounded-full ${tema.color}`}></div>
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {tema.name}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
         {/* BOTÃO SALVAR */}
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-2">
+          <Button
+            variant="outline"
+            onClick={() => navigate('/app/admin')}
+          >
+            Cancelar
+          </Button>
           <Button
             onClick={handleSave}
             disabled={loading}
