@@ -37,6 +37,7 @@ interface UserProfile {
 interface Ocorrencia {
   id: string;
   aluno_id: string;
+  turma_id?: number;
   tipo: string;
   data: string;
   descricao: string;
@@ -61,6 +62,7 @@ export function AdminPage() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [ocorrencias, setOcorrencias] = useState<Ocorrencia[]>([]);
   const [comunicados, setComunicados] = useState<Comunicado[]>([]);
+  const [turmas, setTurmas] = useState<any[]>([]);
   const [stats, setStats] = useState<DashboardStats>({
     totalAlunos: 0,
     alunosAtivos: 0,
@@ -75,6 +77,7 @@ export function AdminPage() {
     loadUserProfile();
     loadOcorrencias();
     loadComunicados();
+    loadTurmas();
   }, []);
 
   // Quando activeTab muda, atualiza a URL
@@ -140,6 +143,15 @@ export function AdminPage() {
     }
   };
 
+  const loadTurmas = async () => {
+    try {
+      const turmasData = await supabaseService.getTurmas();
+      setTurmas(turmasData);
+    } catch (error) {
+      console.error('Erro ao carregar turmas:', error);
+    }
+  };
+
   const loadStats = async () => {
     try {
       setLoading(true);
@@ -185,6 +197,11 @@ export function AdminPage() {
       default:
         return 'bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300';
     }
+  };
+
+  const getTurmaNome = (turmaId?: number) => {
+    if (!turmaId) return 'N/A';
+    return turmas.find(t => t.id === turmaId)?.nome || 'N/A';
   };
 
   const handleLogout = async () => {
@@ -363,7 +380,12 @@ export function AdminPage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg">Ocorrências Recentes</CardTitle>
-                <a href="#" className="text-blue-600 dark:text-blue-400 text-sm hover:underline">Ver tudo</a>
+                <button 
+                  onClick={() => setActiveTab('ocorrencias')}
+                  className="text-blue-600 dark:text-blue-400 text-sm hover:underline"
+                >
+                  Ver tudo
+                </button>
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -380,10 +402,13 @@ export function AdminPage() {
                         <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
                           Aluno #{ocorrencia.aluno_id}
                         </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                          Turma: <strong>{getTurmaNome(ocorrencia.turma_id)}</strong>
+                        </p>
+                        <p className="text-xs text-gray-600 dark:text-gray-300 mt-1 line-clamp-2">
                           {ocorrencia.descricao}
                         </p>
-                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                           📅 {formatDate(ocorrencia.data)}
                         </p>
                       </div>
