@@ -125,7 +125,6 @@ export function DiariosList() {
     }
 
     return diarios.filter(diario => {
-      // NÃO mostrar na lista diários com solicitação de devolução
       if (diario.solicitacao_devolucao) return false;
 
       if (searchTerm && diario.nome && !diario.nome.toLowerCase().includes(searchTerm.toLowerCase())) {
@@ -350,16 +349,14 @@ export function DiariosList() {
     };
   };
 
-  // DIÁRIOS COM SOLICITAÇÃO DE DEVOLUÇÃO (mostrados apenas no card azul)
-  // NÃO mostrar se o diário já foi FINALIZADO
   const diasComSolicitacaoDevolucao = useMemo(() => {
-    return diarios.filter(d => d.solicitacao_devolucao && d.status !== 'FINALIZADO');
+    return diarios.filter(d => d.solicitacao_devolucao);
   }, [diarios]);
 
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-4">
+        <CardHeader className="flex flex-row items-center justify-between pb-4">
           <div>
             <CardTitle className="text-2xl font-bold">Diários de Classe</CardTitle>
             <CardDescription>Gerencie os diários de classe da instituição</CardDescription>
@@ -654,7 +651,6 @@ export function DiariosList() {
             </Dialog>
           </div>
 
-          {/* CARD AZUL - SÓ COM DIÁRIOS QUE TÊM SOLICITAÇÃO DE DEVOLUÇÃO E NÃO ESTÃO FINALIZADOS */}
           {diasComSolicitacaoDevolucao.length > 0 && (
             <div className="mb-6 p-4 bg-orange-50 border-2 border-orange-200 rounded-lg">
               <div className="flex items-center gap-2 mb-3">
