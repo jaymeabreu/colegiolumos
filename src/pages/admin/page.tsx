@@ -76,7 +76,7 @@ export function AdminPage() {
     loadComunicados();
   }, []);
 
-  // Sincronizar activeTab com a URL quando muda
+  // Sincronizar activeTab com a URL
   useEffect(() => {
     setSearchParams({ tab: activeTab });
   }, [activeTab, setSearchParams]);
@@ -180,14 +180,9 @@ export function AdminPage() {
 
   const handleLogout = async () => {
     try {
-      // Remove tudo do localStorage
       localStorage.clear();
       sessionStorage.clear();
-      
-      // Tira a sessão do Supabase
       await supabase.auth.signOut().catch(() => {});
-      
-      // Redireciona pra login
       window.location.href = '/';
     } catch (error) {
       console.error('Erro ao fazer logout:', error);
