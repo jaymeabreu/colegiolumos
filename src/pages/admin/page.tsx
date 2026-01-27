@@ -74,16 +74,20 @@ export function AdminPage() {
       if (user) {
         const { data } = await supabase
           .from('usuarios')
-          .select('nome, email')
-          .eq('id', user.id)
+          .select('nome')
+          .eq('auth_id', user.id)
           .single();
         
-        if (data) {
-          setUserProfile(data);
+        if (data?.nome) {
+          setUserProfile({ nome: data.nome, email: user.email || '' });
+        } else {
+          // Se não encontrar, usa o email como fallback
+          setUserProfile({ nome: user.email?.split('@')[0] || 'Coordenador', email: user.email || '' });
         }
       }
     } catch (error) {
       console.error('Erro ao carregar perfil:', error);
+      setUserProfile({ nome: 'Coordenador', email: '' });
     }
   };
 
