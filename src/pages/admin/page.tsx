@@ -33,6 +33,22 @@ interface UserProfile {
   email: string;
 }
 
+interface Aluno {
+  id: string;
+  nome: string;
+  data_nascimento: string;
+  turma_id: string;
+  situacao: string;
+}
+
+interface Aniversario {
+  id: string;
+  nome: string;
+  dataNascimento: string;
+  turma: string;
+  diasAte: number;
+}
+
 const COLORS_CHART = ['#1e40af', '#fbbf24'];
 
 export function AdminPage() {
@@ -41,6 +57,7 @@ export function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [aniversarios, setAniversarios] = useState<Aniversario[]>([]);
   const [stats, setStats] = useState<DashboardStats>({
     totalAlunos: 0,
     alunosAtivos: 0,
@@ -53,6 +70,7 @@ export function AdminPage() {
   useEffect(() => {
     loadStats();
     loadUserProfile();
+    loadAniversarios();
   }, []);
 
   // Quando activeTab muda, atualiza a URL
@@ -70,24 +88,62 @@ export function AdminPage() {
 
   const loadUserProfile = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data } = await supabase
-          .from('usuarios')
-          .select('nome')
-          .eq('auth_id', user.id)
-          .single();
-        
-        if (data?.nome) {
-          setUserProfile({ nome: data.nome, email: user.email || '' });
-        } else {
-          // Se não encontrar, usa o email como fallback
-          setUserProfile({ nome: user.email?.split('@')[0] || 'Coordenador', email: user.email || '' });
-        }
+      const { data } = await supabase
+        .from('configuracoes_escola')
+        .select('nome_escola')
+        .maybeSingle();
+      
+      if (data?.nome_escola) {
+        setUserProfile({ nome: data.nome_escola, email: '' });
+      } else {
+        setUserProfile({ nome: 'Coordenador', email: '' });
       }
     } catch (error) {
       console.error('Erro ao carregar perfil:', error);
       setUserProfile({ nome: 'Coordenador', email: '' });
+    }
+  };
+
+  const loadAniversarios = async () => {
+    try {
+      const alunos = await supabaseService.getAlunos();
+      
+      // Calcular próximos aniversários
+      const hoje = new Date();
+      const proximosAniversarios: Aniversario[] = [];
+
+      alunos.forEach((aluno: Aluno) => {
+        if (!aluno.data_nascimento) return;
+
+        const dataNasc = new Date(aluno.data_nascimento);
+        let proximoAniversario = new Date(hoje.getFullYear(), dataNasc.getMonth(), dataNasc.getDate());
+
+        // Se o aniversário já passou este ano, pega do próximo ano
+        if (proximoAniversario < hoje) {
+          proximoAniversario = new Date(hoje.getFullYear() + 1, dataNasc.getMonth(), dataNasc.getDate());
+        }
+
+        // Calcula dias até o aniversário
+        const diferenca = proximoAniversario.getTime() - hoje.getTime();
+        const diasAte = Math.ceil(diferenca / (1000 * 60 * 60 * 24));
+
+        // Pega apenas próximos 30 dias
+        if (diasAte <= 30 && diasAte >= 0) {
+          proximosAniversarios.push({
+            id: aluno.id,
+            nome: aluno.nome,
+            dataNascimento: aluno.data_nascimento,
+            turma: aluno.turma_id || 'Sem turma',
+            diasAte
+          });
+        }
+      });
+
+      // Ordena por dias até aniversário
+      proximosAniversarios.sort((a, b) => a.diasAte - b.diasAte);
+      setAniversarios(proximosAniversarios.slice(0, 5)); // Pega apenas os 5 próximos
+    } catch (error) {
+      console.error('Erro ao carregar aniversários:', error);
     }
   };
 
@@ -157,6 +213,17 @@ export function AdminPage() {
   const getMonthYear = () => {
     const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
     return `${months[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('pt-BR');
+  };
+
+  const getAniversarioColor = (diasAte: number) => {
+    if (diasAte === 0) return 'border-l-red-500 bg-red-50 dark:bg-red-900/20';
+    if (diasAte <= 7) return 'border-l-orange-500 bg-orange-50 dark:bg-orange-900/20';
+    return 'border-l-blue-500 bg-blue-50 dark:bg-blue-900/20';
   };
 
   const renderVisaoGeral = () => {
@@ -316,7 +383,7 @@ export function AdminPage() {
           </Card>
         </div>
 
-        {/* CALENDÁRIO + PRÓXIMOS EVENTOS */}
+        {/* CALENDÁRIO + PRÓXIMOS ANIVERSÁRIOS */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* CALENDÁRIO */}
           <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 lg:col-span-1">
@@ -358,8 +425,6 @@ export function AdminPage() {
                         className={`w-full aspect-square rounded-lg text-sm font-medium transition-colors ${
                           isCurrentMonth && day === todayDate
                             ? 'bg-green-500 text-white'
-                            : day === 3 || day === 4 || day === 20 || day === 29
-                            ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300'
                             : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
@@ -374,44 +439,33 @@ export function AdminPage() {
             </CardContent>
           </Card>
 
-          {/* PRÓXIMOS EVENTOS */}
+          {/* PRÓXIMOS ANIVERSÁRIOS */}
           <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 lg:col-span-2">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">Próximos eventos</CardTitle>
+                <CardTitle className="text-lg">Próximos aniversários</CardTitle>
                 <a href="#" className="text-blue-600 dark:text-blue-400 text-sm hover:underline">Ver todo</a>
               </div>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Evento 1 */}
-              <div className="flex gap-4 pb-4 border-b border-gray-200 dark:border-gray-700">
-                <div className="w-1 bg-green-500 rounded-full"></div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-semibold text-gray-900 dark:text-white text-sm">Aniversário do Natan Gabriel da Silva</h4>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">📅 4 de abril de 2025</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">⏰ 07:00 - 80:00</p>
+            <CardContent className="space-y-3">
+              {aniversarios.length > 0 ? (
+                aniversarios.map((aniversario, index) => (
+                  <div key={aniversario.id} className={`flex gap-4 pb-3 border-l-4 px-4 py-2 rounded-lg ${getAniversarioColor(aniversario.diasAte)} ${index !== aniversarios.length - 1 ? 'border-b border-gray-200 dark:border-gray-700' : ''}`}>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-semibold text-gray-900 dark:text-white text-sm">{aniversario.nome}</h4>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">📅 {formatDate(aniversario.dataNascimento)}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">📚 Turma: {aniversario.turma}</p>
+                      {aniversario.diasAte === 0 && <p className="text-xs text-red-600 dark:text-red-400 font-semibold mt-1">🎉 Hoje é o aniversário!</p>}
+                      {aniversario.diasAte === 1 && <p className="text-xs text-orange-600 dark:text-orange-400 font-semibold mt-1">⏰ Amanhã faz aniversário!</p>}
+                      {aniversario.diasAte > 1 && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Em {aniversario.diasAte} dias</p>}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                  <p>Nenhum aniversário próximo nos próximos 30 dias</p>
                 </div>
-              </div>
-
-              {/* Evento 2 */}
-              <div className="flex gap-4 pb-4 border-b border-gray-200 dark:border-gray-700">
-                <div className="w-1 bg-red-500 rounded-full"></div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-semibold text-gray-900 dark:text-white text-sm">Reunião de férias</h4>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">📅 20 de abril de 2025</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">⏰ 09:10 - 10:10</p>
-                </div>
-              </div>
-
-              {/* Evento 3 */}
-              <div className="flex gap-4">
-                <div className="w-1 bg-cyan-500 rounded-full"></div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-semibold text-gray-900 dark:text-white text-sm">Reunião de pais e professores</h4>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">📅 29 de abril de 2025</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">⏰ 09:10 - 10:10</p>
-                </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         </div>
