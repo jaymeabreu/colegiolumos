@@ -8,20 +8,24 @@ import { Textarea } from '../../../components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../../../components/ui/dialog';
 import { supabaseService } from '../../../services/supabaseService';
-import type { Recado, Turma, Aluno } from '../../../services/supabaseService';
+import type { Recado, Turma, Aluno, Diario } from '../../../services/supabaseService';
 import { authService } from '../../../services/auth';
 
-export function RecadosTab() {
+interface RecadosTabProps {
+  diarioId?: number;
+}
+
+export function RecadosTab({ diarioId }: RecadosTabProps) {
   const [recados, setRecados] = useState<Recado[]>([]);
   const [turmas, setTurmas] = useState<Turma[]>([]);
   const [alunos, setAlunos] = useState<Aluno[]>([]);
+  const [diario, setDiario] = useState<Diario | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingRecado, setEditingRecado] = useState<Recado | null>(null);
   const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({
     titulo: '',
     mensagem: '',
-    turmaId: '',
     alunoId: ''
   });
 
@@ -29,15 +33,39 @@ export function RecadosTab() {
 
   useEffect(() => {
     loadData();
-  }, [user?.professorId]);
+  }, [user?.professorId, diarioId]);
 
   const loadData = async () => {
     try {
       setLoading(true);
 
+      // Carregar dados do diário atual para pegar a turma
+      if (diarioId) {
+        const diarios = await supabaseService.getDiarios();
+        const diarioAtual = diarios.find(d => d.id === diarioId);
+        if (diarioAtual) {
+          setDiario(diarioAtual);
+          
+          // Carregar alunos da turma do diário
+          if (diarioAtual.turma_id) {
+            const alunosData = await supabaseService.getAlunosByTurma(diarioAtual.turma_id);
+            setAlunos(alunosData || []);
+          }
+        }
+      }
+
       if (user?.professorId) {
         const recadosData = await supabaseService.getRecadosByProfessor(user.professorId);
-        setRecados((recadosData || []).sort(
+        
+        // Se tem diarioId, filtra recados apenas da turma desse diário
+        let recadosFiltrados = recadosData || [];
+        if (diarioId && diario?.turma_id) {
+          recadosFiltrados = recadosFiltrados.filter(r => 
+            (r.turmaId || r.turma_id) === diario.turma_id
+          );
+        }
+        
+        setRecados(recadosFiltrados.sort(
           (a, b) =>
             new Date(b.dataEnvio || b.data_envio || '').getTime() -
             new Date(a.dataEnvio || a.data_envio || '').getTime()
@@ -53,39 +81,57 @@ export function RecadosTab() {
     }
   };
 
-  const loadAlunosByTurma = async (turmaId: string) => {
-    if (turmaId) {
-      try {
-        const alunosData = await supabaseService.getAlunosByTurma(parseInt(turmaId));
-        setAlunos(alunosData || []);
-      } catch (error) {
-        console.error('Erro ao carregar alunos:', error);
-        setAlunos([]);
-      }
-    } else {
+  // Recarregar quando diario mudar
+  useEffect(() => {
+    if (diario?.turma_id) {
+      loadAlunosByTurma(diario.turma_id);
+    }
+  }, [diario?.turma_id]);
+
+  const loadAlunosByTurma = async (turmaId: number) => {
+    try {
+      const alunosData = await supabaseService.getAlunosByTurma(turmaId);
+      setAlunos(alunosData || []);
+    } catch (error) {
+      console.error('Erro ao carregar alunos:', error);
       setAlunos([]);
     }
+  };
+
+  // Pegar nome da turma do diário atual
+  const getTurmaNome = () => {
+    if (diario?.turma_id) {
+      const turma = turmas.find(t => t.id === diario.turma_id);
+      return turma?.nome || 'Turma';
+    }
+    return 'Turma';
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.titulo.trim() || !formData.mensagem.trim() || !formData.turmaId) {
+    if (!formData.titulo.trim() || !formData.mensagem.trim()) {
       alert('Por favor, preencha todos os campos obrigatórios.');
       return;
     }
 
+    // Usa a turma do diário automaticamente
+    if (!diario?.turma_id) {
+      alert('Erro: Turma do diário não encontrada.');
+      return;
+    }
+
     try {
-      const turma = (turmas || []).find(t => t.id === parseInt(formData.turmaId));
+      const turma = turmas.find(t => t.id === diario.turma_id);
       const aluno = formData.alunoId
-        ? (alunos || []).find(a => a.id === parseInt(formData.alunoId))
+        ? alunos.find(a => a.id === parseInt(formData.alunoId))
         : null;
 
       if (editingRecado) {
         const updatedRecado = await supabaseService.updateRecado(editingRecado.id, {
           titulo: formData.titulo.trim(),
           mensagem: formData.mensagem.trim(),
-          turmaId: parseInt(formData.turmaId),
+          turmaId: diario.turma_id,
           turmaNome: turma?.nome || '',
           alunoId: formData.alunoId ? parseInt(formData.alunoId) : undefined,
           alunoNome: aluno?.nome || undefined
@@ -102,7 +148,7 @@ export function RecadosTab() {
           mensagem: formData.mensagem.trim(),
           professorId: user?.professorId || 1,
           professorNome: user?.nome || 'Professor',
-          turmaId: parseInt(formData.turmaId),
+          turmaId: diario.turma_id,
           turmaNome: turma?.nome || '',
           alunoId: formData.alunoId ? parseInt(formData.alunoId) : undefined,
           alunoNome: aluno?.nome || undefined,
@@ -127,11 +173,8 @@ export function RecadosTab() {
     setFormData({
       titulo: recado.titulo,
       mensagem: recado.mensagem,
-      turmaId: (recado.turmaId || recado.turma_id).toString(),
       alunoId: (recado.alunoId || recado.aluno_id)?.toString() || ''
     });
-
-    loadAlunosByTurma((recado.turmaId || recado.turma_id).toString());
     setIsDialogOpen(true);
   };
 
@@ -157,15 +200,8 @@ export function RecadosTab() {
     setFormData({
       titulo: '',
       mensagem: '',
-      turmaId: '',
       alunoId: ''
     });
-    setAlunos([]);
-  };
-
-  const handleTurmaChange = (value: string) => {
-    setFormData(prev => ({ ...prev, turmaId: value, alunoId: '' }));
-    loadAlunosByTurma(value);
   };
 
   const formatDate = (dateString: string) => {
@@ -179,7 +215,7 @@ export function RecadosTab() {
           <div className="space-y-2">
             <CardTitle>Recados</CardTitle>
             <CardDescription>
-              Envie recados individuais ou para toda a turma
+              Envie recados para {getTurmaNome()} ou para um aluno específico
             </CardDescription>
           </div>
 
@@ -199,7 +235,7 @@ export function RecadosTab() {
                 <DialogDescription>
                   {editingRecado
                     ? 'Edite as informações do recado abaixo.'
-                    : 'Crie um novo recado para uma turma ou aluno específico.'}
+                    : `Crie um novo recado para ${getTurmaNome()} ou aluno específico.`}
                 </DialogDescription>
               </DialogHeader>
 
@@ -217,53 +253,43 @@ export function RecadosTab() {
                   />
                 </div>
 
+                {/* Mostra a turma como informação (não editável) */}
                 <div className="space-y-2">
-                  <Label htmlFor="turma">Turma *</Label>
+                  <Label>Turma</Label>
+                  <div className="flex items-center gap-2 p-3 bg-muted rounded-md">
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">{getTurmaNome()}</span>
+                    <span className="text-xs text-muted-foreground">(turma do diário atual)</span>
+                  </div>
+                </div>
+
+                {/* Select de aluno (opcional) */}
+                <div className="space-y-2">
+                  <Label htmlFor="aluno">Aluno (Opcional)</Label>
                   <Select
-                    value={formData.turmaId}
-                    onValueChange={handleTurmaChange}
+                    value={formData.alunoId}
+                    onValueChange={value =>
+                      setFormData(prev => ({ ...prev, alunoId: value }))
+                    }
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Selecione uma turma" />
+                      <SelectValue placeholder="Deixe vazio para toda a turma" />
                     </SelectTrigger>
                     <SelectContent>
-                      {(turmas || []).map(turma => (
-                        <SelectItem key={turma.id} value={turma.id.toString()}>
-                          {turma.nome}
+                      {(alunos || []).map(aluno => (
+                        <SelectItem
+                          key={aluno.id}
+                          value={aluno.id.toString()}
+                        >
+                          {aluno.nome}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Deixe vazio para enviar para toda a turma
+                  </p>
                 </div>
-
-                {formData.turmaId && (
-                  <div className="space-y-2">
-                    <Label htmlFor="aluno">Aluno (Opcional)</Label>
-                    <Select
-                      value={formData.alunoId}
-                      onValueChange={value =>
-                        setFormData(prev => ({ ...prev, alunoId: value }))
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Deixe vazio para toda a turma" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {(alunos || []).map(aluno => (
-                          <SelectItem
-                            key={aluno.id}
-                            value={aluno.id.toString()}
-                          >
-                            {aluno.nome}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs text-muted-foreground">
-                      Deixe vazio para enviar para toda a turma
-                    </p>
-                  </div>
-                )}
 
                 <div className="space-y-2">
                   <Label htmlFor="mensagem">Mensagem *</Label>
@@ -317,7 +343,7 @@ export function RecadosTab() {
             </div>
             <p className="font-medium mb-1">Nenhum recado encontrado</p>
             <p className="text-sm">
-              Crie o primeiro recado para suas turmas ou alunos.
+              Crie o primeiro recado para {getTurmaNome()}.
             </p>
           </div>
         ) : (
