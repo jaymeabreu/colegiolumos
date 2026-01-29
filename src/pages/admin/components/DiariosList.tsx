@@ -120,14 +120,21 @@ export function DiariosList() {
   }, [formData.disciplinaId, professores, formData.professorId]);
 
   const filteredDiarios = useMemo(() => {
+    // Helper: verificar se tem uma solicitação de devolução VÁLIDA
+    const temSolicitacaoDevolucao = (diario: Diario) => {
+      if (!diario.solicitacao_devolucao) return false;
+      const temMotivo = diario.solicitacao_devolucao.motivo || diario.solicitacao_devolucao.comentario;
+      return !!temMotivo && diario.status === 'ENTREGUE';
+    };
+
     if (!searchTerm && !Object.values(filters).some(v => v && v !== 'all')) {
-      // Mostrar todos EXCETO os que estão com solicitacao_devolucao EM status PENDENTE/ENTREGUE
-      return diarios.filter(d => !(d.solicitacao_devolucao && (d.status === 'PENDENTE' || d.status === 'ENTREGUE')));
+      // Mostrar todos EXCETO os que estão com uma solicitação de devolução VÁLIDA no aviso
+      return diarios.filter(d => !temSolicitacaoDevolucao(d));
     }
 
     return diarios.filter(diario => {
-      // Filtrar o que está no aviso (solicitacao_devolucao + status PENDENTE/ENTREGUE)
-      if (diario.solicitacao_devolucao && (diario.status === 'PENDENTE' || diario.status === 'ENTREGUE')) return false;
+      // Filtrar o que está no aviso (solicitacao_devolucao VÁLIDA)
+      if (temSolicitacaoDevolucao(diario)) return false;
 
       if (searchTerm && diario.nome && !diario.nome.toLowerCase().includes(searchTerm.toLowerCase())) {
         return false;
@@ -360,12 +367,20 @@ export function DiariosList() {
     };
   };
 
-  // 🔧 ALTERAÇÃO 1: Filtrar diários com solicitação de devolução APENAS se status for PENDENTE ou ENTREGUE
+  // 🔧 ALTERAÇÃO 1: Filtrar diários com solicitação de devolução APENAS se for uma solicitação VÁLIDA e real
   const diasComSolicitacaoDevolucao = useMemo(() => {
-    return diarios.filter(d => 
-      d.solicitacao_devolucao && 
-      (d.status === 'PENDENTE' || d.status === 'ENTREGUE')
-    );
+    return diarios.filter(d => {
+      // Verificar se tem solicitacao_devolucao com dados preenchidos
+      if (!d.solicitacao_devolucao) return false;
+      
+      // Verificar se é um objeto com propriedades preenchidas (motivo ou comentário)
+      const temMotivo = d.solicitacao_devolucao.motivo || d.solicitacao_devolucao.comentario;
+      if (!temMotivo) return false;
+      
+      // Mostrar apenas se status for ENTREGUE (esperando a resposta do coordenador)
+      // NÃO mostrar se for DEVOLVIDO ou FINALIZADO (já foi processado)
+      return d.status === 'ENTREGUE';
+    });
   }, [diarios]);
 
   return (
