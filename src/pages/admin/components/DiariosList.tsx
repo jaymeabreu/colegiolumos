@@ -82,6 +82,7 @@ export function DiariosList() {
     loadData();
   }, [loadData]);
 
+  // 🔧 CORREÇÃO: useEffect que filtra professores por disciplina
   useEffect(() => {
     const filtrarProfessores = async () => {
       if (!formData.disciplinaId) {
@@ -107,8 +108,13 @@ export function DiariosList() {
         
         setProfessoresFiltrados(professoresDaDisciplina);
         
-        if (formData.professorId && !professoresIds.includes(Number(formData.professorId))) {
-          setFormData(prev => ({ ...prev, professorId: '' }));
+        // 🔧 CORREÇÃO: Verifica usando professor_id corretamente
+        if (formData.professorId) {
+          const professorIdNum = Number(formData.professorId);
+          const professorAindaValido = professoresDaDisciplina.some(p => p.professor_id === professorIdNum);
+          if (!professorAindaValido) {
+            setFormData(prev => ({ ...prev, professorId: '' }));
+          }
         }
       } catch (error) {
         console.error('Erro ao filtrar professores:', error);
@@ -117,7 +123,7 @@ export function DiariosList() {
     };
 
     filtrarProfessores();
-  }, [formData.disciplinaId, professores, formData.professorId]);
+  }, [formData.disciplinaId, professores]);
 
   const filteredDiarios = useMemo(() => {
     // Helper: verificar se tem uma solicitação de devolução VÁLIDA
@@ -367,7 +373,7 @@ export function DiariosList() {
     };
   };
 
-  // 🔧 ALTERAÇÃO 1: Filtrar diários com solicitação de devolução APENAS se for uma solicitação VÁLIDA e real
+  // Filtrar diários com solicitação de devolução APENAS se for uma solicitação VÁLIDA e real
   const diasComSolicitacaoDevolucao = useMemo(() => {
     return diarios.filter(d => {
       // Verificar se tem solicitacao_devolucao com dados preenchidos
@@ -422,7 +428,7 @@ export function DiariosList() {
                       <Label htmlFor="disciplina">Disciplina</Label>
                       <Select 
                         value={formData.disciplinaId} 
-                        onValueChange={(value) => setFormData({ ...formData, disciplinaId: value })}
+                        onValueChange={(value) => setFormData({ ...formData, disciplinaId: value, professorId: '' })}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Selecione a disciplina" />
@@ -452,6 +458,7 @@ export function DiariosList() {
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
+                    {/* 🔧 CORREÇÃO PRINCIPAL: Select de Professor usando professor_id */}
                     <div className="grid gap-2">
                       <Label htmlFor="professor">Professor</Label>
                       <Select 
@@ -463,7 +470,12 @@ export function DiariosList() {
                         </SelectTrigger>
                         <SelectContent>
                           {professoresFiltrados.map((p) => (
-                            <SelectItem key={p.id} value={p.id.toString()}>{p.nome}</SelectItem>
+                            <SelectItem 
+                              key={p.professor_id || p.id} 
+                              value={(p.professor_id || p.id).toString()}
+                            >
+                              {p.nome}
+                            </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -681,7 +693,7 @@ export function DiariosList() {
             </Dialog>
           </div>
 
-          {/* 🔧 ALTERAÇÃO 1: Aviso APENAS aparece se houver diários com solicitação de devolução em status PENDENTE ou ENTREGUE */}
+          {/* Aviso APENAS aparece se houver diários com solicitação de devolução em status PENDENTE ou ENTREGUE */}
           {diasComSolicitacaoDevolucao.length > 0 && (
             <div className="mb-6 p-4 bg-orange-50 border-2 border-orange-200 rounded-lg">
               <div className="flex items-center gap-2 mb-3">
@@ -751,7 +763,6 @@ export function DiariosList() {
                           {statusDiario.label}
                         </div>
                       </div>
-                      {/* 🔧 ALTERAÇÃO 2 e 3: Mostrar disciplina, turma e professor (sem duplicação) */}
                       <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-gray-600">
                         <span>{getDisciplinaNome(diario.disciplina_id)} - {getTurmaNome(diario.turma_id)}</span>
                         <span>•</span>
