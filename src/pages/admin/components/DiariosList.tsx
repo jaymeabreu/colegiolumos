@@ -82,7 +82,7 @@ export function DiariosList() {
     loadData();
   }, [loadData]);
 
-  // 🔧 CORREÇÃO: useEffect que filtra professores por disciplina
+  // 🔧 CORREÇÃO: useEffect que filtra professores por disciplina (SIMPLIFICADO)
   useEffect(() => {
     const filtrarProfessores = async () => {
       if (!formData.disciplinaId) {
@@ -107,15 +107,7 @@ export function DiariosList() {
         });
         
         setProfessoresFiltrados(professoresDaDisciplina);
-        
-        // 🔧 CORREÇÃO: Verifica usando professor_id corretamente
-        if (formData.professorId) {
-          const professorIdNum = Number(formData.professorId);
-          const professorAindaValido = professoresDaDisciplina.some(p => p.professor_id === professorIdNum);
-          if (!professorAindaValido) {
-            setFormData(prev => ({ ...prev, professorId: '' }));
-          }
-        }
+        // NÃO reseta mais o professor aqui - o reset é feito no onValueChange da disciplina
       } catch (error) {
         console.error('Erro ao filtrar professores:', error);
         setProfessoresFiltrados(professores);
@@ -463,20 +455,26 @@ export function DiariosList() {
                       <Label htmlFor="professor">Professor</Label>
                       <Select 
                         value={formData.professorId} 
-                        onValueChange={(value) => setFormData({ ...formData, professorId: value })}
+                        onValueChange={(value) => {
+                          console.log('Professor selecionado:', value);
+                          setFormData(prev => ({ ...prev, professorId: value }));
+                        }}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Selecione o professor" />
                         </SelectTrigger>
                         <SelectContent>
-                          {professoresFiltrados.map((p) => (
-                            <SelectItem 
-                              key={p.professor_id || p.id} 
-                              value={(p.professor_id || p.id).toString()}
-                            >
-                              {p.nome}
-                            </SelectItem>
-                          ))}
+                          {professoresFiltrados.map((p) => {
+                            const profId = p.professor_id ?? p.id;
+                            return (
+                              <SelectItem 
+                                key={profId} 
+                                value={String(profId)}
+                              >
+                                {p.nome}
+                              </SelectItem>
+                            );
+                          })}
                         </SelectContent>
                       </Select>
                     </div>
