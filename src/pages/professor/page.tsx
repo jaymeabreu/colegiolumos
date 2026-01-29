@@ -67,10 +67,6 @@ export function ProfessorPage() {
   ], []);
 
   const renderTabContent = useMemo(() => {
-    if (activeTab === 'recados') {
-      return <MemoizedRecadosTab key="recados" />;
-    }
-    
     if (!selectedDiario) return null;
 
     switch (activeTab) {
@@ -82,6 +78,9 @@ export function ProfessorPage() {
         return <MemoizedAlunosTab key={`alunos-${selectedDiario}`} diarioId={selectedDiario} />;
       case 'ocorrencias':
         return <MemoizedOcorrenciasTab key={`ocorrencias-${selectedDiario}`} diarioId={selectedDiario} />;
+      case 'recados':
+        // 🔧 CORREÇÃO: Agora passa o diarioId para RecadosTab
+        return <MemoizedRecadosTab key={`recados-${selectedDiario}`} diarioId={selectedDiario} />;
       default:
         return null;
     }
@@ -202,4 +201,3 @@ export function ProfessorPage() {
 }
 
 export default ProfessorPage;
-
