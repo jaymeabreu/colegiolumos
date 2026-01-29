@@ -676,7 +676,7 @@ export function DiariosList() {
                       <div className="flex-1">
                         <p className="font-medium text-gray-900">{diario.nome}</p>
                         <p className="text-sm text-gray-600 mb-2">
-                          {getDisciplinaNome(diario.disciplina_id)} • {getProfessorNome(diario.professor_id)}
+                          {getDisciplinaNome(diario.disciplina_id)} - {getTurmaNome(diario.turma_id)} • Prof. {getProfessorNome(diario.professor_id)}
                         </p>
                         {diario.solicitacao_devolucao && (
                           <div className="bg-orange-50 p-2 rounded border border-orange-100">
@@ -730,9 +730,9 @@ export function DiariosList() {
                           {statusDiario.label}
                         </div>
                       </div>
-                      {/* 🔧 ALTERAÇÃO 2 e 3: Mostrar disciplina e professor (sem duplicação) */}
+                      {/* 🔧 ALTERAÇÃO 2 e 3: Mostrar disciplina, turma e professor (sem duplicação) */}
                       <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-gray-600">
-                        <span>{getDisciplinaNome(diario.disciplina_id)}</span>
+                        <span>{getDisciplinaNome(diario.disciplina_id)} - {getTurmaNome(diario.turma_id)}</span>
                         <span>•</span>
                         <span>Prof. {getProfessorNome(diario.professor_id)}</span>
                       </div>
