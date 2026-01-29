@@ -315,6 +315,11 @@ export function DiariosList() {
     return disciplinas.find(d => d.id === disciplinaId)?.nome || 'N/A';
   }, [disciplinas]);
 
+  const getProfessorNome = useCallback((professorId?: number) => {
+    if (!professorId) return 'N/A';
+    return professores.find(p => p.id === professorId || p.professor_id === professorId)?.nome || 'N/A';
+  }, [professores]);
+
   const getStatusDiario = (diario: Diario) => {
     const hoje = new Date();
     const dataInicio = diario.dataInicio ? new Date(diario.dataInicio) : null;
@@ -349,8 +354,12 @@ export function DiariosList() {
     };
   };
 
+  // 🔧 ALTERAÇÃO 1: Filtrar diários com solicitação de devolução APENAS se status for PENDENTE ou ENTREGUE
   const diasComSolicitacaoDevolucao = useMemo(() => {
-    return diarios.filter(d => d.solicitacao_devolucao);
+    return diarios.filter(d => 
+      d.solicitacao_devolucao && 
+      (d.status === 'PENDENTE' || d.status === 'ENTREGUE')
+    );
   }, [diarios]);
 
   return (
@@ -651,6 +660,7 @@ export function DiariosList() {
             </Dialog>
           </div>
 
+          {/* 🔧 ALTERAÇÃO 1: Aviso APENAS aparece se houver diários com solicitação de devolução em status PENDENTE ou ENTREGUE */}
           {diasComSolicitacaoDevolucao.length > 0 && (
             <div className="mb-6 p-4 bg-orange-50 border-2 border-orange-200 rounded-lg">
               <div className="flex items-center gap-2 mb-3">
@@ -666,7 +676,7 @@ export function DiariosList() {
                       <div className="flex-1">
                         <p className="font-medium text-gray-900">{diario.nome}</p>
                         <p className="text-sm text-gray-600 mb-2">
-                          {getDisciplinaNome(diario.disciplina_id)} - {getTurmaNome(diario.turma_id)}
+                          {getDisciplinaNome(diario.disciplina_id)} • {getProfessorNome(diario.professor_id)}
                         </p>
                         {diario.solicitacao_devolucao && (
                           <div className="bg-orange-50 p-2 rounded border border-orange-100">
@@ -720,9 +730,11 @@ export function DiariosList() {
                           {statusDiario.label}
                         </div>
                       </div>
+                      {/* 🔧 ALTERAÇÃO 2 e 3: Mostrar disciplina e professor (sem duplicação) */}
                       <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-gray-600">
-                        <span>Disciplina: {getDisciplinaNome(diario.disciplina_id)}</span>
-                        <span>Turma: {getTurmaNome(diario.turma_id)}</span>
+                        <span>{getDisciplinaNome(diario.disciplina_id)}</span>
+                        <span>•</span>
+                        <span>Prof. {getProfessorNome(diario.professor_id)}</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
