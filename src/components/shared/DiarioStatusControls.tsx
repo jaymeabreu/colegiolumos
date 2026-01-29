@@ -122,8 +122,8 @@ export function DiarioStatusControls({ diario, currentUser, onStatusChange, comp
 
   const statusInfo = getStatusInfo();
   const StatusIcon = statusInfo.icon;
-  const podeEditar = supabaseService.professorPodeEditarDiario(diario.id, currentUser.professorId || 0);
-  const permissions = supabaseService.coordenadorPodeGerenciarDiario(diario.id);
+  const podeEditar = supabaseService.professorPodeEditarDiario(diario, currentUser.professorId || 0);
+  const permissions = supabaseService.coordenadorPodeGerenciarDiario(diario);
 
   // Versão compacta para o header
   if (compact) {
@@ -141,7 +141,7 @@ export function DiarioStatusControls({ diario, currentUser, onStatusChange, comp
             {/* Botões do Professor */}
             {currentUser.papel === 'PROFESSOR' && (
               <>
-                {/* Botão Entregar Diário */}
+                {/* Botão Entregar para Coordenação */}
                 {podeEditar && (diario.status === 'PENDENTE' || diario.status === 'DEVOLVIDO') && (
                   <Button
                     onClick={() => setIsEntregarDialogOpen(true)}
@@ -149,11 +149,11 @@ export function DiarioStatusControls({ diario, currentUser, onStatusChange, comp
                     size="sm"
                   >
                     <CheckCircle className="h-4 w-4" />
-                    Entregar
+                    Entregar para Coordenação
                   </Button>
                 )}
 
-                {/* Botão Pedir Devolução */}
+                {/* Botão Solicitar Devolução para Editar */}
                 {diario.status === 'ENTREGUE' && !diario.solicitacaoDevolucao && (
                   <Button
                     variant="outline"
@@ -162,7 +162,7 @@ export function DiarioStatusControls({ diario, currentUser, onStatusChange, comp
                     size="sm"
                   >
                     <RotateCcw className="h-4 w-4" />
-                    Pedir Devolução
+                    Solicitar Devolução para Editar
                   </Button>
                 )}
 
@@ -186,7 +186,7 @@ export function DiarioStatusControls({ diario, currentUser, onStatusChange, comp
                     onClick={() => setIsDevolverDialogOpen(true)}
                   >
                     <RotateCcw className="h-4 w-4" />
-                    Devolver
+                    Devolver para o Professor
                   </Button>
                 )}
                 {permissions.canFinalizar && (
@@ -209,9 +209,9 @@ export function DiarioStatusControls({ diario, currentUser, onStatusChange, comp
         <Dialog open={isEntregarDialogOpen} onOpenChange={setIsEntregarDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Entregar Diário</DialogTitle>
+              <DialogTitle>Entregar Diário para Coordenação</DialogTitle>
               <DialogDescription>
-                Tem certeza de que deseja entregar este diário? Após a entrega você não poderá mais editar, apenas o coordenador poderá devolver.
+                Tem certeza de que deseja entregar este diário? Após a entrega você não poderá mais editar, apenas o coordenador poderá devolver para ajustes ou finalizar.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
@@ -223,7 +223,7 @@ export function DiarioStatusControls({ diario, currentUser, onStatusChange, comp
                 Cancelar
               </Button>
               <Button type="button" onClick={handleEntregarDiario}>
-                Entregar Diário
+                Entregar para Coordenação
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -233,9 +233,9 @@ export function DiarioStatusControls({ diario, currentUser, onStatusChange, comp
         <Dialog open={isPedirDevolucaoDialogOpen} onOpenChange={setIsPedirDevolucaoDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Solicitar Devolução</DialogTitle>
+              <DialogTitle>Solicitar Devolução para Editar</DialogTitle>
               <DialogDescription>
-                Explique o motivo pelo qual você gostaria que o coordenador devolvesse este diário para edição.
+                Explique o motivo pelo qual você gostaria que o coordenador devolvesse este diário para você fazer mais edições.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
@@ -277,9 +277,9 @@ export function DiarioStatusControls({ diario, currentUser, onStatusChange, comp
         <Dialog open={isDevolverDialogOpen} onOpenChange={setIsDevolverDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Devolver Diário</DialogTitle>
+              <DialogTitle>Devolver Diário para o Professor</DialogTitle>
               <DialogDescription>
-                Tem certeza que deseja devolver este diário para o professor? Adicione uma observação explicando o motivo.
+                Tem certeza que deseja devolver este diário para o professor fazer ajustes? Adicione uma observação explicando o motivo.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
@@ -306,7 +306,7 @@ export function DiarioStatusControls({ diario, currentUser, onStatusChange, comp
                 Cancelar
               </Button>
               <Button type="button" variant="destructive" onClick={handleDevolverDiario}>
-                Devolver Diário
+                Devolver para o Professor
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -356,18 +356,18 @@ export function DiarioStatusControls({ diario, currentUser, onStatusChange, comp
             {/* Botões do Professor */}
             {currentUser.papel === 'PROFESSOR' && (
               <>
-                {/* Botão Entregar Diário */}
+                {/* Botão Entregar para Coordenação */}
                 {podeEditar && (diario.status === 'PENDENTE' || diario.status === 'DEVOLVIDO') && (
                   <Button
                     onClick={() => setIsEntregarDialogOpen(true)}
                     className="inline-flex items-center gap-2 whitespace-nowrap"
                   >
                     <CheckCircle className="h-4 w-4" />
-                    Entregar Diário
+                    Entregar para Coordenação
                   </Button>
                 )}
 
-                {/* Botão Pedir Devolução */}
+                {/* Botão Solicitar Devolução para Editar */}
                 {diario.status === 'ENTREGUE' && !diario.solicitacaoDevolucao && (
                   <Button
                     variant="outline"
@@ -375,7 +375,7 @@ export function DiarioStatusControls({ diario, currentUser, onStatusChange, comp
                     className="inline-flex items-center gap-2 whitespace-nowrap"
                   >
                     <RotateCcw className="h-4 w-4" />
-                    Pedir Devolução
+                    Solicitar Devolução para Editar
                   </Button>
                 )}
 
@@ -398,7 +398,7 @@ export function DiarioStatusControls({ diario, currentUser, onStatusChange, comp
                     onClick={() => setIsDevolverDialogOpen(true)}
                   >
                     <RotateCcw className="h-4 w-4" />
-                    Devolver Diário
+                    Devolver para o Professor
                   </Button>
                 )}
                 {permissions.canFinalizar && (
@@ -435,7 +435,7 @@ export function DiarioStatusControls({ diario, currentUser, onStatusChange, comp
             <div className="flex items-center gap-1 text-gray-700">
               <AlertCircle className="h-4 w-4" />
               <span className="font-medium">
-                {diario.status === 'ENTREGUE' && 'Diário entregue - aguardando coordenação'}
+                {diario.status === 'ENTREGUE' && 'Diário entregue - aguardando análise da coordenação'}
                 {diario.status === 'FINALIZADO' && 'Diário finalizado - não pode ser editado'}
               </span>
             </div>
@@ -448,9 +448,9 @@ export function DiarioStatusControls({ diario, currentUser, onStatusChange, comp
       <Dialog open={isEntregarDialogOpen} onOpenChange={setIsEntregarDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Entregar Diário</DialogTitle>
+            <DialogTitle>Entregar Diário para Coordenação</DialogTitle>
             <DialogDescription>
-              Tem certeza de que deseja entregar este diário? Após a entrega você não poderá mais editar, apenas o coordenador poderá devolver.
+              Tem certeza de que deseja entregar este diário? Após a entrega você não poderá mais editar, apenas o coordenador poderá devolver para ajustes ou finalizar.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -462,7 +462,7 @@ export function DiarioStatusControls({ diario, currentUser, onStatusChange, comp
               Cancelar
             </Button>
             <Button type="button" onClick={handleEntregarDiario}>
-              Entregar Diário
+              Entregar para Coordenação
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -472,9 +472,9 @@ export function DiarioStatusControls({ diario, currentUser, onStatusChange, comp
       <Dialog open={isPedirDevolucaoDialogOpen} onOpenChange={setIsPedirDevolucaoDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Solicitar Devolução</DialogTitle>
+            <DialogTitle>Solicitar Devolução para Editar</DialogTitle>
             <DialogDescription>
-              Explique o motivo pelo qual você gostaria que o coordenador devolvesse este diário para edição.
+              Explique o motivo pelo qual você gostaria que o coordenador devolvesse este diário para você fazer mais edições.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -516,9 +516,9 @@ export function DiarioStatusControls({ diario, currentUser, onStatusChange, comp
       <Dialog open={isDevolverDialogOpen} onOpenChange={setIsDevolverDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Devolver Diário</DialogTitle>
+            <DialogTitle>Devolver Diário para o Professor</DialogTitle>
             <DialogDescription>
-              Tem certeza que deseja devolver este diário para o professor? Adicione uma observação explicando o motivo.
+              Tem certeza que deseja devolver este diário para o professor fazer ajustes? Adicione uma observação explicando o motivo.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -545,7 +545,7 @@ export function DiarioStatusControls({ diario, currentUser, onStatusChange, comp
               Cancelar
             </Button>
             <Button type="button" variant="destructive" onClick={handleDevolverDiario}>
-              Devolver Diário
+              Devolver para o Professor
             </Button>
           </DialogFooter>
         </DialogContent>
