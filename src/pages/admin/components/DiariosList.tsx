@@ -121,11 +121,13 @@ export function DiariosList() {
 
   const filteredDiarios = useMemo(() => {
     if (!searchTerm && !Object.values(filters).some(v => v && v !== 'all')) {
-      return diarios.filter(d => !d.solicitacao_devolucao);
+      // Mostrar todos EXCETO os que estão com solicitacao_devolucao EM status PENDENTE/ENTREGUE
+      return diarios.filter(d => !(d.solicitacao_devolucao && (d.status === 'PENDENTE' || d.status === 'ENTREGUE')));
     }
 
     return diarios.filter(diario => {
-      if (diario.solicitacao_devolucao) return false;
+      // Filtrar o que está no aviso (solicitacao_devolucao + status PENDENTE/ENTREGUE)
+      if (diario.solicitacao_devolucao && (diario.status === 'PENDENTE' || diario.status === 'ENTREGUE')) return false;
 
       if (searchTerm && diario.nome && !diario.nome.toLowerCase().includes(searchTerm.toLowerCase())) {
         return false;
@@ -317,7 +319,11 @@ export function DiariosList() {
 
   const getProfessorNome = useCallback((professorId?: number) => {
     if (!professorId) return 'N/A';
-    return professores.find(p => p.id === professorId || p.professor_id === professorId)?.nome || 'N/A';
+    // Busca por professor_id (campo correto na tabela usuarios)
+    const professor = professores.find(p => p.professor_id === professorId);
+    if (professor) return professor.nome;
+    // Se não encontrar, tenta por id como fallback
+    return professores.find(p => p.id === professorId)?.nome || 'N/A';
   }, [professores]);
 
   const getStatusDiario = (diario: Diario) => {
