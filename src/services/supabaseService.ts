@@ -184,6 +184,10 @@ export interface Comunicado {
   autorId?: number;
   data_publicacao: string;
   dataPublicacao?: string;
+  turma_id?: number;
+  turmaId?: number;
+  usuario_id?: number;
+  usuarioId?: number;
   created_at: string;
   updated_at: string;
 }
@@ -223,6 +227,7 @@ function withCamel<T extends Record<string, any>>(row: T): T {
   if (r.avaliacao_id !== undefined) r.avaliacaoId = r.avaliacao_id;
   if (r.aula_id !== undefined) r.aulaId = r.aula_id;
   if (r.autor_id !== undefined) r.autorId = r.autor_id;
+  if (r.usuario_id !== undefined) r.usuarioId = r.usuario_id;
 
   if (r.data_inicio !== undefined) r.dataInicio = r.data_inicio;
   if (r.data_termino !== undefined) r.dataTermino = r.data_termino;
@@ -1290,6 +1295,27 @@ class SupabaseService {
     return (data ?? []).map(withCamel) as Comunicado[];
   }
 
+  async getComunicadosParaAluno(alunoId: number): Promise<Comunicado[]> {
+    // 1. Busca o aluno pra pegar a turma
+    const { data: aluno } = await supabase
+      .from('alunos')
+      .select('turma_id')
+      .eq('id', alunoId)
+      .single();
+
+    if (!aluno) return [];
+
+    // 2. Busca comunicados: gerais OU da turma OU individuais
+    const { data, error } = await supabase
+      .from('comunicados')
+      .select('*')
+      .or(`and(turma_id.is.null,usuario_id.is.null),turma_id.eq.${aluno.turma_id},usuario_id.eq.${alunoId}`)
+      .order('id', { ascending: false });
+
+    if (error) throw error;
+    return (data ?? []).map(withCamel) as Comunicado[];
+  }
+
   async createComunicado(
     comunicado: Omit<Comunicado, 'id' | 'created_at' | 'updated_at'>
   ): Promise<Comunicado> {
@@ -1300,6 +1326,15 @@ class SupabaseService {
       autor_id: comunicado.autor_id ?? comunicado.autorId ?? 1,
       data_publicacao: comunicado.data_publicacao ?? comunicado.dataPublicacao ?? new Date().toISOString().split('T')[0]
     };
+
+    // Adiciona campos opcionais para destinatário específico
+    if (comunicado.turma_id || comunicado.turmaId) {
+      payload.turma_id = comunicado.turma_id ?? comunicado.turmaId;
+    }
+    
+    if (comunicado.usuario_id || comunicado.usuarioId) {
+      payload.usuario_id = comunicado.usuario_id ?? comunicado.usuarioId;
+    }
 
     const { data, error } = await supabase
       .from('comunicados')
@@ -1322,6 +1357,12 @@ class SupabaseService {
     if (updates.autorId !== undefined) payload.autor_id = updates.autorId;
     if (updates.data_publicacao !== undefined) payload.data_publicacao = updates.data_publicacao;
     if (updates.dataPublicacao !== undefined) payload.data_publicacao = updates.dataPublicacao;
+    
+    // Campos opcionais para destinatário específico
+    if (updates.turma_id !== undefined) payload.turma_id = updates.turma_id;
+    if (updates.turmaId !== undefined) payload.turma_id = updates.turmaId;
+    if (updates.usuario_id !== undefined) payload.usuario_id = updates.usuario_id;
+    if (updates.usuarioId !== undefined) payload.usuario_id = updates.usuarioId;
 
     payload.updated_at = nowIso();
 
@@ -1376,26 +1417,17 @@ class SupabaseService {
     return (data ?? []).map(withCamel) as Recado[];
   }
 
- async getRecadosByAluno(alunoId: number): Promise<Recado[]> {
-  // 1. Busca o aluno pra pegar a turma
-  const { data: aluno } = await supabase
-    .from('alunos')
-    .select('turma_id')
-    .eq('id', alunoId)
-    .single();
+  async getRecadosByAluno(alunoId: number): Promise<Recado[]> {
+    const { data, error } = await supabase
+      .from('recados')
+      .select('*')
+      .eq('aluno_id', alunoId)
+      .order('id', { ascending: false });
 
-  if (!aluno?.turma_id) return [];
+    if (error) throw error;
+    return (data ?? []).map(withCamel) as Recado[];
+  }
 
-  // 2. Busca recados: individuais OU gerais da turma
-  const { data, error } = await supabase
-    .from('recados')
-    .select('*')
-    .or(`aluno_id.eq.${alunoId},and(aluno_id.is.null,turma_id.eq.${aluno.turma_id})`)
-    .order('id', { ascending: false });
-
-  if (error) throw error;
-  return (data ?? []).map(withCamel) as Recado[];
-}
   async createRecado(
     recado: Omit<Recado, 'id' | 'created_at' | 'updated_at'>
   ): Promise<Recado> {
