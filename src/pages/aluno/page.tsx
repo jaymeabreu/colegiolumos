@@ -207,12 +207,15 @@ export function AlunoPage() {
 
     setOcorrencias(ocorrenciasDoAluno);
 
-    // 10) Monta boletim
-    const boletim: DisciplinaBoletim[] = [];
+    // 10) Monta boletim - CORRIGIDO: Agrupa por disciplina
+    const boletimPorDisciplina = new Map<number, DisciplinaBoletim>();
 
     diariosDoAluno.forEach((diario) => {
       const disciplina = disciplinasData.find(d => d.id === diario.disciplinaId);
       if (!disciplina) return;
+
+      // Se já existe entrada para essa disciplina, acumula os dados
+      const entradaExistente = boletimPorDisciplina.get(disciplina.id);
 
       const avaliacoesDisciplina = todasAvaliacoes.filter(av => av.diarioId === diario.id);
       const notasPorBimestre: Record<string, number | null> = {
@@ -243,7 +246,15 @@ export function AlunoPage() {
         if (notasBim.length === 0) return;
 
         const mediaBim = notasBim.reduce((s, n) => s + n.valor, 0) / notasBim.length;
-        notasPorBimestre[`bim${bimestre}`] = Number(mediaBim.toFixed(1));
+        const notaBim = Number(mediaBim.toFixed(1));
+        
+        // Se já existe nota desse bimestre, faz média
+        const key = `bim${bimestre}` as keyof typeof notasPorBimestre;
+        if (entradaExistente && entradaExistente[key] !== null) {
+          notasPorBimestre[key] = Number(((entradaExistente[key]! + notaBim) / 2).toFixed(1));
+        } else {
+          notasPorBimestre[key] = notaBim;
+        }
       });
 
       // frequência
@@ -256,31 +267,55 @@ export function AlunoPage() {
 
       const presentes = presencasDaDisciplina.filter(p => p.status === 'PRESENTE').length;
       const faltas = presencasDaDisciplina.filter(p => p.status === 'FALTA').length;
-      const frequencia = totalAulas > 0 ? (presentes / totalAulas) * 100 : 0;
+      
+      // CORRIGIDO: Se não tem aulas, frequência = 100% (não penalizar)
+      const frequencia = totalAulas > 0 ? (presentes / totalAulas) * 100 : 100;
 
-      // situação
+      // Se já existe, acumula totais
+      const totalAulasAcum = entradaExistente ? entradaExistente.totalAulas + totalAulas : totalAulas;
+      const presentesAcum = entradaExistente ? entradaExistente.presencas + presentes : presentes;
+      const faltasAcum = entradaExistente ? entradaExistente.faltas + faltas : faltas;
+      const frequenciaAcum = totalAulasAcum > 0 ? (presentesAcum / totalAulasAcum) * 100 : 100;
+
+      // Média final acumulada
+      const mediaFinalAcum = entradaExistente && mediaFinal > 0
+        ? Number(((entradaExistente.mediaFinal + mediaFinal) / 2).toFixed(1))
+        : mediaFinal > 0 ? mediaFinal : entradaExistente?.mediaFinal || 0;
+
+      // situação - CORRIGIDO: Não penalizar por frequência se não há aulas
       let situacao = 'Em Andamento';
-      if (mediaFinal > 0) {
-        if (mediaFinal >= 7 && frequencia >= 75) situacao = 'Aprovado';
-        else if (mediaFinal >= 5 && mediaFinal < 7) situacao = 'Recuperação';
-        else if (mediaFinal < 5 || frequencia < 60) situacao = 'Reprovado';
+      if (mediaFinalAcum > 0) {
+        if (totalAulasAcum === 0) {
+          // Sem aulas: avaliar só pela nota
+          if (mediaFinalAcum >= 7) situacao = 'Aprovado';
+          else if (mediaFinalAcum >= 5) situacao = 'Recuperação';
+          else situacao = 'Reprovado';
+        } else {
+          // Com aulas: avaliar nota E frequência
+          if (mediaFinalAcum >= 7 && frequenciaAcum >= 75) situacao = 'Aprovado';
+          else if (mediaFinalAcum >= 5 && mediaFinalAcum < 7 && frequenciaAcum >= 75) situacao = 'Recuperação';
+          else if (mediaFinalAcum < 5 || frequenciaAcum < 60) situacao = 'Reprovado';
+          else situacao = 'Recuperação';
+        }
       }
 
-      boletim.push({
+      // Merge com entrada existente
+      boletimPorDisciplina.set(disciplina.id, {
         disciplina: disciplina.nome,
-        bimestre1: notasPorBimestre.bim1,
-        bimestre2: notasPorBimestre.bim2,
-        bimestre3: notasPorBimestre.bim3,
-        bimestre4: notasPorBimestre.bim4,
-        mediaFinal,
-        frequencia,
+        bimestre1: notasPorBimestre.bim1 ?? entradaExistente?.bimestre1 ?? null,
+        bimestre2: notasPorBimestre.bim2 ?? entradaExistente?.bimestre2 ?? null,
+        bimestre3: notasPorBimestre.bim3 ?? entradaExistente?.bimestre3 ?? null,
+        bimestre4: notasPorBimestre.bim4 ?? entradaExistente?.bimestre4 ?? null,
+        mediaFinal: mediaFinalAcum,
+        frequencia: frequenciaAcum,
         situacao,
-        totalAulas,
-        presencas: presentes,
-        faltas,
+        totalAulas: totalAulasAcum,
+        presencas: presentesAcum,
+        faltas: faltasAcum,
       });
     });
 
+    const boletim = Array.from(boletimPorDisciplina.values());
     setBoletimCompleto(boletim);
 
     console.log('📊 Dados carregados (Supabase):', {
@@ -562,7 +597,7 @@ const calcularFrequencia = (diarioId: number): number => {
                           </span>
                         </div>
                       </div>
-                      {item.frequencia < 75 && (
+                      {item.frequencia < 75 && item.totalAulas > 0 && (
                         <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-800">
                           <AlertCircle className="h-4 w-4 inline mr-1" />
                           Atenção: Frequência abaixo do mínimo (75%)
