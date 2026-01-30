@@ -59,7 +59,10 @@ export function AuthHeader() {
             Meu Perfil
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={handleLogout} className="text-red-600">
+          <DropdownMenuItem 
+            onClick={handleLogout} 
+            className="text-white bg-red-600 hover:bg-red-700 focus:bg-red-700 cursor-pointer font-medium"
+          >
             <LogOut className="mr-2 h-4 w-4" />
             Sair
           </DropdownMenuItem>
