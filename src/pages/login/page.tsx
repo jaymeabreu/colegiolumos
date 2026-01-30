@@ -30,7 +30,6 @@ export function LoginPage() {
   const [loading, setLoading] = useState(false);
 
   const [error, setError] = useState('');
-  const [info, setInfo] = useState('');
 
   const [config, setConfig] = useState<Configuracoes>({
     logo_url: '',
@@ -93,7 +92,6 @@ export function LoginPage() {
 
     setLoading(true);
     setError('');
-    setInfo('');
 
     try {
       const cleanEmail = email.trim();
@@ -125,12 +123,6 @@ export function LoginPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleForgotPassword = () => {
-    // Se você quiser implementar reset real depois:
-    // supabase.auth.resetPasswordForEmail(email)
-    setInfo('Recuperação de senha ainda não configurada. Fale com a coordenação para redefinir o acesso.');
   };
 
   return (
@@ -222,27 +214,9 @@ export function LoginPage() {
               </div>
             )}
 
-            {info && (
-              <div className="text-sm text-blue-700 bg-blue-50 p-3 rounded-md">
-                {info}
-              </div>
-            )}
-
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? 'Entrando...' : 'Entrar'}
             </Button>
-
-            <div className="text-center">
-              <Button
-                type="button"
-                variant="link"
-                className="text-sm"
-                onClick={handleForgotPassword}
-                disabled={loading}
-              >
-                Esqueceu sua senha?
-              </Button>
-            </div>
           </form>
         </CardContent>
       </Card>
