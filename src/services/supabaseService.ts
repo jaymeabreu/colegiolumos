@@ -266,6 +266,66 @@ class SupabaseService {
     );
   }
 
+  // ========== NOVA FUNÇÃO: GERAR MATRÍCULA ÚNICA ==========
+  /**
+   * Gera uma matrícula única para o aluno
+   * Formato: Ano atual + número sequencial de 4 dígitos (ex: 20250001, 20250002...)
+   */
+  private async gerarMatriculaUnica(): Promise<string> {
+    const anoAtual = new Date().getFullYear();
+    const prefixoAno = anoAtual.toString();
+
+    try {
+      // Busca a última matrícula do ano atual
+      const { data: alunos, error } = await supabase
+        .from('alunos')
+        .select('matricula')
+        .like('matricula', `${prefixoAno}%`)
+        .order('matricula', { ascending: false })
+        .limit(1);
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Erro ao buscar última matrícula:', error);
+        throw error;
+      }
+
+      let numeroSequencial = 1;
+
+      if (alunos && alunos.length > 0 && alunos[0]?.matricula) {
+        // Extrai o número sequencial da última matrícula
+        const ultimaMatricula = alunos[0].matricula;
+        const ultimoNumero = parseInt(ultimaMatricula.slice(-4));
+        if (!isNaN(ultimoNumero)) {
+          numeroSequencial = ultimoNumero + 1;
+        }
+      }
+
+      // Formata o número com 4 dígitos (padding com zeros à esquerda)
+      const numeroFormatado = numeroSequencial.toString().padStart(4, '0');
+      const novaMatricula = `${prefixoAno}${numeroFormatado}`;
+
+      // Verifica se a matrícula já existe (segurança extra)
+      const { data: verificacao } = await supabase
+        .from('alunos')
+        .select('matricula')
+        .eq('matricula', novaMatricula)
+        .maybeSingle();
+
+      if (verificacao) {
+        // Se por algum motivo já existe, tenta recursivamente a próxima
+        console.warn(`Matrícula ${novaMatricula} já existe, gerando próxima...`);
+        return this.gerarMatriculaUnica();
+      }
+
+      console.log('✅ Matrícula gerada:', novaMatricula);
+      return novaMatricula;
+    } catch (error) {
+      console.error('Erro ao gerar matrícula:', error);
+      throw new Error('Não foi possível gerar uma matrícula única');
+    }
+  }
+  // ========================================================
+
   async getUsuarios(): Promise<Usuario[]> {
     const { data, error } = await supabase
       .from('usuarios')
@@ -627,42 +687,65 @@ class SupabaseService {
     return (alunos ?? []).map(withCamel) as Aluno[];
   }
 
+  // ========== FUNÇÃO CREATEALUNO CORRIGIDA ==========
   async createAluno(aluno: any): Promise<Aluno> {
-    const payload: any = {
-      nome: aluno.nome,
-      matricula: aluno.matricula,
-      email: aluno.email ?? null,
-      turma_id: aluno.turma_id ?? aluno.turmaId ?? null,
-      data_nascimento: aluno.dataNascimento ?? aluno.data_nascimento ?? null,
-      cpf: aluno.cpf ?? null,
-      rg: aluno.rg ?? null,
-      sexo: aluno.sexo ?? null,
-      contato: aluno.contato ?? null,
-      observacoes: aluno.observacoes ?? null,
-      endereco: aluno.endereco ?? null,
-      bairro: aluno.bairro ?? null,
-      cidade: aluno.cidade ?? null,
-      estado: aluno.estado ?? null,
-      cep: aluno.cep ?? null,
-      nome_responsavel: aluno.nomeResponsavel ?? aluno.nome_responsavel ?? null,
-      telefone_responsavel: aluno.contatoResponsavel ?? aluno.telefone_responsavel ?? null,
-      email_responsavel: aluno.emailResponsavel ?? aluno.email_responsavel ?? null,
-      parentesco: aluno.parentesco ?? null,
-      ano_letivo: aluno.anoLetivo ?? aluno.ano_letivo ?? null,
-      situacao: aluno.situacao ?? null
-    };
+    try {
+      // 1. GERA MATRÍCULA ÚNICA AUTOMATICAMENTE
+      const matriculaGerada = await this.gerarMatriculaUnica();
+      console.log('📝 Criando aluno com matrícula:', matriculaGerada);
 
-    const { data, error } = await supabase
-      .from('alunos')
-      .insert(payload)
-      .select('*')
-      .single();
+      // 2. Monta o payload SEM usar a matrícula enviada pelo form
+      const payload: any = {
+        nome: aluno.nome,
+        matricula: matriculaGerada, // <-- USA A MATRÍCULA GERADA
+        email: aluno.email ?? null,
+        turma_id: aluno.turma_id ?? aluno.turmaId ?? null,
+        data_nascimento: aluno.dataNascimento ?? aluno.data_nascimento ?? null,
+        cpf: aluno.cpf ?? null,
+        rg: aluno.rg ?? null,
+        sexo: aluno.sexo ?? null,
+        contato: aluno.contato ?? null,
+        observacoes: aluno.observacoes ?? null,
+        endereco: aluno.endereco ?? null,
+        bairro: aluno.bairro ?? null,
+        cidade: aluno.cidade ?? null,
+        estado: aluno.estado ?? null,
+        cep: aluno.cep ?? null,
+        nome_responsavel: aluno.nomeResponsavel ?? aluno.nome_responsavel ?? null,
+        telefone_responsavel: aluno.contatoResponsavel ?? aluno.telefone_responsavel ?? null,
+        email_responsavel: aluno.emailResponsavel ?? aluno.email_responsavel ?? null,
+        parentesco: aluno.parentesco ?? null,
+        ano_letivo: aluno.anoLetivo ?? aluno.ano_letivo ?? null,
+        situacao: aluno.situacao ?? null
+      };
 
-    if (error) throw error;
+      // 3. Insere no banco
+      const { data, error } = await supabase
+        .from('alunos')
+        .insert(payload)
+        .select('*')
+        .single();
 
-    this.dispatchDataUpdated('alunos');
-    return withCamel(data) as Aluno;
+      if (error) {
+        console.error('❌ Erro ao inserir aluno:', error);
+        throw error;
+      }
+
+      console.log('✅ Aluno criado com sucesso!', data);
+      this.dispatchDataUpdated('alunos');
+      return withCamel(data) as Aluno;
+    } catch (error: any) {
+      console.error('❌ Erro em createAluno:', error);
+      
+      // Tratamento especial para erro de matrícula duplicada
+      if (error.code === '23505' && error.message.includes('matricula')) {
+        throw new Error('Erro ao gerar matrícula única. Tente novamente.');
+      }
+      
+      throw error;
+    }
   }
+  // ===================================================
 
   async updateAluno(id: number, updates: Partial<any>): Promise<Aluno | null> {
     const payload: any = {};
@@ -1074,7 +1157,7 @@ class SupabaseService {
       .from('notas')
       .select('*')
       .eq('avaliacao_id', avaliacaoId)
-      .order('id', { ascending: true });
+      .order('id', { ascending: true});
 
     if (error) throw error;
     return (data ?? []).map(withCamel) as Nota[];
