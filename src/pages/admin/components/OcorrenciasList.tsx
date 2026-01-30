@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Plus, Edit, Trash2, Filter, AlertCircle } from 'lucide-react';
+import { Plus, Edit, Trash2, Filter, AlertCircle, Calendar } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
@@ -418,9 +418,10 @@ export function OcorrenciasList() {
                         <strong>Ação:</strong> {ocorrencia.acao_tomada}
                       </p>
                     )}
-                    <p className="text-xs text-gray-500">
-                      📅 {formatDate(ocorrencia.data)}
-                    </p>
+                    <div className="flex items-center gap-1 text-xs text-gray-500">
+                      <Calendar className="h-3 w-3" />
+                      {formatDate(ocorrencia.data)}
+                    </div>
                   </div>
                   <div className="flex items-center gap-2">
                     <Button
