@@ -489,16 +489,16 @@ export function AdminPage() {
       {/* CONTEÚDO PRINCIPAL COM MARGEM ESQUERDA */}
       <div className="flex-1 flex flex-col ml-64">
         {/* Header Fixo */}
-        <header className="sticky top-0 z-50 border-b bg-teal-700 dark:bg-teal-900 px-6 py-4 flex-shrink-0 flex items-center">
+        <header className="sticky top-0 z-50 border-b px-6 py-4 flex-shrink-0 flex items-center" style={{ backgroundColor: 'var(--primary)' }}>
           <div className="flex items-center justify-between w-full">
             <div>
               <h1 className="text-lg font-semibold text-white">
                 Bem-vindo de volta, {userProfile?.nome || 'Coordenador'} ✏️
               </h1>
-              <p className="text-sm text-teal-100 mt-1">Tenha um bom dia de trabalho.</p>
+              <p className="text-sm text-white/80 mt-1">Tenha um bom dia de trabalho.</p>
             </div>
             <div className="flex items-center gap-4">
-              <div className="text-teal-100 text-sm">
+              <div className="text-white/80 text-sm">
                 Atualizado recentemente em {getFormattedDate()}
               </div>
               <Button
