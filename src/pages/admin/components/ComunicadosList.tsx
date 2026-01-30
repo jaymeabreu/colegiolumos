@@ -22,6 +22,8 @@ export function ComunicadosList() {
   const [editingComunicado, setEditingComunicado] = useState<Comunicado | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [usuarioBusca, setUsuarioBusca] = useState('');
+  const [showUsuariosList, setShowUsuariosList] = useState(false);
   const [formData, setFormData] = useState({
     titulo: '',
     mensagem: '',
@@ -31,7 +33,25 @@ export function ComunicadosList() {
     usuarioId: ''
   });
 
-  const { user } = authService.getAuthState();
+  // Combina alunos e professores para busca
+  const todosUsuarios = [
+    ...alunos.map(a => ({ id: a.id, nome: a.nome, tipo: 'Aluno' })),
+    ...professores.map(p => ({ id: p.id, nome: p.nome, tipo: 'Professor' }))
+  ].sort((a, b) => a.nome.localeCompare(b.nome));
+
+  // Filtra usuários baseado na busca
+  const usuariosFiltrados = todosUsuarios.filter(usuario =>
+    usuario.nome.toLowerCase().includes(usuarioBusca.toLowerCase())
+  ).slice(0, 50); // Limita a 50 resultados
+
+  // Fecha a lista de usuários quando clicar fora
+  useEffect(() => {
+    const handleClickOutside = () => setShowUsuariosList(false);
+    if (showUsuariosList) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [showUsuariosList]);
 
   useEffect(() => {
     loadData();
@@ -157,6 +177,7 @@ export function ComunicadosList() {
     let tipoDestinatario: TipoDestinatario = 'geral';
     let turmaId = '';
     let usuarioId = '';
+    let usuarioNome = '';
 
     if (comunicado.turma_id) {
       tipoDestinatario = 'turma';
@@ -164,6 +185,11 @@ export function ComunicadosList() {
     } else if (comunicado.usuario_id) {
       tipoDestinatario = 'usuario';
       usuarioId = comunicado.usuario_id.toString();
+      
+      // Busca o nome do usuário
+      const aluno = alunos.find(a => a.id === comunicado.usuario_id);
+      const professor = professores.find(p => p.id === comunicado.usuario_id);
+      usuarioNome = aluno ? `${aluno.nome} (Aluno)` : professor ? `${professor.nome} (Professor)` : '';
     }
 
     setFormData({
@@ -174,6 +200,8 @@ export function ComunicadosList() {
       turmaId,
       usuarioId
     });
+    
+    setUsuarioBusca(usuarioNome);
     setIsDialogOpen(true);
   };
 
@@ -203,6 +231,8 @@ export function ComunicadosList() {
       turmaId: '',
       usuarioId: ''
     });
+    setUsuarioBusca('');
+    setShowUsuariosList(false);
   };
 
   const formatDate = (dateString: string) => {
@@ -319,6 +349,8 @@ export function ComunicadosList() {
                         turmaId: '',
                         usuarioId: ''
                       }));
+                      setUsuarioBusca('');
+                      setShowUsuariosList(false);
                     }}
                     disabled={isSubmitting}
                   >
@@ -373,28 +405,68 @@ export function ComunicadosList() {
                   </div>
                 )}
 
-                {/* SELECT DE USUÁRIO (só aparece se tipo === 'usuario') */}
+                {/* CAMPO DE BUSCA DE USUÁRIO (só aparece se tipo === 'usuario') */}
                 {formData.tipoDestinatario === 'usuario' && (
                   <div className="space-y-2">
-                    <Label htmlFor="usuarioId">Selecione o usuário *</Label>
-                    <Select
-                      value={formData.usuarioId}
-                      onValueChange={value =>
-                        setFormData(prev => ({ ...prev, usuarioId: value }))
-                      }
-                      disabled={isSubmitting}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione um aluno ou professor" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {todosUsuarios.map(usuario => (
-                          <SelectItem key={`${usuario.tipo}-${usuario.id}`} value={usuario.id.toString()}>
-                            {usuario.nome} ({usuario.tipo})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Label htmlFor="usuarioSearch">Buscar usuário *</Label>
+                    <div className="relative" onClick={e => e.stopPropagation()}>
+                      <Input
+                        id="usuarioSearch"
+                        type="text"
+                        placeholder="Digite o nome do aluno ou professor..."
+                        value={usuarioBusca}
+                        onChange={e => setUsuarioBusca(e.target.value)}
+                        onFocus={() => setShowUsuariosList(true)}
+                        disabled={isSubmitting}
+                        autoComplete="off"
+                      />
+                      
+                      {/* Lista de resultados filtrados */}
+                      {showUsuariosList && usuariosFiltrados.length > 0 && (
+                        <div className="absolute z-50 w-full mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-y-auto">
+                          {usuariosFiltrados.map(usuario => (
+                            <button
+                              key={`${usuario.tipo}-${usuario.id}`}
+                              type="button"
+                              onClick={() => {
+                                setFormData(prev => ({ ...prev, usuarioId: usuario.id.toString() }));
+                                setUsuarioBusca(`${usuario.nome} (${usuario.tipo})`);
+                                setShowUsuariosList(false);
+                              }}
+                              className="w-full px-4 py-2 text-left hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
+                            >
+                              <div className="font-medium">{usuario.nome}</div>
+                              <div className="text-xs text-gray-500">{usuario.tipo}</div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Mostra mensagem se não encontrar nada */}
+                      {showUsuariosList && usuarioBusca && usuariosFiltrados.length === 0 && (
+                        <div className="absolute z-50 w-full mt-1 bg-white border rounded-md shadow-lg p-4 text-center text-gray-500">
+                          Nenhum usuário encontrado
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Mostra usuário selecionado */}
+                    {formData.usuarioId && (
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <User className="h-4 w-4" />
+                        <span>Selecionado: {usuarioBusca}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFormData(prev => ({ ...prev, usuarioId: '' }));
+                            setUsuarioBusca('');
+                          }}
+                          className="text-red-600 hover:text-red-800"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
 
