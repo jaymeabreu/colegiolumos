@@ -58,17 +58,19 @@ export function AvisosTab() {
     try {
       console.log('Carregando avisos para o aluno...', { userId: user?.id, alunoId: user?.alunoId });
       
-      const comunicadosData = await supabaseService.getComunicados();
-      console.log('Comunicados carregados:', comunicadosData);
-      setComunicados(comunicadosData.sort((a, b) => new Date(b.dataPublicacao).getTime() - new Date(a.dataPublicacao).getTime()));
-
-      // Carregar recados para o aluno
+      // ALTERAÇÃO AQUI: usa getComunicadosParaAluno ao invés de getComunicados
       if (user?.alunoId) {
+        const comunicadosData = await supabaseService.getComunicadosParaAluno(user.alunoId);
+        console.log('Comunicados carregados:', comunicadosData);
+        setComunicados(comunicadosData.sort((a, b) => new Date(b.dataPublicacao || b.data_publicacao).getTime() - new Date(a.dataPublicacao || a.data_publicacao).getTime()));
+
+        // Carregar recados para o aluno
         const recadosData = await supabaseService.getRecadosByAluno(user.alunoId);
         console.log('Recados carregados para o aluno:', recadosData);
-        setRecados(recadosData.sort((a, b) => new Date(b.dataEnvio).getTime() - new Date(a.dataEnvio).getTime()));
+        setRecados(recadosData.sort((a, b) => new Date(b.dataEnvio || b.data_envio).getTime() - new Date(a.dataEnvio || a.data_envio).getTime()));
       } else {
         console.log('Usuário não tem alunoId definido');
+        setComunicados([]);
         setRecados([]);
       }
     } catch (error) {
@@ -142,7 +144,7 @@ export function AvisosTab() {
                         </div>
                         <div className="flex items-center gap-1">
                           <Calendar className="h-4 w-4" />
-                          <span>{formatDate(comunicado.dataPublicacao)}</span>
+                          <span>{formatDate(comunicado.dataPublicacao || comunicado.data_publicacao)}</span>
                         </div>
                       </div>
                     </div>
@@ -196,7 +198,7 @@ export function AvisosTab() {
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
                         <CardTitle className="text-lg">{recado.titulo}</CardTitle>
-                        {recado.alunoId ? (
+                        {recado.alunoId || recado.aluno_id ? (
                           <Badge variant="default" className="text-xs">
                             <User className="h-3 w-3 mr-1" />
                             Individual
@@ -211,15 +213,15 @@ export function AvisosTab() {
                       <div className="flex items-center gap-4 text-base text-muted-foreground">
                         <div className="flex items-center gap-1">
                           <User className="h-4 w-4" />
-                          <span>{recado.professorNome}</span>
+                          <span>{recado.professorNome || recado.professor_nome}</span>
                         </div>
                         <div className="flex items-center gap-1">
                           <Calendar className="h-4 w-4" />
-                          <span>{formatDate(recado.dataEnvio)}</span>
+                          <span>{formatDate(recado.dataEnvio || recado.data_envio)}</span>
                         </div>
                         <div className="flex items-center gap-1">
                           <Users className="h-4 w-4" />
-                          <span>{recado.turmaNome}</span>
+                          <span>{recado.turmaNome || recado.turma_nome}</span>
                         </div>
                       </div>
                     </div>
