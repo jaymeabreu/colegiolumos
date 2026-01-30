@@ -270,12 +270,6 @@ export function ComunicadosList() {
     }
   };
 
-  // Combina alunos e professores para o select de usuário
-  const todosUsuarios = [
-    ...alunos.map(a => ({ id: a.id, nome: a.nome, tipo: 'Aluno' })),
-    ...professores.map(p => ({ id: p.id, nome: p.nome, tipo: 'Professor' }))
-  ].sort((a, b) => a.nome.localeCompare(b.nome));
-
   return (
     <div className="card">
       {/* HEADER */}
