@@ -246,6 +246,19 @@ function withCamel<T extends Record<string, any>>(row: T): T {
   return r;
 }
 
+// Helper para validar e converter alunoId
+function sanitizeAlunoId(value: any): number | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (trimmed === '') return null;
+    const parsed = parseInt(trimmed, 10);
+    return isNaN(parsed) ? null : parsed;
+  }
+  if (typeof value === 'number') return isNaN(value) ? null : value;
+  return null;
+}
+
 class SupabaseService {
   private dispatchDataUpdated(type: string) {
     window.dispatchEvent(
@@ -1294,6 +1307,9 @@ class SupabaseService {
   async createRecado(
     recado: Omit<Recado, 'id' | 'created_at' | 'updated_at'>
   ): Promise<Recado> {
+    // Validar e converter alunoId - FIX para recados geral
+    const alunoIdFinal = sanitizeAlunoId(recado.aluno_id ?? recado.alunoId);
+
     const payload: any = {
       titulo: recado.titulo,
       mensagem: recado.mensagem,
@@ -1301,8 +1317,8 @@ class SupabaseService {
       professor_nome: recado.professor_nome ?? recado.professorNome ?? '',
       turma_id: recado.turma_id ?? recado.turmaId,
       turma_nome: recado.turma_nome ?? recado.turmaNome ?? '',
-      aluno_id: recado.aluno_id ?? recado.alunoId ?? null,
-      aluno_nome: recado.aluno_nome ?? recado.alunoNome ?? null,
+      aluno_id: alunoIdFinal,
+      aluno_nome: alunoIdFinal ? (recado.aluno_nome ?? recado.alunoNome ?? null) : null,
       data_envio: recado.data_envio ?? recado.dataEnvio ?? new Date().toISOString().split('T')[0]
     };
 
@@ -1336,8 +1352,12 @@ class SupabaseService {
     if (updates.turma_nome !== undefined) payload.turma_nome = updates.turma_nome;
     if (updates.turmaNome !== undefined) payload.turma_nome = updates.turmaNome;
 
-    if (updates.aluno_id !== undefined) payload.aluno_id = updates.aluno_id;
-    if (updates.alunoId !== undefined) payload.aluno_id = updates.alunoId;
+    // Validar e converter alunoId - FIX para recados geral
+    if (updates.aluno_id !== undefined || updates.alunoId !== undefined) {
+      const alunoIdFinal = sanitizeAlunoId(updates.aluno_id ?? updates.alunoId);
+      payload.aluno_id = alunoIdFinal;
+      payload.aluno_nome = alunoIdFinal ? (updates.aluno_nome ?? updates.alunoNome ?? null) : null;
+    }
 
     if (updates.aluno_nome !== undefined) payload.aluno_nome = updates.aluno_nome;
     if (updates.alunoNome !== undefined) payload.aluno_nome = updates.alunoNome;
