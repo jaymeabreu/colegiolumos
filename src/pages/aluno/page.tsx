@@ -1,1756 +1,760 @@
-import { supabase } from '@/lib/supabaseClient';
+import { useState, useEffect } from 'react';
+import { BookOpen, ClipboardList, BarChart3, Calendar, User, Bell, AlertCircle, TrendingUp, Award, GraduationCap } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
+import { Badge } from '../../components/ui/badge';
+import { Progress } from '../../components/ui/progress';
+import { ScrollArea } from '../../components/ui/scroll-area';
+import { AuthHeader } from '../../components/auth/AuthHeader';
+import { ErrorBoundary } from '../../components/ErrorBoundary';
+import { authService } from '../../services/auth';
+import type { Aluno, Diario, Nota, Presenca, Avaliacao, Ocorrencia, Disciplina, Aula } from '../../services/supabaseService';
+import { supabase } from '../../lib/supabaseClient';
+import { AvisosTab } from './components/AvisosTab';
 
-// Tipos
-export interface Usuario { 
-  id: number;
-  nome: string;
-  email: string;
-  papel: 'COORDENADOR' | 'PROFESSOR' | 'ALUNO';
-  aluno_id?: number;
-  professor_id?: number;
-  ativo: boolean;
-  created_at: string;
-  updated_at: string;
+interface DisciplinaBoletim {
+  disciplina: string;
+  bimestre1: number | null;
+  bimestre2: number | null;
+  bimestre3: number | null;
+  bimestre4: number | null;
+  mediaFinal: number;
+  frequencia: number;
+  situacao: string;
+  totalAulas: number;
+  presencas: number;
+  faltas: number;
 }
 
-export type TurnoTurma = 'MANHA' | 'TARDE' | 'NOITE' | 'INTEGRAL';
+export function AlunoPage() {
+  const [activeTab, setActiveTab] = useState('avisos');
+  const [aluno, setAluno] = useState<Aluno | null>(null);
+  const [diarios, setDiarios] = useState<Diario[]>([]);
+  const [notas, setNotas] = useState<Nota[]>([]);
+  const [disciplinas, setDisciplinas] = useState<Disciplina[]>([]);
+  const [aulas, setAulas] = useState<Aula[]>([]);
+  const [presencas, setPresencas] = useState<Presenca[]>([]);
+  const [avaliacoes, setAvaliacoes] = useState<Avaliacao[]>([]);
+  const [ocorrencias, setOcorrencias] = useState<Ocorrencia[]>([]);
+  const [boletimCompleto, setBoletimCompleto] = useState<DisciplinaBoletim[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { user } = authService.getAuthState();
+  
 
-export interface Turma {
-  id: number;
-  nome: string;
-  ano: number;
-  turno: TurnoTurma;
-  anoLetivo?: string;
-  created_at: string;
-  updated_at: string;
-}
+  useEffect(() => {
+  void loadData();
+}, []);
 
-export interface Disciplina {
-  id: number;
-  nome: string;
-  codigo: string;
-  carga_horaria: number;
-  cargaHoraria?: number;
-  created_at: string;
-  updated_at: string;
-}
 
-export interface Professor {
-  id: number;
-  nome: string;
-  email: string;
-  contato?: string;
-  data_nascimento?: string;
-  cpf?: string;
-  rg?: string;
-  sexo?: string;
-  endereco?: string;
-  bairro?: string;
-  cidade?: string;
-  cep?: string;
-  estado?: string;
-  formacao?: string;
-  especializacao?: string;
-  registro?: string;
-  data_admissao?: string;
-  situacao?: string;
-  observacoes?: string;
-  foto?: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface Aluno {
-  id: number;
-  nome: string;
-  email?: string;
-  turma_id: number;
-  turmaId?: number;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface Diario {
-  id: number;
-  nome: string;
-  disciplina_id: number;
-  disciplinaId?: number;
-  turma_id: number;
-  turmaId?: number;
-  professor_id: number;
-  professorId?: number;
-  bimestre: number;
-  data_inicio: string;
-  dataInicio?: string;
-  data_termino: string;
-  dataTermino?: string;
-  status: 'PENDENTE' | 'ENTREGUE' | 'DEVOLVIDO' | 'FINALIZADO';
-  solicitacao_devolucao?: any;
-  historico_status?: any;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface DiarioAluno {
-  id: number;
-  diario_id: number;
-  diarioId?: number;
-  aluno_id: number;
-  alunoId?: number;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface Aula {
-  id: number;
-  diario_id: number;
-  diarioId?: number;
-  data: string;
-  hora_inicio?: string;
-  horaInicio?: string;
-  hora_fim?: string;
-  horaFim?: string;
-  conteudo?: string;
-  observacoes?: string;
-  quantidade_aulas?: number;
-  quantidadeAulas?: number;
-  tipo_aula?: string;
-  tipoAula?: string;
-  aula_assincrona?: boolean;
-  aulaAssincrona?: boolean;
-  conteudo_detalhado?: string;
-  conteudoDetalhado?: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface Presenca {
-  id: number;
-  aula_id: number;
-  aulaId?: number;
-  aluno_id: number;
-  alunoId?: number;
-  status: 'PRESENTE' | 'FALTA' | 'JUSTIFICADA';
-  aula_sequencia?: number;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface Avaliacao {
-  id: number;
-  diario_id: number;
-  diarioId?: number;
-  titulo: string;
-  data: string;
-  tipo: string;
-  peso: number;
-  bimestre?: number;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface Nota {
-  id: number;
-  avaliacao_id: number;
-  avaliacaoId?: number;
-  aluno_id: number;
-  alunoId?: number;
-  valor: number;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface Ocorrencia {
-  id: number;
-  aluno_id: number;
-  alunoId?: number;
-  diario_id: number;
-  diarioId?: number;
-  tipo: string;
-  data: string;
-  descricao: string;
-  acao_tomada?: string;
-  acaoTomada?: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface Comunicado {
-  id: number;
-  titulo: string;
-  mensagem: string;
-  autor: string;
-  autor_id: number;
-  autorId?: number;
-  data_publicacao: string;
-  dataPublicacao?: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface Recado {
-  id: number;
-  titulo: string;
-  mensagem: string;
-  professor_id: number;
-  professorId?: number;
-  professor_nome: string;
-  professorNome?: string;
-  turma_id: number;
-  turmaId?: number;
-  turma_nome: string;
-  turmaNome?: string;
-  aluno_id?: number;
-  alunoId?: number;
-  aluno_nome?: string;
-  alunoNome?: string;
-  data_envio: string;
-  dataEnvio?: string;
-  created_at: string;
-  updated_at: string;
-}
-
-const nowIso = () => new Date().toISOString();
-
-function withCamel<T extends Record<string, any>>(row: T): T {
-  const r: any = { ...row };
-
-  if (r.turma_id !== undefined) r.turmaId = r.turma_id;
-  if (r.disciplina_id !== undefined) r.disciplinaId = r.disciplina_id;
-  if (r.professor_id !== undefined) r.professorId = r.professor_id;
-  if (r.aluno_id !== undefined) r.alunoId = r.aluno_id;
-  if (r.diario_id !== undefined) r.diarioId = r.diario_id;
-  if (r.avaliacao_id !== undefined) r.avaliacaoId = r.avaliacao_id;
-  if (r.aula_id !== undefined) r.aulaId = r.aula_id;
-  if (r.autor_id !== undefined) r.autorId = r.autor_id;
-
-  if (r.data_inicio !== undefined) r.dataInicio = r.data_inicio;
-  if (r.data_termino !== undefined) r.dataTermino = r.data_termino;
-  if (r.data_publicacao !== undefined) r.dataPublicacao = r.data_publicacao;
-  if (r.data_envio !== undefined) r.dataEnvio = r.data_envio;
-  if (r.hora_inicio !== undefined) r.horaInicio = r.hora_inicio;
-  if (r.hora_fim !== undefined) r.horaFim = r.hora_fim;
-  if (r.acao_tomada !== undefined) r.acaoTomada = r.acao_tomada;
-
-  if (r.professor_nome !== undefined) r.professorNome = r.professor_nome;
-  if (r.turma_nome !== undefined) r.turmaNome = r.turma_nome;
-  if (r.aluno_nome !== undefined) r.alunoNome = r.aluno_nome;
-
-  if (r.carga_horaria !== undefined) r.cargaHoraria = r.carga_horaria;
-
-  if (r.quantidade_aulas !== undefined) r.quantidadeAulas = r.quantidade_aulas;
-  if (r.tipo_aula !== undefined) r.tipoAula = r.tipo_aula;
-  if (r.aula_assincrona !== undefined) r.aulaAssincrona = r.aula_assincrona;
-  if (r.conteudo_detalhado !== undefined) r.conteudoDetalhado = r.conteudo_detalhado;
-
-  return r;
-}
-
-// Helper para validar e converter alunoId
-function sanitizeAlunoId(value: any): number | null {
-  if (value === null || value === undefined) return null;
-  if (typeof value === 'string') {
-    const trimmed = value.trim();
-    if (trimmed === '') return null;
-    const parsed = parseInt(trimmed, 10);
-    return isNaN(parsed) ? null : parsed;
-  }
-  if (typeof value === 'number') return isNaN(value) ? null : value;
-  return null;
-}
-
-class SupabaseService {
-  private dispatchDataUpdated(type: string) {
-    window.dispatchEvent(
-      new CustomEvent('dataUpdated', { detail: { type, timestamp: Date.now() } })
-    );
+  const loadData = async () => {
+  if (!user?.alunoId) {
+    setLoading(false);
+    return;
   }
 
-  // ========== NOVA FUNÇÃO: GERAR MATRÍCULA ÚNICA ==========
-  /**
-   * Gera uma matrícula única para o aluno
-   * Formato: Ano atual + número sequencial de 4 dígitos (ex: 20250001, 20250002...)
-   */
-  private async gerarMatriculaUnica(): Promise<string> {
-    const anoAtual = new Date().getFullYear();
-    const prefixoAno = anoAtual.toString();
+  try {
+    setLoading(true);
+    console.log('🎓 Carregando dados completos do aluno (SUPABASE):', user.alunoId);
 
-    try {
-      // Busca a última matrícula do ano atual
-      const { data: alunos, error } = await supabase
-        .from('alunos')
-        .select('matricula')
-        .like('matricula', `${prefixoAno}%`)
-        .order('matricula', { ascending: false })
-        .limit(1);
-
-      if (error && error.code !== 'PGRST116') {
-        console.error('Erro ao buscar última matrícula:', error);
-        throw error;
-      }
-
-      let numeroSequencial = 1;
-
-      if (alunos && alunos.length > 0 && alunos[0]?.matricula) {
-        // Extrai o número sequencial da última matrícula
-        const ultimaMatricula = alunos[0].matricula;
-        const ultimoNumero = parseInt(ultimaMatricula.slice(-4));
-        if (!isNaN(ultimoNumero)) {
-          numeroSequencial = ultimoNumero + 1;
-        }
-      }
-
-      // Formata o número com 4 dígitos (padding com zeros à esquerda)
-      const numeroFormatado = numeroSequencial.toString().padStart(4, '0');
-      const novaMatricula = `${prefixoAno}${numeroFormatado}`;
-
-      // Verifica se a matrícula já existe (segurança extra)
-      const { data: verificacao } = await supabase
-        .from('alunos')
-        .select('matricula')
-        .eq('matricula', novaMatricula)
-        .maybeSingle();
-
-      if (verificacao) {
-        // Se por algum motivo já existe, tenta recursivamente a próxima
-        console.warn(`Matrícula ${novaMatricula} já existe, gerando próxima...`);
-        return this.gerarMatriculaUnica();
-      }
-
-      console.log('✅ Matrícula gerada:', novaMatricula);
-      return novaMatricula;
-    } catch (error) {
-      console.error('Erro ao gerar matrícula:', error);
-      throw new Error('Não foi possível gerar uma matrícula única');
-    }
-  }
-  // ========================================================
-
-  async getUsuarios(): Promise<Usuario[]> {
-    const { data, error } = await supabase
-      .from('usuarios')
-      .select('*')
-      .order('id', { ascending: true });
-
-    if (error) throw error;
-    return (data ?? []) as Usuario[];
-  }
-
-  async createUsuario(
-    usuario: Omit<Usuario, 'id' | 'created_at' | 'updated_at'>,
-    senha?: string
-  ): Promise<Usuario> {
-    try {
-      if (!senha) {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$%&*';
-        senha = '';
-        for (let i = 0; i < 12; i++) {
-          senha += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-      }
-
-      const payload: any = {
-        nome: usuario.nome,
-        email: usuario.email,
-        papel: usuario.papel,
-        senha: senha,
-        aluno_id: usuario.aluno_id ?? undefined,
-        professor_id: usuario.professor_id ?? undefined,
-        ativo: usuario.ativo ?? true
-      };
-
-      const { data, error } = await supabase
-        .from('usuarios')
-        .insert(payload)
-        .select('*')
-        .single();
-
-      if (error) throw error;
-
-      this.dispatchDataUpdated('usuarios');
-      return data as Usuario;
-    } catch (error: any) {
-      console.error('Erro ao criar usuário:', error);
-      throw new Error(`Falha ao criar usuário: ${error.message}`);
-    }
-  }
-
-  async updateUsuario(id: number, updates: Partial<Usuario>): Promise<Usuario | null> {
-    const payload: any = {};
-    if (updates.nome !== undefined) payload.nome = updates.nome;
-    if (updates.email !== undefined) payload.email = updates.email;
-    if (updates.papel !== undefined) payload.papel = updates.papel;
-    if (updates.aluno_id !== undefined) payload.aluno_id = updates.aluno_id;
-    if (updates.professor_id !== undefined) payload.professor_id = updates.professor_id;
-    if (updates.ativo !== undefined) payload.ativo = updates.ativo;
-
-    payload.updated_at = nowIso();
-
-    const { data, error } = await supabase
-      .from('usuarios')
-      .update(payload)
-      .eq('id', id)
-      .select('*')
-      .maybeSingle();
-
-    if (error) throw error;
-
-    this.dispatchDataUpdated('usuarios');
-    return (data ?? null) as Usuario | null;
-  }
-
-  async deleteUsuario(id: number): Promise<void> {
-    const { error } = await supabase.from('usuarios').delete().eq('id', id);
-    if (error) throw error;
-    this.dispatchDataUpdated('usuarios');
-  }
-
-  async getTurmas(): Promise<Turma[]> {
-    const { data, error } = await supabase
-      .from('turmas')
-      .select('*')
-      .order('id', { ascending: true });
-
-    if (error) throw error;
-    return (data ?? []).map(withCamel) as Turma[];
-  }
-
-  async getTurmaById(id: number): Promise<Turma | null> {
-    const { data, error } = await supabase
-      .from('turmas')
-      .select('*')
-      .eq('id', id)
-      .maybeSingle();
-
-    if (error) throw error;
-    return data ? (withCamel(data) as Turma) : null;
-  }
-
-  async createTurma(
-    turma: Omit<Turma, 'id' | 'created_at' | 'updated_at'>
-  ): Promise<Turma> {
-    const payload: any = {
-      nome: turma.nome,
-      ano: turma.ano,
-      turno: turma.turno
-    };
-
-    const { data, error } = await supabase
-      .from('turmas')
-      .insert(payload)
-      .select('*')
-      .single();
-
-    if (error) throw error;
-
-    this.dispatchDataUpdated('turmas');
-    return withCamel(data) as Turma;
-  }
-
-  async updateTurma(id: number, updates: Partial<Turma>): Promise<Turma | null> {
-    const payload: any = {};
-    if (updates.nome !== undefined) payload.nome = updates.nome;
-    if (updates.ano !== undefined) payload.ano = updates.ano;
-    if (updates.turno !== undefined) payload.turno = updates.turno;
-    payload.updated_at = nowIso();
-
-    const { data, error } = await supabase
-      .from('turmas')
-      .update(payload)
-      .eq('id', id)
-      .select('*')
-      .maybeSingle();
-
-    if (error) throw error;
-
-    this.dispatchDataUpdated('turmas');
-    return data ? (withCamel(data) as Turma) : null;
-  }
-
-  async deleteTurma(id: number): Promise<void> {
-    const { error } = await supabase.from('turmas').delete().eq('id', id);
-    if (error) throw error;
-    this.dispatchDataUpdated('turmas');
-  }
-
-  async getDisciplinas(): Promise<Disciplina[]> {
-    const { data, error } = await supabase
-      .from('disciplinas')
-      .select('*')
-      .order('id', { ascending: true });
-
-    if (error) throw error;
-    return (data ?? []).map(withCamel) as Disciplina[];
-  }
-
-  async getDisciplinaById(id: number): Promise<Disciplina | null> {
-    const { data, error } = await supabase
-      .from('disciplinas')
-      .select('*')
-      .eq('id', id)
-      .maybeSingle();
-
-    if (error) throw error;
-    return data ? (withCamel(data) as Disciplina) : null;
-  }
-
-  async createDisciplina(
-    disciplina: Omit<Disciplina, 'id' | 'created_at' | 'updated_at'>
-  ): Promise<Disciplina> {
-    const payload: any = {
-      nome: disciplina.nome,
-      codigo: disciplina.codigo,
-      carga_horaria: disciplina.carga_horaria ?? disciplina.cargaHoraria ?? 0
-    };
-
-    const { data, error } = await supabase
-      .from('disciplinas')
-      .insert(payload)
-      .select('*')
-      .single();
-
-    if (error) throw error;
-
-    this.dispatchDataUpdated('disciplinas');
-    return withCamel(data) as Disciplina;
-  }
-
-  async updateDisciplina(id: number, updates: Partial<Disciplina>): Promise<Disciplina | null> {
-    const payload: any = {};
-    if (updates.nome !== undefined) payload.nome = updates.nome;
-    if (updates.codigo !== undefined) payload.codigo = updates.codigo;
-    if (updates.carga_horaria !== undefined) payload.carga_horaria = updates.carga_horaria;
-    if (updates.cargaHoraria !== undefined) payload.carga_horaria = updates.cargaHoraria;
-    payload.updated_at = nowIso();
-
-    const { data, error } = await supabase
-      .from('disciplinas')
-      .update(payload)
-      .eq('id', id)
-      .select('*')
-      .maybeSingle();
-
-    if (error) throw error;
-
-    this.dispatchDataUpdated('disciplinas');
-    return data ? (withCamel(data) as Disciplina) : null;
-  }
-
-  async deleteDisciplina(id: number): Promise<void> {
-    const { error } = await supabase.from('disciplinas').delete().eq('id', id);
-    if (error) throw error;
-    this.dispatchDataUpdated('disciplinas');
-  }
-
-  async getProfessores(): Promise<Professor[]> {
-    const { data, error } = await supabase
-      .from('professores')
-      .select('*')
-      .order('id', { ascending: true });
-
-    if (error) throw error;
-    return (data ?? []) as Professor[];
-  }
-
-  async getProfessorById(id: number): Promise<Professor | null> {
-    const { data, error } = await supabase
-      .from('professores')
-      .select('*')
-      .eq('id', id)
-      .maybeSingle();
-
-    if (error) throw error;
-    return (data ?? null) as Professor | null;
-  }
-
-  async createProfessor(
-    professor: Omit<Professor, 'id' | 'created_at' | 'updated_at'>
-  ): Promise<Professor> {
-    const payload: any = {
-      nome: professor.nome,
-      email: professor.email,
-      contato: professor.contato ?? null,
-      data_nascimento: professor.data_nascimento ?? null,
-      cpf: professor.cpf ?? null,
-      rg: professor.rg ?? null,
-      sexo: professor.sexo ?? null,
-      endereco: professor.endereco ?? null,
-      bairro: professor.bairro ?? null,
-      cidade: professor.cidade ?? null,
-      cep: professor.cep ?? null,
-      estado: professor.estado ?? null,
-      formacao: professor.formacao ?? null,
-      especializacao: professor.especializacao ?? null,
-      registro: professor.registro ?? null,
-      data_admissao: professor.data_admissao ?? null,
-      situacao: professor.situacao ?? null,
-      observacoes: professor.observacoes ?? null,
-      foto: professor.foto ?? null,
-    };
-
-    const { data, error } = await supabase
-      .from('professores')
-      .insert(payload)
-      .select('*')
-      .single();
-
-    if (error) throw error;
-
-    this.dispatchDataUpdated('professores');
-    return data as Professor;
-  }
-
-  async updateProfessor(id: number, updates: Partial<Professor>): Promise<Professor | null> {
-    const payload: any = {};
-    if (updates.nome !== undefined) payload.nome = updates.nome;
-    if (updates.email !== undefined) payload.email = updates.email;
-    if (updates.contato !== undefined) payload.contato = updates.contato;
-    if (updates.data_nascimento !== undefined) payload.data_nascimento = updates.data_nascimento;
-    if (updates.cpf !== undefined) payload.cpf = updates.cpf;
-    if (updates.rg !== undefined) payload.rg = updates.rg;
-    if (updates.sexo !== undefined) payload.sexo = updates.sexo;
-    if (updates.endereco !== undefined) payload.endereco = updates.endereco;
-    if (updates.bairro !== undefined) payload.bairro = updates.bairro;
-    if (updates.cidade !== undefined) payload.cidade = updates.cidade;
-    if (updates.cep !== undefined) payload.cep = updates.cep;
-    if (updates.estado !== undefined) payload.estado = updates.estado;
-    if (updates.formacao !== undefined) payload.formacao = updates.formacao;
-    if (updates.especializacao !== undefined) payload.especializacao = updates.especializacao;
-    if (updates.registro !== undefined) payload.registro = updates.registro;
-    if (updates.data_admissao !== undefined) payload.data_admissao = updates.data_admissao;
-    if (updates.situacao !== undefined) payload.situacao = updates.situacao;
-    if (updates.observacoes !== undefined) payload.observacoes = updates.observacoes;
-    if (updates.foto !== undefined) payload.foto = updates.foto;
-    
-    payload.updated_at = nowIso();
-
-    const { data, error } = await supabase
-      .from('professores')
-      .update(payload)
-      .eq('id', id)
-      .select('*')
-      .maybeSingle();
-
-    if (error) throw error;
-
-    this.dispatchDataUpdated('professores');
-    return (data ?? null) as Professor | null;
-  }
-
-  async deleteProfessor(id: number): Promise<void> {
-    const { error } = await supabase.from('professores').delete().eq('id', id);
-    if (error) throw error;
-    this.dispatchDataUpdated('professores');
-  }
-
-  async getAlunos(): Promise<Aluno[]> {
-    const { data, error } = await supabase
+    // 1) Aluno
+    const { data: alunoRow, error: alunoErr } = await supabase
       .from('alunos')
       .select('*')
-      .order('id', { ascending: true });
+      .eq('id', user.alunoId)
+      .maybeSingle();
 
-    if (error) throw error;
-    return (data ?? []).map(withCamel) as Aluno[];
-  }
+    if (alunoErr) throw alunoErr;
 
-  async getAlunosByTurma(turmaId: number): Promise<Aluno[]> {
-    const { data, error } = await supabase
-      .from('alunos')
-      .select('*')
-      .eq('turma_id', turmaId)
-      .order('id', { ascending: true });
+    const alunoData = (alunoRow as any) as Aluno | null;
+    setAluno(alunoData ?? null);
 
-    if (error) throw error;
-    return (data ?? []).map(withCamel) as Aluno[];
-  }
+    if (!alunoData) return;
 
-  async getAlunosByDiario(diarioId: number): Promise<Aluno[]> {
-    const { data: vinculos, error: e1 } = await supabase
+    // 2) Vinculo aluno -> diários (diario_alunos)
+    const { data: diarioAlunosRows, error: daErr } = await supabase
       .from('diario_alunos')
-      .select('aluno_id')
-      .eq('diario_id', diarioId);
-
-    if (e1) throw e1;
-
-    const ids = (vinculos ?? []).map((v: any) => v.aluno_id).filter(Boolean);
-    
-    if (ids.length === 0) return [];
-
-    const { data: alunos, error: e2 } = await supabase
-      .from('alunos')
       .select('*')
-      .in('id', ids as number[])
-      .order('id', { ascending: true });
-
-    if (e2) throw e2;
-
-    return (alunos ?? []).map(withCamel) as Aluno[];
-  }
-
-  // ========== FUNÇÃO CREATEALUNO CORRIGIDA ==========
-  async createAluno(aluno: any): Promise<Aluno> {
-    try {
-      // 1. GERA MATRÍCULA ÚNICA AUTOMATICAMENTE
-      const matriculaGerada = await this.gerarMatriculaUnica();
-      console.log('📝 Criando aluno com matrícula:', matriculaGerada);
-
-      // 2. Monta o payload SEM usar a matrícula enviada pelo form
-      const payload: any = {
-        nome: aluno.nome,
-        matricula: matriculaGerada, // <-- USA A MATRÍCULA GERADA
-        email: aluno.email ?? null,
-        turma_id: aluno.turma_id ?? aluno.turmaId ?? null,
-        data_nascimento: aluno.dataNascimento ?? aluno.data_nascimento ?? null,
-        cpf: aluno.cpf ?? null,
-        rg: aluno.rg ?? null,
-        sexo: aluno.sexo ?? null,
-        contato: aluno.contato ?? null,
-        observacoes: aluno.observacoes ?? null,
-        endereco: aluno.endereco ?? null,
-        bairro: aluno.bairro ?? null,
-        cidade: aluno.cidade ?? null,
-        estado: aluno.estado ?? null,
-        cep: aluno.cep ?? null,
-        nome_responsavel: aluno.nomeResponsavel ?? aluno.nome_responsavel ?? null,
-        telefone_responsavel: aluno.contatoResponsavel ?? aluno.telefone_responsavel ?? null,
-        email_responsavel: aluno.emailResponsavel ?? aluno.email_responsavel ?? null,
-        parentesco: aluno.parentesco ?? null,
-        ano_letivo: aluno.anoLetivo ?? aluno.ano_letivo ?? null,
-        situacao: aluno.situacao ?? null
-      };
-
-      // 3. Insere no banco
-      const { data, error } = await supabase
-        .from('alunos')
-        .insert(payload)
-        .select('*')
-        .single();
-
-      if (error) {
-        console.error('❌ Erro ao inserir aluno:', error);
-        throw error;
-      }
-
-      console.log('✅ Aluno criado com sucesso!', data);
-      this.dispatchDataUpdated('alunos');
-      return withCamel(data) as Aluno;
-    } catch (error: any) {
-      console.error('❌ Erro em createAluno:', error);
-      
-      // Tratamento especial para erro de matrícula duplicada
-      if (error.code === '23505' && error.message.includes('matricula')) {
-        throw new Error('Erro ao gerar matrícula única. Tente novamente.');
-      }
-      
-      throw error;
-    }
-  }
-  // ===================================================
-
-  async updateAluno(id: number, updates: Partial<any>): Promise<Aluno | null> {
-    const payload: any = {};
-    if (updates.nome !== undefined) payload.nome = updates.nome;
-    if (updates.email !== undefined) payload.email = updates.email;
-    if (updates.turma_id !== undefined) payload.turma_id = updates.turma_id;
-    if (updates.turmaId !== undefined) payload.turma_id = updates.turmaId;
-    if (updates.data_nascimento !== undefined) payload.data_nascimento = updates.data_nascimento;
-    if (updates.dataNascimento !== undefined) payload.data_nascimento = updates.dataNascimento;
-    if (updates.cpf !== undefined) payload.cpf = updates.cpf;
-    if (updates.rg !== undefined) payload.rg = updates.rg;
-    if (updates.sexo !== undefined) payload.sexo = updates.sexo;
-    if (updates.contato !== undefined) payload.contato = updates.contato;
-    if (updates.observacoes !== undefined) payload.observacoes = updates.observacoes;
-    if (updates.endereco !== undefined) payload.endereco = updates.endereco;
-    if (updates.bairro !== undefined) payload.bairro = updates.bairro;
-    if (updates.cidade !== undefined) payload.cidade = updates.cidade;
-    if (updates.estado !== undefined) payload.estado = updates.estado;
-    if (updates.cep !== undefined) payload.cep = updates.cep;
-    if (updates.nomeResponsavel !== undefined) payload.nome_responsavel = updates.nomeResponsavel;
-    if (updates.nome_responsavel !== undefined) payload.nome_responsavel = updates.nome_responsavel;
-    if (updates.contatoResponsavel !== undefined) payload.telefone_responsavel = updates.contatoResponsavel;
-    if (updates.telefone_responsavel !== undefined) payload.telefone_responsavel = updates.telefone_responsavel;
-    if (updates.emailResponsavel !== undefined) payload.email_responsavel = updates.emailResponsavel;
-    if (updates.email_responsavel !== undefined) payload.email_responsavel = updates.email_responsavel;
-    if (updates.parentesco !== undefined) payload.parentesco = updates.parentesco;
-    if (updates.anoLetivo !== undefined) payload.ano_letivo = updates.anoLetivo;
-    if (updates.ano_letivo !== undefined) payload.ano_letivo = updates.ano_letivo;
-    if (updates.situacao !== undefined) payload.situacao = updates.situacao;
-    
-    payload.updated_at = nowIso();
-
-    const { data, error } = await supabase
-      .from('alunos')
-      .update(payload)
-      .eq('id', id)
-      .select('*')
-      .maybeSingle();
-
-    if (error) throw error;
-
-    this.dispatchDataUpdated('alunos');
-    return data ? (withCamel(data) as Aluno) : null;
-  }
-
-  async deleteAluno(id: number): Promise<void> {
-    const { error } = await supabase.from('alunos').delete().eq('id', id);
-    if (error) throw error;
-    this.dispatchDataUpdated('alunos');
-  }
-
-  async getDiarios(): Promise<Diario[]> {
-    const { data, error } = await supabase
-      .from('diarios')
-      .select('*')
-      .order('id', { ascending: true });
-
-    if (error) throw error;
-    return (data ?? []).map(withCamel) as Diario[];
-  }
-
-  async getDiariosByProfessor(professorId: number): Promise<Diario[]> {
-    const { data, error } = await supabase
-      .from('diarios')
-      .select('*')
-      .eq('professor_id', professorId)
-      .order('id', { ascending: true });
-
-    if (error) throw error;
-    return (data ?? []).map(withCamel) as Diario[];
-  }
-
-  async getDiarioById(id: number): Promise<Diario | null> {
-    const { data, error } = await supabase
-      .from('diarios')
-      .select('*')
-      .eq('id', id)
-      .maybeSingle();
-
-    if (error) throw error;
-    return data ? (withCamel(data) as Diario) : null;
-  }
-
-  async createDiario(diario: Omit<Diario, 'id' | 'created_at' | 'updated_at'>): Promise<Diario> {
-    const payload: any = {
-      nome: diario.nome,
-      disciplina_id: diario.disciplina_id ?? diario.disciplinaId,
-      turma_id: diario.turma_id ?? diario.turmaId,
-      professor_id: diario.professor_id ?? diario.professorId,
-      bimestre: diario.bimestre,
-      data_inicio: diario.data_inicio ?? diario.dataInicio,
-      data_termino: diario.data_termino ?? diario.dataTermino,
-      status: diario.status ?? 'PENDENTE',
-      solicitacao_devolucao: diario.solicitacao_devolucao ?? null,
-      historico_status: diario.historico_status ?? null
-    };
-
-    const { data, error } = await supabase
-      .from('diarios')
-      .insert(payload)
-      .select('*')
-      .single();
-
-    if (error) throw error;
-
-    this.dispatchDataUpdated('diarios');
-    return withCamel(data) as Diario;
-  }
-
-  async updateDiario(id: number, updates: Partial<Diario>): Promise<Diario | null> {
-    const payload: any = {};
-    if (updates.nome !== undefined) payload.nome = updates.nome;
-    if (updates.disciplina_id !== undefined) payload.disciplina_id = updates.disciplina_id;
-    if (updates.disciplinaId !== undefined) payload.disciplina_id = updates.disciplinaId;
-    if (updates.turma_id !== undefined) payload.turma_id = updates.turma_id;
-    if (updates.turmaId !== undefined) payload.turma_id = updates.turmaId;
-    if (updates.professor_id !== undefined) payload.professor_id = updates.professor_id;
-    if (updates.professorId !== undefined) payload.professor_id = updates.professorId;
-    if (updates.bimestre !== undefined) payload.bimestre = updates.bimestre;
-    if (updates.data_inicio !== undefined) payload.data_inicio = updates.data_inicio;
-    if (updates.dataInicio !== undefined) payload.data_inicio = updates.dataInicio;
-    if (updates.data_termino !== undefined) payload.data_termino = updates.data_termino;
-    if (updates.dataTermino !== undefined) payload.data_termino = updates.dataTermino;
-    if (updates.status !== undefined) payload.status = updates.status;
-    if (updates.solicitacao_devolucao !== undefined) payload.solicitacao_devolucao = updates.solicitacao_devolucao;
-    if (updates.historico_status !== undefined) payload.historico_status = updates.historico_status;
-
-    payload.updated_at = nowIso();
-
-    const { data, error } = await supabase
-      .from('diarios')
-      .update(payload)
-      .eq('id', id)
-      .select('*')
-      .maybeSingle();
-
-    if (error) throw error;
-
-    this.dispatchDataUpdated('diarios');
-    return data ? (withCamel(data) as Diario) : null;
-  }
-
-  async deleteDiario(id: number): Promise<void> {
-    const { error } = await supabase.from('diarios').delete().eq('id', id);
-    if (error) throw error;
-    this.dispatchDataUpdated('diarios');
-  }
-
-  async getAulasByDiario(diarioId: number): Promise<Aula[]> {
-    const { data, error } = await supabase
-      .from('aulas')
-      .select('*')
-      .eq('diario_id', diarioId)
-      .order('id', { ascending: true });
-
-    if (error) throw error;
-    return (data ?? []).map(withCamel) as Aula[];
-  }
-
-  async getDiarioStats(diarioId: number): Promise<{
-    alunosMatriculados: number;
-    aulasCount: number;
-  }> {
-    try {
-      const { data: vinculos, error: e1 } = await supabase
-        .from('diario_alunos')
-        .select('aluno_id')
-        .eq('diario_id', diarioId);
-
-      if (e1) throw e1;
-
-      const { data: aulas, error: e2 } = await supabase
-        .from('aulas')
-        .select('id')
-        .eq('diario_id', diarioId);
-
-      if (e2) throw e2;
-
-      return {
-        alunosMatriculados: (vinculos ?? []).length,
-        aulasCount: (aulas ?? []).length
-      };
-    } catch (error) {
-      console.error('Erro ao buscar estatísticas do diário:', error);
-      return {
-        alunosMatriculados: 0,
-        aulasCount: 0
-      };
-    }
-  }
-
-  async getDiariosWithStats(professorId: number): Promise<Array<Diario & { stats: { alunosMatriculados: number; aulasCount: number } }>> {
-    try {
-      const diarios = await this.getDiariosByProfessor(professorId);
-      
-      const diarioStats = await Promise.all(
-        diarios.map(async (diario) => ({
-          ...diario,
-          stats: await this.getDiarioStats(diario.id)
-        }))
-      );
-
-      return diarioStats;
-    } catch (error) {
-      console.error('Erro ao buscar diários com estatísticas:', error);
-      return [];
-    }
-  }
-
-  async createAula(aula: Omit<Aula, 'id' | 'created_at' | 'updated_at'>): Promise<Aula> {
-    const payload: any = {
-      diario_id: aula.diario_id ?? aula.diarioId,
-      data: aula.data,
-      hora_inicio: aula.hora_inicio ?? aula.horaInicio ?? null,
-      hora_fim: aula.hora_fim ?? aula.horaFim ?? null,
-      conteudo: aula.conteudo ?? null,
-      observacoes: aula.observacoes ?? null,
-      quantidade_aulas: aula.quantidade_aulas ?? aula.quantidadeAulas ?? 1,
-      tipo_aula: aula.tipo_aula ?? aula.tipoAula ?? 'Teórica',
-      aula_assincrona: aula.aula_assincrona ?? aula.aulaAssincrona ?? false,
-      conteudo_detalhado: aula.conteudo_detalhado ?? aula.conteudoDetalhado ?? null
-    };
-
-    const { data, error } = await supabase
-      .from('aulas')
-      .insert(payload)
-      .select('*')
-      .single();
-
-    if (error) throw error;
-
-    this.dispatchDataUpdated('aulas');
-    return withCamel(data) as Aula;
-  }
-
-  async updateAula(id: number, updates: Partial<Aula>): Promise<Aula | null> {
-    const payload: any = {};
-    if (updates.diario_id !== undefined) payload.diario_id = updates.diario_id;
-    if (updates.diarioId !== undefined) payload.diario_id = updates.diarioId;
-    if (updates.data !== undefined) payload.data = updates.data;
-    if (updates.hora_inicio !== undefined) payload.hora_inicio = updates.hora_inicio;
-    if (updates.horaInicio !== undefined) payload.hora_inicio = updates.horaInicio;
-    if (updates.hora_fim !== undefined) payload.hora_fim = updates.hora_fim;
-    if (updates.horaFim !== undefined) payload.hora_fim = updates.horaFim;
-    if (updates.conteudo !== undefined) payload.conteudo = updates.conteudo;
-    if (updates.observacoes !== undefined) payload.observacoes = updates.observacoes;
-    if (updates.quantidade_aulas !== undefined) payload.quantidade_aulas = updates.quantidade_aulas;
-    if (updates.quantidadeAulas !== undefined) payload.quantidade_aulas = updates.quantidadeAulas;
-    if (updates.tipo_aula !== undefined) payload.tipo_aula = updates.tipo_aula;
-    if (updates.tipoAula !== undefined) payload.tipo_aula = updates.tipoAula;
-    if (updates.aula_assincrona !== undefined) payload.aula_assincrona = updates.aula_assincrona;
-    if (updates.aulaAssincrona !== undefined) payload.aula_assincrona = updates.aulaAssincrona;
-    if (updates.conteudo_detalhado !== undefined) payload.conteudo_detalhado = updates.conteudo_detalhado;
-    if (updates.conteudoDetalhado !== undefined) payload.conteudo_detalhado = updates.conteudoDetalhado;
-
-    payload.updated_at = nowIso();
-
-    const { data, error } = await supabase
-      .from('aulas')
-      .update(payload)
-      .eq('id', id)
-      .select('*')
-      .maybeSingle();
-
-    if (error) throw error;
-
-    this.dispatchDataUpdated('aulas');
-    return data ? (withCamel(data) as Aula) : null;
-  }
-
-  async deleteAula(id: number): Promise<void> {
-    const { error } = await supabase.from('aulas').delete().eq('id', id);
-    if (error) throw error;
-    this.dispatchDataUpdated('aulas');
-  }
-
-  async getPresencasByAula(aulaId: number): Promise<Presenca[]> {
-    const { data, error } = await supabase
-      .from('presencas')
-      .select('*')
-      .eq('aula_id', aulaId)
-      .order('id', { ascending: true });
-
-    if (error) throw error;
-    return (data ?? []).map(withCamel) as Presenca[];
-  }
-
-  async getPresencasByAluno(alunoId: number): Promise<Presenca[]> {
-    const { data, error } = await supabase
-      .from('presencas')
-      .select('*')
-      .eq('aluno_id', alunoId)
-      .order('id', { ascending: true });
-
-    if (error) throw error;
-    return (data ?? []).map(withCamel) as Presenca[];
-  }
-
-  async savePresencas(presencas: Omit<Presenca, 'id'>[]): Promise<void> {
-    if (!presencas || presencas.length === 0) return;
-
-    try {
-      const aulaIds = Array.from(new Set(presencas.map(p => p.aula_id ?? p.aulaId).filter(Boolean)));
-
-      if (aulaIds.length > 0) {
-        const { error: delError } = await supabase
-          .from('presencas')
-          .delete()
-          .in('aula_id', aulaIds as number[]);
-
-        if (delError) {
-          console.error('Erro ao deletar presenças antigas:', delError);
-          throw delError;
-        }
-      }
-
-      const payload = presencas.map(p => ({
-        aula_id: p.aula_id ?? p.aulaId,
-        aluno_id: p.aluno_id ?? p.alunoId,
-        status: p.status,
-        aula_sequencia: p.aula_sequencia ?? 1
-      }));
-
-      const { error: insertError } = await supabase
-        .from('presencas')
-        .insert(payload);
-
-      if (insertError) {
-        console.error('Erro ao inserir presenças:', insertError);
-        console.error('Payload:', JSON.stringify(payload, null, 2));
-        throw insertError;
-      }
-
-      this.dispatchDataUpdated('presencas');
-    } catch (error) {
-      console.error('Erro em savePresencas:', error);
-      throw error;
-    }
-  }
-
-  async getAvaliacoesByDiario(diarioId: number): Promise<Avaliacao[]> {
-    const { data, error } = await supabase
-      .from('avaliacoes')
-      .select('*')
-      .eq('diario_id', diarioId)
-      .order('id', { ascending: true });
-
-    if (error) throw error;
-    return (data ?? []).map(withCamel) as Avaliacao[];
-  }
-
-  async createAvaliacao(
-    avaliacao: Omit<Avaliacao, 'id' | 'created_at' | 'updated_at'>
-  ): Promise<Avaliacao> {
-    const payload: any = {
-      diario_id: avaliacao.diario_id ?? avaliacao.diarioId,
-      titulo: avaliacao.titulo,
-      data: avaliacao.data,
-      tipo: avaliacao.tipo,
-      peso: avaliacao.peso,
-      bimestre: avaliacao.bimestre ?? null
-    };
-
-    const { data, error } = await supabase
-      .from('avaliacoes')
-      .insert(payload)
-      .select('*')
-      .single();
-
-    if (error) throw error;
-
-    this.dispatchDataUpdated('avaliacoes');
-    return withCamel(data) as Avaliacao;
-  }
-
-  async updateAvaliacao(id: number, updates: Partial<Avaliacao>): Promise<Avaliacao | null> {
-    const payload: any = {};
-    if (updates.diario_id !== undefined) payload.diario_id = updates.diario_id;
-    if (updates.diarioId !== undefined) payload.diario_id = updates.diarioId;
-    if (updates.titulo !== undefined) payload.titulo = updates.titulo;
-    if (updates.data !== undefined) payload.data = updates.data;
-    if (updates.tipo !== undefined) payload.tipo = updates.tipo;
-    if (updates.peso !== undefined) payload.peso = updates.peso;
-    if (updates.bimestre !== undefined) payload.bimestre = updates.bimestre;
-
-    payload.updated_at = nowIso();
-
-    const { data, error } = await supabase
-      .from('avaliacoes')
-      .update(payload)
-      .eq('id', id)
-      .select('*')
-      .maybeSingle();
-
-    if (error) throw error;
-
-    this.dispatchDataUpdated('avaliacoes');
-    return data ? (withCamel(data) as Avaliacao) : null;
-  }
-
-  async deleteAvaliacao(id: number): Promise<void> {
-    const { error } = await supabase.from('avaliacoes').delete().eq('id', id);
-    if (error) throw error;
-    this.dispatchDataUpdated('avaliacoes');
-  }
-
-  async getNotasByAvaliacao(avaliacaoId: number): Promise<Nota[]> {
-    const { data, error } = await supabase
-      .from('notas')
-      .select('*')
-      .eq('avaliacao_id', avaliacaoId)
-      .order('id', { ascending: true});
-
-    if (error) throw error;
-    return (data ?? []).map(withCamel) as Nota[];
-  }
-
-  async getNotasByAluno(alunoId: number): Promise<Nota[]> {
-    const { data, error } = await supabase
-      .from('notas')
-      .select('*')
-      .eq('aluno_id', alunoId)
-      .order('id', { ascending: true });
-
-    if (error) throw error;
-    return (data ?? []).map(withCamel) as Nota[];
-  }
-
-  async saveNotas(notas: Omit<Nota, 'id'>[]): Promise<void> {
-    if (!notas || notas.length === 0) return;
-
-    const avaliacaoIds = Array.from(
-      new Set(notas.map(n => n.avaliacao_id ?? n.avaliacaoId).filter(Boolean))
-    );
-
-    if (avaliacaoIds.length > 0) {
-      const { error: delError } = await supabase
-        .from('notas')
-        .delete()
-        .in('avaliacao_id', avaliacaoIds as number[]);
-
-      if (delError) throw delError;
+      .eq('aluno_id', user.alunoId);
+
+    if (daErr) throw daErr;
+
+    const diarioIds = Array.from(
+      new Set((diarioAlunosRows ?? []).map((r: any) => r.diario_id))
+    ).filter(Boolean) as number[];
+
+    if (diarioIds.length === 0) {
+      setDiarios([]);
+      setNotas([]);
+      setPresencas([]);
+      setAvaliacoes([]);
+      setOcorrencias([]);
+      setDisciplinas([]);
+      setAulas([]);
+      setBoletimCompleto([]);
+      return;
     }
 
-    const payload = notas.map(n => ({
-      avaliacao_id: n.avaliacao_id ?? n.avaliacaoId,
-      aluno_id: n.aluno_id ?? n.alunoId,
-      valor: n.valor
+    // 3) Diários
+    const { data: diariosRows, error: diariosErr } = await supabase
+      .from('diarios')
+      .select('*')
+      .in('id', diarioIds);
+
+    if (diariosErr) throw diariosErr;
+
+    // normaliza snake_case -> camelCase esperado pelo seu front
+    const diariosDoAluno: Diario[] = (diariosRows ?? []).map((d: any) => ({
+      ...d,
+      turmaId: d.turma_id ?? d.turmaId,
+      professorId: d.professor_id ?? d.professorId,
+      disciplinaId: d.disciplina_id ?? d.disciplinaId,
     }));
 
-    const { error } = await supabase.from('notas').insert(payload);
-    if (error) throw error;
+    setDiarios(diariosDoAluno);
 
-    this.dispatchDataUpdated('notas');
-  }
+    // 4) Disciplinas (para mostrar nome no boletim/avaliações)
+    const disciplinaIds = Array.from(
+      new Set(diariosDoAluno.map(d => d.disciplinaId).filter(Boolean))
+    ) as number[];
 
-  async getOcorrencias(): Promise<Ocorrencia[]> {
-    const { data, error } = await supabase
+    const { data: disciplinasRows, error: discErr } = await supabase
+      .from('disciplinas')
+      .select('*')
+      .in('id', disciplinaIds);
+
+    if (discErr) throw discErr;
+
+    const disciplinasData: Disciplina[] = (disciplinasRows ?? []).map((x: any) => ({
+      ...x,
+    }));
+
+    setDisciplinas(disciplinasData);
+
+    // 5) Notas do aluno
+    const { data: notasRows, error: notasErr } = await supabase
+      .from('notas')
+      .select('*')
+      .eq('aluno_id', user.alunoId);
+
+    if (notasErr) throw notasErr;
+
+    const notasAluno: Nota[] = (notasRows ?? []).map((n: any) => ({
+      ...n,
+      alunoId: n.aluno_id ?? n.alunoId,
+      avaliacaoId: n.avaliacao_id ?? n.avaliacaoId,
+    }));
+
+    setNotas(notasAluno);
+
+    // 6) Presenças do aluno
+    const { data: presRows, error: presErr } = await supabase
+      .from('presencas')
+      .select('*')
+      .eq('aluno_id', user.alunoId);
+
+    if (presErr) throw presErr;
+
+    const presencasAluno: Presenca[] = (presRows ?? []).map((p: any) => ({
+      ...p,
+      alunoId: p.aluno_id ?? p.alunoId,
+      aulaId: p.aula_id ?? p.aulaId,
+    }));
+
+    setPresencas(presencasAluno);
+
+    // 7) Avaliações (de todos os diários do aluno)
+    const { data: avRows, error: avErr } = await supabase
+      .from('avaliacoes')
+      .select('*')
+      .in('diario_id', diarioIds);
+
+    if (avErr) throw avErr;
+
+    const todasAvaliacoes: Avaliacao[] = (avRows ?? []).map((a: any) => ({
+      ...a,
+      diarioId: a.diario_id ?? a.diarioId,
+    }));
+
+    setAvaliacoes(todasAvaliacoes);
+
+    // 8) Aulas (para cálculo de frequência por diário)
+    const { data: aulasRows, error: aulasErr } = await supabase
+      .from('aulas')
+      .select('*')
+      .in('diario_id', diarioIds);
+
+    if (aulasErr) throw aulasErr;
+
+    const aulasData: Aula[] = (aulasRows ?? []).map((a: any) => ({
+      ...a,
+      diarioId: a.diario_id ?? a.diarioId,
+      professorId: a.professor_id ?? a.professorId,
+    }));
+
+    setAulas(aulasData);
+
+    // 9) Ocorrências
+    const { data: ocRows, error: ocErr } = await supabase
       .from('ocorrencias')
       .select('*')
-      .order('id', { ascending: false });
+      .eq('aluno_id', user.alunoId);
 
-    if (error) throw error;
-    return (data ?? []).map(withCamel) as Ocorrencia[];
-  }
+    if (ocErr) throw ocErr;
 
-  async getOcorrenciasByAluno(alunoId: number): Promise<Ocorrencia[]> {
-    const { data, error } = await supabase
-      .from('ocorrencias')
-      .select('*')
-      .eq('aluno_id', alunoId)
-      .order('id', { ascending: false });
+    const ocorrenciasDoAluno: Ocorrencia[] = (ocRows ?? []).map((o: any) => ({
+      ...o,
+      alunoId: o.aluno_id ?? o.alunoId,
+    }));
 
-    if (error) throw error;
-    return (data ?? []).map(withCamel) as Ocorrencia[];
-  }
+    setOcorrencias(ocorrenciasDoAluno);
 
-  async createOcorrencia(
-    ocorrencia: Omit<Ocorrencia, 'id' | 'created_at' | 'updated_at'>
-  ): Promise<Ocorrencia> {
-    const payload: any = {
-      aluno_id: ocorrencia.aluno_id ?? ocorrencia.alunoId,
-      diario_id: ocorrencia.diario_id ?? ocorrencia.diarioId ?? null,
-      tipo: ocorrencia.tipo,
-      data: ocorrencia.data,
-      descricao: ocorrencia.descricao,
-      acao_tomada: ocorrencia.acao_tomada ?? ocorrencia.acaoTomada ?? null
-    };
+    // 10) Monta boletim
+    const boletim: DisciplinaBoletim[] = [];
 
-    const { data, error } = await supabase
-      .from('ocorrencias')
-      .insert(payload)
-      .select('*')
-      .single();
+    diariosDoAluno.forEach((diario) => {
+      const disciplina = disciplinasData.find(d => d.id === diario.disciplinaId);
+      if (!disciplina) return;
 
-    if (error) throw error;
+      const avaliacoesDisciplina = todasAvaliacoes.filter(av => av.diarioId === diario.id);
+      const notasPorBimestre: Record<string, number | null> = {
+        bim1: null, bim2: null, bim3: null, bim4: null
+      };
 
-    this.dispatchDataUpdated('ocorrencias');
-    return withCamel(data) as Ocorrencia;
-  }
+      // média ponderada final
+      const notasValidas = avaliacoesDisciplina
+        .map(av => {
+          const nota = notasAluno.find(n => n.avaliacaoId === av.id);
+          return nota ? { valor: nota.valor, peso: av.peso ?? 1 } : null;
+        })
+        .filter(Boolean) as Array<{ valor: number; peso: number }>;
 
-  async updateOcorrencia(id: number, updates: Partial<Ocorrencia>): Promise<Ocorrencia | null> {
-    const payload: any = {};
-    if (updates.aluno_id !== undefined) payload.aluno_id = updates.aluno_id;
-    if (updates.alunoId !== undefined) payload.aluno_id = updates.alunoId;
-    if (updates.diario_id !== undefined) payload.diario_id = updates.diario_id;
-    if (updates.diarioId !== undefined) payload.diario_id = updates.diarioId;
-    if (updates.data !== undefined) payload.data = updates.data;
-    if (updates.tipo !== undefined) payload.tipo = updates.tipo;
-    if (updates.descricao !== undefined) payload.descricao = updates.descricao;
-    if (updates.acao_tomada !== undefined) payload.acao_tomada = updates.acao_tomada;
-    if (updates.acaoTomada !== undefined) payload.acao_tomada = updates.acaoTomada;
+      const somaPesos = notasValidas.reduce((s, x) => s + (x.peso || 1), 0);
+      const somaPonderada = notasValidas.reduce((s, x) => s + x.valor * (x.peso || 1), 0);
+      const mediaFinal = somaPesos > 0 ? Number((somaPonderada / somaPesos).toFixed(1)) : 0;
 
-    payload.updated_at = nowIso();
+      // médias por bimestre (simples)
+      [1, 2, 3, 4].forEach((bimestre) => {
+        const avBim = avaliacoesDisciplina.filter(av => av.bimestre === bimestre);
+        if (avBim.length === 0) return;
 
-    const { data, error } = await supabase
-      .from('ocorrencias')
-      .update(payload)
-      .eq('id', id)
-      .select('*')
-      .maybeSingle();
+        const notasBim = avBim
+          .map(av => notasAluno.find(n => n.avaliacaoId === av.id))
+          .filter(Boolean) as Nota[];
 
-    if (error) throw error;
+        if (notasBim.length === 0) return;
 
-    this.dispatchDataUpdated('ocorrencias');
-    return data ? (withCamel(data) as Ocorrencia) : null;
-  }
+        const mediaBim = notasBim.reduce((s, n) => s + n.valor, 0) / notasBim.length;
+        notasPorBimestre[`bim${bimestre}`] = Number(mediaBim.toFixed(1));
+      });
 
-  async deleteOcorrencia(id: number): Promise<void> {
-    const { error } = await supabase.from('ocorrencias').delete().eq('id', id);
-    if (error) throw error;
-    this.dispatchDataUpdated('ocorrencias');
-  }
+      // frequência
+      const aulasDoDiario = aulasData.filter(a => a.diarioId === diario.id);
+      const totalAulas = aulasDoDiario.length;
 
-  async getComunicados(): Promise<Comunicado[]> {
-    const { data, error } = await supabase
-      .from('comunicados')
-      .select('*')
-      .order('id', { ascending: false });
-
-    if (error) throw error;
-    return (data ?? []).map(withCamel) as Comunicado[];
-  }
-
-  async createComunicado(
-    comunicado: Omit<Comunicado, 'id' | 'created_at' | 'updated_at'>
-  ): Promise<Comunicado> {
-    const payload: any = {
-      titulo: comunicado.titulo,
-      mensagem: comunicado.mensagem,
-      autor: comunicado.autor ?? null,
-      autor_id: comunicado.autor_id ?? comunicado.autorId ?? 1,
-      data_publicacao: comunicado.data_publicacao ?? comunicado.dataPublicacao ?? new Date().toISOString().split('T')[0]
-    };
-
-    const { data, error } = await supabase
-      .from('comunicados')
-      .insert(payload)
-      .select('*')
-      .single();
-
-    if (error) throw error;
-
-    this.dispatchDataUpdated('comunicados');
-    return withCamel(data) as Comunicado;
-  }
-
-  async updateComunicado(id: number, updates: Partial<Comunicado>): Promise<Comunicado | null> {
-    const payload: any = {};
-    if (updates.titulo !== undefined) payload.titulo = updates.titulo;
-    if (updates.mensagem !== undefined) payload.mensagem = updates.mensagem;
-    if (updates.autor !== undefined) payload.autor = updates.autor;
-    if (updates.autor_id !== undefined) payload.autor_id = updates.autor_id;
-    if (updates.autorId !== undefined) payload.autor_id = updates.autorId;
-    if (updates.data_publicacao !== undefined) payload.data_publicacao = updates.data_publicacao;
-    if (updates.dataPublicacao !== undefined) payload.data_publicacao = updates.dataPublicacao;
-
-    payload.updated_at = nowIso();
-
-    const { data, error } = await supabase
-      .from('comunicados')
-      .update(payload)
-      .eq('id', id)
-      .select('*')
-      .maybeSingle();
-
-    if (error) throw error;
-
-    this.dispatchDataUpdated('comunicados');
-    return data ? (withCamel(data) as Comunicado) : null;
-  }
-
-  async deleteComunicado(id: number): Promise<void> {
-    const { error } = await supabase.from('comunicados').delete().eq('id', id);
-    if (error) throw error;
-    this.dispatchDataUpdated('comunicados');
-  }
-
-  async getRecados(): Promise<Recado[]> {
-    const { data, error } = await supabase
-      .from('recados')
-      .select('*')
-      .order('id', { ascending: false });
-
-    if (error) throw error;
-    return (data ?? []).map(withCamel) as Recado[];
-  }
-
-  async getRecadosByProfessor(professorId: number): Promise<Recado[]> {
-    const { data, error } = await supabase
-      .from('recados')
-      .select('*')
-      .eq('professor_id', professorId)
-      .order('id', { ascending: false });
-
-    if (error) throw error;
-    return (data ?? []).map(withCamel) as Recado[];
-  }
-
-  async getRecadosByTurma(turmaId: number): Promise<Recado[]> {
-    const { data, error } = await supabase
-      .from('recados')
-      .select('*')
-      .eq('turma_id', turmaId)
-      .order('id', { ascending: false });
-
-    if (error) throw error;
-    return (data ?? []).map(withCamel) as Recado[];
-  }
-
-  async getRecadosByAluno(alunoId: number): Promise<Recado[]> {
-    const { data, error } = await supabase
-      .from('recados')
-      .select('*')
-      .eq('aluno_id', alunoId)
-      .order('id', { ascending: false });
-
-    if (error) throw error;
-    return (data ?? []).map(withCamel) as Recado[];
-  }
-
-  async createRecado(
-    recado: Omit<Recado, 'id' | 'created_at' | 'updated_at'>
-  ): Promise<Recado> {
-    // Validar e converter alunoId - FIX para recados geral
-    const alunoIdFinal = sanitizeAlunoId(recado.aluno_id ?? recado.alunoId);
-
-    const payload: any = {
-      titulo: recado.titulo,
-      mensagem: recado.mensagem,
-      professor_id: recado.professor_id ?? recado.professorId,
-      professor_nome: recado.professor_nome ?? recado.professorNome ?? '',
-      turma_id: recado.turma_id ?? recado.turmaId,
-      turma_nome: recado.turma_nome ?? recado.turmaNome ?? '',
-      aluno_id: alunoIdFinal,
-      aluno_nome: alunoIdFinal ? (recado.aluno_nome ?? recado.alunoNome ?? null) : null,
-      data_envio: recado.data_envio ?? recado.dataEnvio ?? new Date().toISOString().split('T')[0]
-    };
-
-    const { data, error } = await supabase
-      .from('recados')
-      .insert(payload)
-      .select('*')
-      .single();
-
-    if (error) throw error;
-
-    window.dispatchEvent(new CustomEvent('recadoCreated', { detail: withCamel(data) }));
-    this.dispatchDataUpdated('recados');
-    return withCamel(data) as Recado;
-  }
-
-  async updateRecado(id: number, updates: Partial<Recado>): Promise<Recado | null> {
-    const payload: any = {};
-    if (updates.titulo !== undefined) payload.titulo = updates.titulo;
-    if (updates.mensagem !== undefined) payload.mensagem = updates.mensagem;
-
-    if (updates.professor_id !== undefined) payload.professor_id = updates.professor_id;
-    if (updates.professorId !== undefined) payload.professor_id = updates.professorId;
-
-    if (updates.professor_nome !== undefined) payload.professor_nome = updates.professor_nome;
-    if (updates.professorNome !== undefined) payload.professor_nome = updates.professorNome;
-
-    if (updates.turma_id !== undefined) payload.turma_id = updates.turma_id;
-    if (updates.turmaId !== undefined) payload.turma_id = updates.turmaId;
-
-    if (updates.turma_nome !== undefined) payload.turma_nome = updates.turma_nome;
-    if (updates.turmaNome !== undefined) payload.turma_nome = updates.turmaNome;
-
-    // Validar e converter alunoId - FIX para recados geral
-    if (updates.aluno_id !== undefined || updates.alunoId !== undefined) {
-      const alunoIdFinal = sanitizeAlunoId(updates.aluno_id ?? updates.alunoId);
-      payload.aluno_id = alunoIdFinal;
-      payload.aluno_nome = alunoIdFinal ? (updates.aluno_nome ?? updates.alunoNome ?? null) : null;
-    }
-
-    if (updates.aluno_nome !== undefined) payload.aluno_nome = updates.aluno_nome;
-    if (updates.alunoNome !== undefined) payload.aluno_nome = updates.alunoNome;
-
-    if (updates.data_envio !== undefined) payload.data_envio = updates.data_envio;
-    if (updates.dataEnvio !== undefined) payload.data_envio = updates.dataEnvio;
-
-    payload.updated_at = nowIso();
-
-    const { data, error } = await supabase
-      .from('recados')
-      .update(payload)
-      .eq('id', id)
-      .select('*')
-      .maybeSingle();
-
-    if (error) throw error;
-
-    if (data) {
-      window.dispatchEvent(new CustomEvent('recadoUpdated', { detail: withCamel(data) }));
-    }
-
-    this.dispatchDataUpdated('recados');
-    return data ? (withCamel(data) as Recado) : null;
-  }
-
-  async deleteRecado(id: number): Promise<boolean> {
-    const { error } = await supabase.from('recados').delete().eq('id', id);
-    if (error) throw error;
-
-    window.dispatchEvent(new CustomEvent('recadoDeleted', { detail: { id } }));
-    this.dispatchDataUpdated('recados');
-    return true;
-  }
-
-  async calcularMediaAluno(diarioId: number, alunoId: number): Promise<number> {
-    const avaliacoes = await this.getAvaliacoesByDiario(diarioId);
-    if (!avaliacoes.length) return 0;
-
-    const notasAluno = await this.getNotasByAluno(alunoId);
-
-    let somaPesos = 0;
-    let somaPonderada = 0;
-
-    for (const av of avaliacoes) {
-      const nota = notasAluno.find(n => (n.avaliacao_id ?? n.avaliacaoId) === av.id);
-      if (!nota) continue;
-
-      const peso = av.peso ?? 1;
-      somaPesos += peso;
-      somaPonderada += (nota.valor ?? 0) * peso;
-    }
-
-    if (somaPesos === 0) return 0;
-    return Number((somaPonderada / somaPesos).toFixed(2));
-  }
-
-  async vincularAlunoAoDiario(diarioId: number, alunoId: number): Promise<DiarioAluno> {
-    const payload = { diario_id: diarioId, aluno_id: alunoId };
-
-    const { data, error } = await supabase
-      .from('diario_alunos')
-      .insert(payload)
-      .select('*')
-      .single();
-
-    if (error) throw error;
-
-    this.dispatchDataUpdated('diario_alunos');
-    return withCamel(data) as DiarioAluno;
-  }
-
-  async desvincularAlunoDoDiario(diarioId: number, alunoId: number): Promise<void> {
-    const { error } = await supabase
-      .from('diario_alunos')
-      .delete()
-      .eq('diario_id', diarioId)
-      .eq('aluno_id', alunoId);
-
-    if (error) throw error;
-
-    this.dispatchDataUpdated('diario_alunos');
-  }
-
-  async getDiarioAlunos(): Promise<DiarioAluno[]> {
-    const { data, error } = await supabase
-      .from('diario_alunos')
-      .select('*')
-      .order('id', { ascending: true });
-
-    if (error) throw error;
-    return (data ?? []).map(withCamel) as DiarioAluno[];
-  }
-
-  async getProfessoresByDisciplina(disciplinaId: number): Promise<number[]> {
-    const { data, error } = await supabase
-      .from('professor_disciplinas')
-      .select('professor_id')
-      .eq('disciplina_id', disciplinaId);
-
-    if (error) throw error;
-
-    const ids = (data ?? []).map((row: any) => row.professor_id).filter((id: any) => id !== null && id !== undefined);
-    return ids as number[];
-  }
-
-  private pushHistoricoStatus(diario: Diario, novoStatus: Diario['status'], motivo?: string) {
-    const historico = Array.isArray(diario.historico_status) ? [...diario.historico_status] : [];
-    historico.push({
-      status: novoStatus,
-      motivo: motivo ?? null,
-      at: nowIso()
-    });
-    return historico;
-  }
-
-  async entregarDiario(diarioId: number): Promise<Diario | null> {
-    const diario = await this.getDiarioById(diarioId);
-    if (!diario) return null;
-
-    const historico_status = this.pushHistoricoStatus(diario, 'ENTREGUE');
-    return await this.updateDiario(diarioId, { status: 'ENTREGUE', historico_status });
-  }
-
-  async devolverDiario(diarioId: number, usuarioId: number, motivo?: string): Promise<boolean> {
-    const diario = await this.getDiarioById(diarioId);
-    if (!diario) return false;
-
-    const historico_status = this.pushHistoricoStatus(diario, 'DEVOLVIDO', motivo);
-    const resultado = await this.updateDiario(diarioId, {
-      status: 'DEVOLVIDO',
-      historico_status,
-      solicitacao_devolucao: { comentario: motivo ?? 'Devolvido para revisão', dataSolicitacao: nowIso() }
-    });
-    return resultado !== null;
-  }
-
-  async finalizarDiario(diarioId: number, usuarioId: number): Promise<boolean> {
-    const diario = await this.getDiarioById(diarioId);
-    if (!diario) return false;
-
-    const historico_status = this.pushHistoricoStatus(diario, 'FINALIZADO');
-    const resultado = await this.updateDiario(diarioId, { status: 'FINALIZADO', historico_status });
-    return resultado !== null;
-  }
-
-  async solicitarDevolucaoDiario(diarioId: number, motivo: string): Promise<Diario | null> {
-    const diario = await this.getDiarioById(diarioId);
-    if (!diario) return null;
-
-    return await this.updateDiario(diarioId, {
-      solicitacao_devolucao: { motivo, at: nowIso() }
-    });
-  }
-
-  professorPodeEditarDiario(diario: Diario, professorId: number): boolean {
-    const pid = diario.professor_id ?? diario.professorId;
-    if (pid !== professorId) return false;
-    return diario.status === 'PENDENTE' || diario.status === 'DEVOLVIDO';
-  }
-
-  coordenadorPodeGerenciarDiario(diario: Diario): boolean {
-    return true;
-  }
-
-  async getVinculosProfessorDisciplina(): Promise<Array<{ professor_id: number; disciplina_id: number }>> {
-    const { data, error } = await supabase
-      .from('professor_disciplinas')
-      .select('professor_id, disciplina_id')
-      .order('professor_id', { ascending: true });
-
-    if (error) throw error;
-    return (data ?? []) as Array<{ professor_id: number; disciplina_id: number }>;
-  }
-
-  async vincularProfessorDisciplina(professorId: number, disciplinaId: number): Promise<void> {
-    const payload = {
-      professor_id: professorId,
-      disciplina_id: disciplinaId
-    };
-
-    const { error } = await supabase
-      .from('professor_disciplinas')
-      .insert(payload);
-
-    if (error) throw error;
-    this.dispatchDataUpdated('professor_disciplinas');
-  }
-
-  async desvincularProfessorDisciplina(professorId: number, disciplinaId: number): Promise<void> {
-    const { error } = await supabase
-      .from('professor_disciplinas')
-      .delete()
-      .eq('professor_id', professorId)
-      .eq('disciplina_id', disciplinaId);
-
-    if (error) throw error;
-    this.dispatchDataUpdated('professor_disciplinas');
-  }
-
-  async getDisciplinasByProfessor(professorId: number): Promise<number[]> {
-    const { data, error } = await supabase
-      .from('professor_disciplinas')
-      .select('disciplina_id')
-      .eq('professor_id', professorId);
-
-    if (error) throw error;
-    return (data ?? []).map((row: any) => row.disciplina_id);
-  }
-
-  async getBoletimAluno(diarioId: number, alunoId: number): Promise<{
-    mediaGeral: number;
-    frequencia: number;
-    situacao: string;
-    totalAulas: number;
-    presencas: number;
-    faltas: number;
-    notas: Array<{
-      avaliacaoId: number;
-      avaliacaoTitulo: string;
-      avaliacaoTipo: string;
-      avaliacaoData: string;
-      nota: number;
-      peso: number;
-    }>;
-  }> {
-    try {
-      const avaliacoes = await this.getAvaliacoesByDiario(diarioId);
-      const todasNotas = await this.getNotasByAluno(alunoId);
-      const notasDoDiario = todasNotas.filter(n => 
-        avaliacoes.some(av => av.id === (n.avaliacao_id ?? n.avaliacaoId))
+      const presencasDaDisciplina = presencasAluno.filter(p =>
+        aulasDoDiario.some(a => a.id === p.aulaId)
       );
 
-      let somaPesos = 0;
-      let somaPonderada = 0;
-      const notasDetalhadas = [];
+      const presentes = presencasDaDisciplina.filter(p => p.status === 'PRESENTE').length;
+      const faltas = presencasDaDisciplina.filter(p => p.status === 'FALTA').length;
+      const frequencia = totalAulas > 0 ? (presentes / totalAulas) * 100 : 0;
 
-      for (const av of avaliacoes) {
-        const nota = notasDoDiario.find(n => (n.avaliacao_id ?? n.avaliacaoId) === av.id);
-        const peso = av.peso ?? 1;
-        
-        if (nota) {
-          somaPesos += peso;
-          somaPonderada += (nota.valor ?? 0) * peso;
-          
-          notasDetalhadas.push({
-            avaliacaoId: av.id,
-            avaliacaoTitulo: av.titulo,
-            avaliacaoTipo: av.tipo,
-            avaliacaoData: av.data,
-            nota: nota.valor ?? 0,
-            peso: peso
-          });
-        }
+      // situação
+      let situacao = 'Em Andamento';
+      if (mediaFinal > 0) {
+        if (mediaFinal >= 7 && frequencia >= 75) situacao = 'Aprovado';
+        else if (mediaFinal >= 5 && mediaFinal < 7) situacao = 'Recuperação';
+        else if (mediaFinal < 5 || frequencia < 60) situacao = 'Reprovado';
       }
 
-      const mediaGeral = somaPesos > 0 ? Number((somaPonderada / somaPesos).toFixed(2)) : 0;
-
-      const aulas = await this.getAulasByDiario(diarioId);
-      const aulaIds = aulas.map(a => a.id);
-      
-      const { data: presencasData, error } = await supabase
-        .from('presencas')
-        .select('*')
-        .in('aula_id', aulaIds)
-        .eq('aluno_id', alunoId);
-
-      if (error) throw error;
-
-      const presencas = (presencasData ?? []).filter(p => p.status === 'PRESENTE').length;
-      const faltas = (presencasData ?? []).filter(p => p.status === 'FALTA').length;
-      const totalAulas = aulas.length;
-      const frequencia = totalAulas > 0 ? Number(((presencas / totalAulas) * 100).toFixed(1)) : 0;
-
-      let situacao = 'Em Análise';
-      
-      if (mediaGeral > 0) {
-        if (frequencia < 75) {
-          situacao = 'Reprovado';
-        } else if (mediaGeral >= 6.0) {
-          situacao = 'Aprovado';
-        } else if (mediaGeral >= 5.0) {
-          situacao = 'Recuperação';
-        } else {
-          situacao = 'Reprovado';
-        }
-      }
-
-      return {
-        mediaGeral,
+      boletim.push({
+        disciplina: disciplina.nome,
+        bimestre1: notasPorBimestre.bim1,
+        bimestre2: notasPorBimestre.bim2,
+        bimestre3: notasPorBimestre.bim3,
+        bimestre4: notasPorBimestre.bim4,
+        mediaFinal,
         frequencia,
         situacao,
         totalAulas,
-        presencas,
+        presencas: presentes,
         faltas,
-        notas: notasDetalhadas
-      };
-    } catch (error) {
-      console.error('Erro ao buscar boletim do aluno:', error);
-      return {
-        mediaGeral: 0,
-        frequencia: 0,
-        situacao: 'Sem Dados',
-        totalAulas: 0,
-        presencas: 0,
-        faltas: 0,
-        notas: []
-      };
-    }
-  }
-}
+      });
+    });
 
-export { AlunoPage };
+    setBoletimCompleto(boletim);
+
+    console.log('📊 Dados carregados (Supabase):', {
+      diarios: diariosDoAluno.length,
+      disciplinas: disciplinasData.length,
+      notas: notasAluno.length,
+      presencas: presencasAluno.length,
+      avaliacoes: todasAvaliacoes.length,
+      ocorrencias: ocorrenciasDoAluno.length,
+      aulas: aulasData.length,
+      boletim: boletim.length
+    });
+  } catch (error) {
+    console.error('Erro ao carregar dados do aluno (Supabase):', error);
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+  const calcularMedia = (diarioId: number): number => {
+  const avaliacoesDiario = avaliacoes.filter(a => a.diarioId === diarioId);
+  if (avaliacoesDiario.length === 0) return 0;
+
+  const notasValidas = avaliacoesDiario
+    .map(av => {
+      const n = notas.find(x => x.avaliacaoId === av.id);
+      return n ? { valor: n.valor, peso: av.peso ?? 1 } : null;
+    })
+    .filter(Boolean) as Array<{ valor: number; peso: number }>;
+
+  const somaPesos = notasValidas.reduce((s, x) => s + (x.peso || 1), 0);
+  const somaPonderada = notasValidas.reduce((s, x) => s + x.valor * (x.peso || 1), 0);
+
+  return somaPesos > 0 ? Number((somaPonderada / somaPesos).toFixed(1)) : 0;
+};
+
+const calcularFrequencia = (diarioId: number): number => {
+  const aulasDoDiario = aulas.filter(a => a.diarioId === diarioId);
+  const totalAulas = aulasDoDiario.length;
+  if (totalAulas === 0) return 100;
+
+  const presencasDoDiario = presencas.filter(p =>
+    aulasDoDiario.some(a => a.id === p.aulaId)
+  );
+
+  const presentes = presencasDoDiario.filter(p => p.status === 'PRESENTE').length;
+  return (presentes / totalAulas) * 100;
+};
+
+
+  const getMediaColor = (media: number) => {
+    if (media >= 7) return 'text-green-600';
+    if (media >= 5) return 'text-yellow-600';
+    return 'text-red-600';
+  };
+
+  const getFrequenciaColor = (freq: number) => {
+    if (freq >= 75) return 'text-green-600';
+    if (freq >= 60) return 'text-yellow-600';
+    return 'text-red-600';
+  };
+
+  const getSituacaoVariant = (situacao: string) => {
+    if (situacao === 'Aprovado') return 'default';
+    if (situacao === 'Recuperação') return 'secondary';
+    if (situacao === 'Reprovado') return 'destructive';
+    return 'outline';
+  };
+
+  const getOcorrenciaColor = (tipo: string) => {
+    if (tipo === 'disciplinar') return 'destructive';
+    if (tipo === 'pedagogica') return 'secondary';
+    return 'default';
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('pt-BR');
+  };
+
+  const tabsConfig = [
+    { id: 'avisos', label: 'Avisos', icon: Bell },
+    { id: 'boletim', label: 'Boletim', icon: BarChart3 },
+    { id: 'frequencia', label: 'Frequência', icon: ClipboardList },
+    { id: 'avaliacoes', label: 'Avaliações', icon: BookOpen },
+    { id: 'ocorrencias', label: 'Ocorrências', icon: AlertCircle }
+  ];
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-sm text-muted-foreground">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!aluno) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <header className="sticky top-0 z-50 border-b bg-card px-6 py-4 flex-shrink-0 h-20 flex items-center">
+          <div className="flex items-center justify-between w-full">
+            <div className="flex items-center gap-4">
+              <User className="h-8 w-8 text-primary" />
+              <div>
+                <h1 className="text-xl font-semibold text-foreground">
+                  Área do Aluno
+                </h1>
+              </div>
+            </div>
+            <AuthHeader />
+          </div>
+        </header>
+        <div className="flex-1 flex items-center justify-center">
+          <Card className="max-w-md mx-auto">
+            <CardHeader className="text-center">
+              <CardTitle className="text-xl font-semibold">Dados não encontrados</CardTitle>
+              <CardDescription className="text-sm">
+                Não foi possível carregar os dados do aluno. Entre em contato com a secretaria.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  const mediaGeral = boletimCompleto.length > 0 
+    ? boletimCompleto.reduce((sum, item) => sum + item.mediaFinal, 0) / boletimCompleto.length 
+    : 0;
+  
+  const frequenciaGeral = boletimCompleto.length > 0 
+    ? boletimCompleto.reduce((sum, item) => sum + item.frequencia, 0) / boletimCompleto.length 
+    : 0;
+
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'avisos':
+        return <AvisosTab />;
+      
+      case 'boletim':
+        return (
+          <div className="space-y-6">
+            <div className="grid gap-4 md:grid-cols-3">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Média Geral</CardTitle>
+                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className={`text-2xl font-bold ${getMediaColor(mediaGeral)}`}>
+                    {mediaGeral.toFixed(1)}
+                  </div>
+                  <Progress value={(mediaGeral / 10) * 100} className="mt-2" />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Frequência Geral</CardTitle>
+                  <ClipboardList className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className={`text-2xl font-bold ${getFrequenciaColor(frequenciaGeral)}`}>
+                    {frequenciaGeral.toFixed(1)}%
+                  </div>
+                  <Progress value={frequenciaGeral} className="mt-2" />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Disciplinas</CardTitle>
+                  <BookOpen className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{boletimCompleto.length}</div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {boletimCompleto.filter(d => d.situacao === 'Aprovado').length} aprovadas
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Boletim Completo - {new Date().getFullYear()}</CardTitle>
+                <CardDescription>
+                  Notas e desempenho por disciplina
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left py-3 px-4 font-medium">Disciplina</th>
+                        <th className="text-center py-3 px-4 font-medium">1º Bim</th>
+                        <th className="text-center py-3 px-4 font-medium">2º Bim</th>
+                        <th className="text-center py-3 px-4 font-medium">3º Bim</th>
+                        <th className="text-center py-3 px-4 font-medium">4º Bim</th>
+                        <th className="text-center py-3 px-4 font-medium">Média</th>
+                        <th className="text-center py-3 px-4 font-medium">Freq.</th>
+                        <th className="text-center py-3 px-4 font-medium">Situação</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {boletimCompleto.map((item, index) => (
+                        <tr key={index} className="border-b hover:bg-muted/50">
+                          <td className="py-3 px-4 font-medium">{item.disciplina}</td>
+                          <td className="text-center py-3 px-4">
+                            {item.bimestre1 !== null ? item.bimestre1.toFixed(1) : '-'}
+                          </td>
+                          <td className="text-center py-3 px-4">
+                            {item.bimestre2 !== null ? item.bimestre2.toFixed(1) : '-'}
+                          </td>
+                          <td className="text-center py-3 px-4">
+                            {item.bimestre3 !== null ? item.bimestre3.toFixed(1) : '-'}
+                          </td>
+                          <td className="text-center py-3 px-4">
+                            {item.bimestre4 !== null ? item.bimestre4.toFixed(1) : '-'}
+                          </td>
+                          <td className={`text-center py-3 px-4 font-bold ${getMediaColor(item.mediaFinal)}`}>
+                            {item.mediaFinal > 0 ? item.mediaFinal.toFixed(1) : '-'}
+                          </td>
+                          <td className={`text-center py-3 px-4 ${getFrequenciaColor(item.frequencia)}`}>
+                            {item.frequencia.toFixed(0)}%
+                          </td>
+                          <td className="text-center py-3 px-4">
+                            <Badge variant={getSituacaoVariant(item.situacao)}>
+                              {item.situacao}
+                            </Badge>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        );
+
+      case 'frequencia':
+        return (
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Frequência por Disciplina</CardTitle>
+                <CardDescription>
+                  Acompanhe suas presenças e faltas
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {boletimCompleto.map((item, index) => (
+                    <div key={index} className="border rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          <h3 className="font-medium">{item.disciplina}</h3>
+                          <p className="text-sm text-muted-foreground">
+                            {item.totalAulas} aulas ministradas
+                          </p>
+                        </div>
+                        <Badge variant={item.frequencia >= 75 ? 'default' : 'destructive'}>
+                          {item.frequencia.toFixed(1)}%
+                        </Badge>
+                      </div>
+                      <div className="space-y-2">
+                        <Progress value={item.frequencia} className="h-2" />
+                        <div className="flex justify-between text-sm">
+                          <span className="text-green-600">
+                            ✓ {item.presencas} presenças
+                          </span>
+                          <span className="text-red-600">
+                            ✗ {item.faltas} faltas
+                          </span>
+                        </div>
+                      </div>
+                      {item.frequencia < 75 && (
+                        <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-800">
+                          <AlertCircle className="h-4 w-4 inline mr-1" />
+                          Atenção: Frequência abaixo do mínimo (75%)
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        );
+
+      case 'avaliacoes':
+        return (
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Próximas Avaliações</CardTitle>
+                <CardDescription>
+                  Provas e trabalhos agendados
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {avaliacoes.length === 0 ? (
+                  <p className="text-center py-8 text-muted-foreground">
+                    Nenhuma avaliação cadastrada
+                  </p>
+                ) : (
+                  <div className="space-y-4">
+                    {avaliacoes
+                      .sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime())
+                      .map((avaliacao) => {
+                        const diario = diarios.find(d => d.id === avaliacao.diarioId);
+                        const disciplina = diario ? disciplinas.find(d => d.id === diario.disciplinaId) : null;
+
+                        const nota = notas.find(n => n.avaliacaoId === avaliacao.id);
+
+                        return (
+                          <div key={avaliacao.id} className="border rounded-lg p-4">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <h3 className="font-medium">{avaliacao.titulo}</h3>
+                                  <Badge variant="outline">
+                                    {avaliacao.bimestre}º Bimestre
+                                  </Badge>
+                                </div>
+                                <p className="text-sm text-muted-foreground mb-2">
+                                  {disciplina?.nome || 'Disciplina'}
+                                </p>
+                                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                  <span className="flex items-center gap-1">
+                                    <Calendar className="h-4 w-4" />
+                                    {formatDate(avaliacao.data)}
+                                  </span>
+                                  <span>Peso: {avaliacao.peso}</span>
+                                </div>
+                              </div>
+                              {nota && (
+                                <div className="text-right">
+                                  <div className={`text-2xl font-bold ${getMediaColor(nota.valor)}`}>
+                                    {nota.valor.toFixed(1)}
+                                  </div>
+                                  <p className="text-xs text-muted-foreground">/ 10.0</p>
+                                </div>
+                              )}
+                            </div>
+                            {avaliacao.descricao && (
+                              <p className="mt-3 text-sm text-muted-foreground">
+                                {avaliacao.descricao}
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        );
+
+      case 'ocorrencias':
+        return (
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Ocorrências Registradas</CardTitle>
+                <CardDescription>
+                  Histórico de ocorrências disciplinares e pedagógicas
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {ocorrencias.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Award className="h-12 w-12 text-green-500 mx-auto mb-3" />
+                    <p className="font-medium text-green-600">Parabéns!</p>
+                    <p className="text-sm text-muted-foreground">
+                      Nenhuma ocorrência registrada
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {ocorrencias
+                      .sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime())
+                      .map((ocorrencia) => (
+                        <div key={ocorrencia.id} className="border rounded-lg p-4">
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <AlertCircle className="h-5 w-5 text-destructive" />
+                              <h3 className="font-medium">{ocorrencia.titulo}</h3>
+                            </div>
+                            <Badge variant={getOcorrenciaColor(ocorrencia.tipo)}>
+                              {ocorrencia.tipo === 'disciplinar' ? 'Disciplinar' : 'Pedagógica'}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground mb-2">
+                            {ocorrencia.descricao}
+                          </p>
+                          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <Calendar className="h-3 w-3" />
+                              {formatDate(ocorrencia.data)}
+                            </span>
+                            {ocorrencia.gravidade && (
+                              <span>Gravidade: {ocorrencia.gravidade}</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        );
+
+      default:
+        return <AvisosTab />;
+    }
+  };
+
+  return (
+    <ErrorBoundary>
+      <div className="min-h-screen flex flex-col bg-background">
+        <header className="sticky top-0 z-50 border-b bg-card px-6 py-4 flex-shrink-0 h-20 flex items-center">
+          <div className="flex items-center justify-between w-full">
+            <div className="flex items-center gap-4">
+              <User className="h-8 w-8 text-primary" />
+              <div>
+                <h1 className="text-xl font-semibold text-foreground">
+                  Área do Aluno
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  Bem-vindo, {aluno.nome}
+                </p>
+              </div>
+            </div>
+            <AuthHeader />
+          </div>
+        </header>
+
+        <div className="sticky top-20 z-40 border-b bg-card px-6 flex-shrink-0">
+          <nav className="flex space-x-8 py-0">
+            {tabsConfig.map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                onClick={() => setActiveTab(id)}
+                className={`flex items-center gap-2 py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-fast ${
+                  activeTab === id
+                    ? 'text-primary border-primary'
+                    : 'text-muted-foreground border-transparent hover:text-foreground hover:border-border'
+                }`}
+              >
+                <Icon className="h-4 w-4" />
+                {label}
+              </button>
+            ))}
+          </nav>
+        </div>
+
+        <main className="flex-1 overflow-hidden">
+          <ScrollArea className="h-full">
+            <div className="p-6">
+              <ErrorBoundary>
+                {renderTabContent()}
+              </ErrorBoundary>
+            </div>
+          </ScrollArea>
+        </main>
+      </div>
+    </ErrorBoundary>
+  );
+}
