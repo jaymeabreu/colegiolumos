@@ -150,7 +150,7 @@ export function CoordinadorSidebar({ onTabChange }: CoordinadorSidebarProps) {
               className="w-12 h-12 rounded-lg object-contain"
             />
           ) : (
-            <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+            <div className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'var(--primary)' }}>
               <span className="text-white font-bold text-sm">CL</span>
             </div>
           )}
