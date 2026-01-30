@@ -78,6 +78,7 @@ export function CoordinadorSidebar({ onTabChange }: CoordinadorSidebarProps) {
         { id: 'historico-escolar', label: 'Histórico escolar', icon: <FileText className="h-4 w-4" />, tabId: 'historico-escolar' },
         { id: 'transferencias', label: 'Transferências', icon: <Users className="h-4 w-4" />, tabId: 'transferencias' },
         { id: 'portal-aluno', label: 'Portal do aluno', icon: <Users className="h-4 w-4" />, tabId: 'portal-aluno' },
+        { id: 'usuarios', label: 'Usuários', icon: <Users className="h-4 w-4" />, tabId: 'usuarios' },
       ]
     },
     {
