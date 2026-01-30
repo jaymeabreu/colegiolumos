@@ -20,6 +20,12 @@ import { supabaseService } from '../../services/supabaseService';
 import { supabase } from '../../lib/supabaseClient';
 import { CoordinadorSidebar } from '../../components/admin/CoordinadorSidebar';
 
+const getFormattedDate = () => {
+  const today = new Date();
+  const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
+  return today.toLocaleDateString('pt-BR', options);
+};
+
 interface DashboardStats {
   totalAlunos: number;
   alunosAtivos: number;
@@ -493,16 +499,14 @@ export function AdminPage() {
             </div>
             <div className="flex items-center gap-4">
               <div className="text-teal-100 text-sm">
-                Atualizado recentemente em 3 de maio de 2025
+                Atualizado recentemente em {getFormattedDate()}
               </div>
               <Button
-                variant="ghost"
-                size="sm"
                 onClick={handleLogout}
-                className="text-teal-100 hover:text-white hover:bg-teal-600 flex items-center gap-2"
+                className="bg-red-600 hover:bg-red-700 text-white font-medium px-4 py-2 rounded-lg flex items-center gap-2 transition-all duration-200"
               >
                 <LogOut className="h-4 w-4" />
-                <span className="hidden sm:inline">Sair</span>
+                <span>Sair</span>
               </Button>
             </div>
           </div>
