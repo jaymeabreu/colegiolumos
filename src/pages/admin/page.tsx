@@ -148,14 +148,21 @@ export function AdminPage() {
       const { data, error } = await supabase
         .from('comunicados')
         .select('*')
-        .order('data_criacao', { ascending: false })
+        .order('data_publicacao', { ascending: false })
         .limit(5);
+
+      if (error) {
+        console.error('Erro ao carregar comunicados:', error);
+        setComunicados([]);
+        return;
+      }
 
       if (data) {
         setComunicados(data);
       }
     } catch (error) {
       console.error('Erro ao carregar comunicados:', error);
+      setComunicados([]);
     }
   };
 
@@ -444,7 +451,12 @@ export function AdminPage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg">Comunicados Recentes</CardTitle>
-                <a href="#" className="text-blue-600 dark:text-blue-400 text-sm hover:underline">Ver tudo</a>
+                <button 
+                  onClick={() => setActiveTab('comunicados')}
+                  className="text-blue-600 dark:text-blue-400 text-sm hover:underline"
+                >
+                  Ver tudo
+                </button>
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -457,13 +469,13 @@ export function AdminPage() {
                           {comunicado.titulo}
                         </p>
                         <p className="text-xs text-gray-600 dark:text-gray-300 mt-1 line-clamp-2">
-                          {comunicado.conteudo}
+                          {comunicado.mensagem}
                         </p>
                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                           Por: {comunicado.autor}
                         </p>
                         <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                          📅 {formatDate(comunicado.data_criacao)}
+                          📅 {formatDate(comunicado.data_publicacao)}
                         </p>
                       </div>
                     </div>
