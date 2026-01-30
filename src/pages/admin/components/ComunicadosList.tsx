@@ -1,17 +1,23 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, MessageSquare, Calendar, User } from 'lucide-react';
+import { Plus, Edit, Trash2, MessageSquare, Calendar, User, Users, Globe } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
 import { Label } from '../../../components/ui/label';
 import { Textarea } from '../../../components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../../../components/ui/dialog';
 import { Badge } from '../../../components/ui/badge';
-import { supabaseService, Comunicado } from '../../../services/supabaseService';
+import { supabaseService, Comunicado, Turma, Aluno, Professor } from '../../../services/supabaseService';
 import { authService } from '../../../services/auth';
+
+type TipoDestinatario = 'geral' | 'turma' | 'usuario';
 
 export function ComunicadosList() {
   const [comunicados, setComunicados] = useState<Comunicado[]>([]);
+  const [turmas, setTurmas] = useState<Turma[]>([]);
+  const [alunos, setAlunos] = useState<Aluno[]>([]);
+  const [professores, setProfessores] = useState<Professor[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingComunicado, setEditingComunicado] = useState<Comunicado | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -19,7 +25,10 @@ export function ComunicadosList() {
   const [formData, setFormData] = useState({
     titulo: '',
     mensagem: '',
-    autor: ''
+    autor: '',
+    tipoDestinatario: 'geral' as TipoDestinatario,
+    turmaId: '',
+    usuarioId: ''
   });
 
   const { user } = authService.getAuthState();
@@ -44,7 +53,13 @@ export function ComunicadosList() {
       console.log('Carregando comunicados...');
       setLoading(true);
 
-      const comunicadosData = await supabaseService.getComunicados();
+      const [comunicadosData, turmasData, alunosData, professoresData] = await Promise.all([
+        supabaseService.getComunicados(),
+        supabaseService.getTurmas(),
+        supabaseService.getAlunos(),
+        supabaseService.getProfessores()
+      ]);
+
       console.log('Comunicados carregados:', comunicadosData);
       setComunicados(
         comunicadosData.sort(
@@ -53,8 +68,11 @@ export function ComunicadosList() {
             new Date(a.data_publicacao).getTime()
         )
       );
+      setTurmas(turmasData);
+      setAlunos(alunosData);
+      setProfessores(professoresData);
     } catch (error) {
-      console.error('Erro ao carregar comunicados:', error);
+      console.error('Erro ao carregar dados:', error);
     } finally {
       setLoading(false);
     }
@@ -68,19 +86,40 @@ export function ComunicadosList() {
       return;
     }
 
+    // Validações por tipo
+    if (formData.tipoDestinatario === 'turma' && !formData.turmaId) {
+      alert('Por favor, selecione uma turma.');
+      return;
+    }
+
+    if (formData.tipoDestinatario === 'usuario' && !formData.usuarioId) {
+      alert('Por favor, selecione um usuário.');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
       console.log('Dados do formulário:', formData);
-      console.log('User atual:', user);
+
+      const payload: any = {
+        titulo: formData.titulo.trim(),
+        mensagem: formData.mensagem.trim(),
+        autor: formData.autor.trim(),
+        autor_id: 9,
+        data_publicacao: new Date().toISOString().split('T')[0]
+      };
+
+      // Adiciona campos opcionais baseado no tipo
+      if (formData.tipoDestinatario === 'turma') {
+        payload.turma_id = parseInt(formData.turmaId);
+      } else if (formData.tipoDestinatario === 'usuario') {
+        payload.usuario_id = parseInt(formData.usuarioId);
+      }
 
       if (editingComunicado) {
         console.log('Editando comunicado:', editingComunicado.id);
-        const updatedComunicado = await supabaseService.updateComunicado(editingComunicado.id, {
-          titulo: formData.titulo.trim(),
-          mensagem: formData.mensagem.trim(),
-          autor: formData.autor.trim()
-        });
+        const updatedComunicado = await supabaseService.updateComunicado(editingComunicado.id, payload);
         console.log('Comunicado atualizado:', updatedComunicado);
         
         if (updatedComunicado) {
@@ -88,33 +127,20 @@ export function ComunicadosList() {
             prev.map(c => (c.id === editingComunicado.id ? updatedComunicado : c))
           );
           alert('Comunicado atualizado com sucesso!');
-        } else {
-          throw new Error('Falha ao atualizar comunicado');
         }
       } else {
         console.log('Criando novo comunicado...');
-        const novoComunicado = await supabaseService.createComunicado({
-          titulo: formData.titulo.trim(),
-          mensagem: formData.mensagem.trim(),
-          autor: formData.autor.trim(),
-          autor_id: 9,
-          data_publicacao: new Date().toISOString().split('T')[0]
-        });
+        const novoComunicado = await supabaseService.createComunicado(payload);
         console.log('Comunicado criado:', novoComunicado);
         
         if (novoComunicado) {
           setComunicados(prev => [novoComunicado, ...prev]);
           alert('Comunicado criado com sucesso!');
-        } else {
-          throw new Error('Falha ao criar comunicado');
         }
       }
 
       handleCloseDialog();
-
-      setTimeout(() => {
-        loadData();
-      }, 100);
+      setTimeout(() => loadData(), 100);
     } catch (error) {
       console.error('Erro ao salvar comunicado:', error);
       alert('Erro ao salvar comunicado. Tente novamente.');
@@ -126,10 +152,27 @@ export function ComunicadosList() {
   const handleEdit = (comunicado: Comunicado) => {
     console.log('Editando comunicado:', comunicado);
     setEditingComunicado(comunicado);
+    
+    // Determina o tipo baseado nos campos preenchidos
+    let tipoDestinatario: TipoDestinatario = 'geral';
+    let turmaId = '';
+    let usuarioId = '';
+
+    if (comunicado.turma_id) {
+      tipoDestinatario = 'turma';
+      turmaId = comunicado.turma_id.toString();
+    } else if (comunicado.usuario_id) {
+      tipoDestinatario = 'usuario';
+      usuarioId = comunicado.usuario_id.toString();
+    }
+
     setFormData({
       titulo: comunicado.titulo,
       mensagem: comunicado.mensagem,
-      autor: comunicado.autor
+      autor: comunicado.autor,
+      tipoDestinatario,
+      turmaId,
+      usuarioId
     });
     setIsDialogOpen(true);
   };
@@ -138,19 +181,10 @@ export function ComunicadosList() {
     if (window.confirm('Tem certeza que deseja excluir este comunicado?')) {
       try {
         console.log('Excluindo comunicado:', id);
-        const success = await supabaseService.deleteComunicado(id);
-        console.log('Resultado da exclusão:', success);
-        
-        if (success) {
-          setComunicados(prev => prev.filter(c => c.id !== id));
-          alert('Comunicado excluído com sucesso!');
-
-          setTimeout(() => {
-            loadData();
-          }, 100);
-        } else {
-          alert('Erro ao excluir comunicado.');
-        }
+        await supabaseService.deleteComunicado(id);
+        setComunicados(prev => prev.filter(c => c.id !== id));
+        alert('Comunicado excluído com sucesso!');
+        setTimeout(() => loadData(), 100);
       } catch (error) {
         console.error('Erro ao excluir comunicado:', error);
         alert('Erro ao excluir comunicado. Tente novamente.');
@@ -164,7 +198,10 @@ export function ComunicadosList() {
     setFormData({
       titulo: '',
       mensagem: '',
-      autor: ''
+      autor: '',
+      tipoDestinatario: 'geral',
+      turmaId: '',
+      usuarioId: ''
     });
   };
 
@@ -172,15 +209,52 @@ export function ComunicadosList() {
     return new Date(dateString).toLocaleDateString('pt-BR');
   };
 
+  const getDestinatarioBadge = (comunicado: Comunicado) => {
+    if (comunicado.turma_id) {
+      const turma = turmas.find(t => t.id === comunicado.turma_id);
+      return (
+        <span className="inline-flex items-center px-2 py-1 text-[11px] rounded-full border border-blue-200 bg-blue-50 text-blue-700">
+          <Users className="h-3 w-3 mr-1" />
+          Turma: {turma?.nome || 'N/A'}
+        </span>
+      );
+    } else if (comunicado.usuario_id) {
+      // Busca o usuário (pode ser aluno ou professor)
+      const aluno = alunos.find(a => a.id === comunicado.usuario_id);
+      const professor = professores.find(p => p.id === comunicado.usuario_id);
+      const nomeUsuario = aluno?.nome || professor?.nome || 'N/A';
+      
+      return (
+        <span className="inline-flex items-center px-2 py-1 text-[11px] rounded-full border border-purple-200 bg-purple-50 text-purple-700">
+          <User className="h-3 w-3 mr-1" />
+          Individual: {nomeUsuario}
+        </span>
+      );
+    } else {
+      return (
+        <span className="inline-flex items-center px-2 py-1 text-[11px] rounded-full border border-green-200 bg-green-50 text-green-700">
+          <Globe className="h-3 w-3 mr-1" />
+          Geral
+        </span>
+      );
+    }
+  };
+
+  // Combina alunos e professores para o select de usuário
+  const todosUsuarios = [
+    ...alunos.map(a => ({ id: a.id, nome: a.nome, tipo: 'Aluno' })),
+    ...professores.map(p => ({ id: p.id, nome: p.nome, tipo: 'Professor' }))
+  ].sort((a, b) => a.nome.localeCompare(b.nome));
+
   return (
     <div className="card">
-      {/* HEADER NO MESMO PADRÃO DA TELA DE ALUNOS */}
+      {/* HEADER */}
       <div className="card-header">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="space-y-2">
             <h3 className="card-title">Comunicados</h3>
             <p className="card-description">
-              Gerencie os comunicados gerais da escola
+              Gerencie comunicados gerais, por turma ou individuais
             </p>
           </div>
 
@@ -200,7 +274,7 @@ export function ComunicadosList() {
                 <DialogDescription>
                   {editingComunicado
                     ? 'Edite as informações do comunicado abaixo.'
-                    : 'Crie um novo comunicado para toda a escola.'}
+                    : 'Crie um novo comunicado para toda a escola, uma turma ou um usuário específico.'}
                 </DialogDescription>
               </DialogHeader>
 
@@ -232,6 +306,97 @@ export function ComunicadosList() {
                     disabled={isSubmitting}
                   />
                 </div>
+
+                {/* TIPO DE DESTINATÁRIO */}
+                <div className="space-y-2">
+                  <Label htmlFor="tipoDestinatario">Enviar para *</Label>
+                  <Select
+                    value={formData.tipoDestinatario}
+                    onValueChange={(value: TipoDestinatario) => {
+                      setFormData(prev => ({
+                        ...prev,
+                        tipoDestinatario: value,
+                        turmaId: '',
+                        usuarioId: ''
+                      }));
+                    }}
+                    disabled={isSubmitting}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="geral">
+                        <div className="flex items-center gap-2">
+                          <Globe className="h-4 w-4" />
+                          <span>Toda a escola (Geral)</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="turma">
+                        <div className="flex items-center gap-2">
+                          <Users className="h-4 w-4" />
+                          <span>Turma específica</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="usuario">
+                        <div className="flex items-center gap-2">
+                          <User className="h-4 w-4" />
+                          <span>Usuário individual</span>
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* SELECT DE TURMA (só aparece se tipo === 'turma') */}
+                {formData.tipoDestinatario === 'turma' && (
+                  <div className="space-y-2">
+                    <Label htmlFor="turmaId">Selecione a turma *</Label>
+                    <Select
+                      value={formData.turmaId}
+                      onValueChange={value =>
+                        setFormData(prev => ({ ...prev, turmaId: value }))
+                      }
+                      disabled={isSubmitting}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione uma turma" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {turmas.map(turma => (
+                          <SelectItem key={turma.id} value={turma.id.toString()}>
+                            {turma.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                {/* SELECT DE USUÁRIO (só aparece se tipo === 'usuario') */}
+                {formData.tipoDestinatario === 'usuario' && (
+                  <div className="space-y-2">
+                    <Label htmlFor="usuarioId">Selecione o usuário *</Label>
+                    <Select
+                      value={formData.usuarioId}
+                      onValueChange={value =>
+                        setFormData(prev => ({ ...prev, usuarioId: value }))
+                      }
+                      disabled={isSubmitting}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione um aluno ou professor" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {todosUsuarios.map(usuario => (
+                          <SelectItem key={`${usuario.tipo}-${usuario.id}`} value={usuario.id.toString()}>
+                            {usuario.nome} ({usuario.tipo})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <Label htmlFor="mensagem">Mensagem *</Label>
@@ -271,7 +436,7 @@ export function ComunicadosList() {
         </div>
       </div>
 
-      {/* CONTEÚDO NO MESMO PADRÃO DA TELA DE ALUNOS */}
+      {/* CONTEÚDO */}
       <div className="card-content">
         {loading ? (
           <div className="flex items-center justify-center py-12">
@@ -303,10 +468,7 @@ export function ComunicadosList() {
                       <h4 className="font-medium text-base">
                         {comunicado.titulo}
                       </h4>
-                      <span className="inline-flex items-center px-2 py-1 text-[11px] rounded-full border border-border text-muted-foreground">
-                        <MessageSquare className="h-3 w-3 mr-1" />
-                        Geral
-                      </span>
+                      {getDestinatarioBadge(comunicado)}
                     </div>
                     <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
                       <div className="flex items-center gap-1">
