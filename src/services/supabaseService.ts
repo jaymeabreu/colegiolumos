@@ -1376,17 +1376,26 @@ class SupabaseService {
     return (data ?? []).map(withCamel) as Recado[];
   }
 
-  async getRecadosByAluno(alunoId: number): Promise<Recado[]> {
-    const { data, error } = await supabase
-      .from('recados')
-      .select('*')
-      .eq('aluno_id', alunoId)
-      .order('id', { ascending: false });
+ async getRecadosByAluno(alunoId: number): Promise<Recado[]> {
+  // 1. Busca o aluno pra pegar a turma
+  const { data: aluno } = await supabase
+    .from('alunos')
+    .select('turma_id')
+    .eq('id', alunoId)
+    .single();
 
-    if (error) throw error;
-    return (data ?? []).map(withCamel) as Recado[];
-  }
+  if (!aluno?.turma_id) return [];
 
+  // 2. Busca recados: individuais OU gerais da turma
+  const { data, error } = await supabase
+    .from('recados')
+    .select('*')
+    .or(`aluno_id.eq.${alunoId},and(aluno_id.is.null,turma_id.eq.${aluno.turma_id})`)
+    .order('id', { ascending: false });
+
+  if (error) throw error;
+  return (data ?? []).map(withCamel) as Recado[];
+}
   async createRecado(
     recado: Omit<Recado, 'id' | 'created_at' | 'updated_at'>
   ): Promise<Recado> {
