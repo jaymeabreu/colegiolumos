@@ -10,8 +10,14 @@ import { Checkbox } from '../../components/ui/checkbox';
 
 import { authService } from '../../services/auth';
 import { safeStorage } from '../../lib/safeStorage';
+import { supabase } from '../../lib/supabaseClient';
 
 const REMEMBER_EMAIL_KEY = 'lumos_remember_email';
+
+interface Configuracoes {
+  logo_url?: string;
+  nome_escola?: string;
+}
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -26,7 +32,37 @@ export function LoginPage() {
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
 
+  const [config, setConfig] = useState<Configuracoes>({
+    logo_url: '',
+    nome_escola: 'Colégio Lumos'
+  });
+
   const hasCheckedAuth = useRef(false);
+
+  // Carrega configurações da escola
+  useEffect(() => {
+    const loadConfig = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('configuracoes')
+          .select('logo_url, nome_escola')
+          .limit(1)
+          .maybeSingle();
+
+        if (data) {
+          setConfig({
+            logo_url: data.logo_url || '',
+            nome_escola: data.nome_escola || 'Colégio Lumos'
+          });
+        }
+      } catch (err) {
+        console.error('Erro ao carregar configurações:', err);
+        // Mantém valores padrão em caso de erro
+      }
+    };
+
+    loadConfig();
+  }, []);
 
   // Carrega "lembrar-me" (email) uma vez
   useEffect(() => {
@@ -102,11 +138,24 @@ export function LoginPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-2 text-center">
           <div className="flex justify-center">
-            <div className="h-12 w-12 bg-primary rounded-full flex items-center justify-center">
+            {config.logo_url ? (
+              <img 
+                src={config.logo_url} 
+                alt={config.nome_escola} 
+                className="h-16 w-16 object-contain"
+                onError={(e) => {
+                  // Fallback para ícone se a imagem não carregar
+                  e.currentTarget.style.display = 'none';
+                  const fallback = e.currentTarget.nextElementSibling;
+                  if (fallback) fallback.classList.remove('hidden');
+                }}
+              />
+            ) : null}
+            <div className={`h-12 w-12 bg-primary rounded-full flex items-center justify-center ${config.logo_url ? 'hidden' : ''}`}>
               <GraduationCap className="h-6 w-6 text-white" />
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold">Colégio Lumos</CardTitle>
+          <CardTitle className="text-2xl font-bold">{config.nome_escola}</CardTitle>
           <CardDescription>Entre com suas credenciais para acessar o sistema</CardDescription>
         </CardHeader>
 
@@ -195,15 +244,6 @@ export function LoginPage() {
               </Button>
             </div>
           </form>
-
-          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-            <p className="text-sm font-medium text-gray-700 mb-2">Contas de teste:</p>
-            <div className="space-y-1 text-xs text-gray-600">
-              <p><strong>Coordenador:</strong> coordenador@colegiolumos.com.br / 123456</p>
-              <p><strong>Professor:</strong> prof@demo.com / 123456</p>
-              <p><strong>Aluno:</strong> aluno@demo.com / 123456</p>
-            </div>
-          </div>
         </CardContent>
       </Card>
     </div>
