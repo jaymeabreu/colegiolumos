@@ -123,7 +123,7 @@ export function RecadosTab({ diarioId }: RecadosTabProps) {
 
     try {
       const turma = turmas.find(t => t.id === diario.turma_id);
-      const aluno = formData.alunoId
+      const aluno = formData.alunoId && formData.alunoId.trim()
         ? alunos.find(a => a.id === parseInt(formData.alunoId))
         : null;
 
@@ -133,8 +133,8 @@ export function RecadosTab({ diarioId }: RecadosTabProps) {
           mensagem: formData.mensagem.trim(),
           turmaId: diario.turma_id,
           turmaNome: turma?.nome || '',
-          alunoId: formData.alunoId ? parseInt(formData.alunoId) : undefined,
-          alunoNome: aluno?.nome || undefined
+          alunoId: formData.alunoId && formData.alunoId.trim() ? parseInt(formData.alunoId) : null,
+          alunoNome: aluno?.nome || null
         });
 
         if (updatedRecado) {
@@ -150,8 +150,8 @@ export function RecadosTab({ diarioId }: RecadosTabProps) {
           professorNome: user?.nome || 'Professor',
           turmaId: diario.turma_id,
           turmaNome: turma?.nome || '',
-          alunoId: formData.alunoId ? parseInt(formData.alunoId) : undefined,
-          alunoNome: aluno?.nome || undefined,
+          alunoId: formData.alunoId && formData.alunoId.trim() ? parseInt(formData.alunoId) : null,
+          alunoNome: aluno?.nome || null,
           dataEnvio: new Date().toISOString().split('T')[0]
         });
 
