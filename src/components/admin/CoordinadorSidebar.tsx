@@ -108,7 +108,6 @@ export function CoordinadorSidebar({ onTabChange }: CoordinadorSidebarProps) {
     };
   }, []);
 
-  // Escutar evento para abrir/fechar menu
   useEffect(() => {
     const handleToggle = () => {
       setMobileMenuOpen(prev => !prev);
@@ -164,7 +163,7 @@ export function CoordinadorSidebar({ onTabChange }: CoordinadorSidebarProps) {
       {/* SIDEBAR */}
       <div 
         className={`
-          fixed left-0 top-0 h-screen w-64 bg-white dark:bg-gray-900 
+          fixed left-0 top-0 h-[100dvh] w-64 bg-white dark:bg-gray-900 
           border-r border-gray-200 dark:border-gray-800 flex flex-col overflow-hidden z-50
           transition-transform duration-300 ease-in-out
           max-[880px]:-translate-x-full
