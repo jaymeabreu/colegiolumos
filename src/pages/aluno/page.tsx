@@ -235,13 +235,6 @@ export function AlunoPage() {
     return 'text-red-600';
   };
 
-  const getSituacaoVariant = (situacao: string) => {
-    if (situacao === 'Aprovado') return 'default';
-    if (situacao === 'Recuperação') return 'secondary';
-    if (situacao === 'Reprovado') return 'destructive';
-    return 'outline';
-  };
-
   const getOcorrenciaColor = (tipo: string) => {
     if (tipo === 'disciplinar') return 'destructive';
     if (tipo === 'pedagogica') return 'secondary';
@@ -352,7 +345,7 @@ export function AlunoPage() {
                 <CardContent>
                   <div className="text-2xl font-bold">{boletimCompleto.length}</div>
                   <p className="text-xs text-muted-foreground mt-2">
-                    {boletimCompleto.filter(d => d.situacao === 'Aprovado').length} aprovadas
+                    Total de disciplinas cursadas
                   </p>
                 </CardContent>
               </Card>
@@ -377,7 +370,6 @@ export function AlunoPage() {
                         <th className="text-center py-3 px-4 font-medium">4º Bim</th>
                         <th className="text-center py-3 px-4 font-medium">Média</th>
                         <th className="text-center py-3 px-4 font-medium">Freq.</th>
-                        <th className="text-center py-3 px-4 font-medium">Situação</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -401,11 +393,6 @@ export function AlunoPage() {
                           </td>
                           <td className={`text-center py-3 px-4 ${getFrequenciaColor(item.frequencia)}`}>
                             {item.frequencia.toFixed(0)}%
-                          </td>
-                          <td className="text-center py-3 px-4">
-                            <Badge variant={getSituacaoVariant(item.situacao)}>
-                              {item.situacao}
-                            </Badge>
                           </td>
                         </tr>
                       ))}
@@ -497,9 +484,11 @@ export function AlunoPage() {
                               <div className="flex-1">
                                 <div className="flex items-center gap-2 mb-2">
                                   <h3 className="font-medium">{avaliacao.titulo}</h3>
-                                  <Badge variant="outline">
-                                    {avaliacao.bimestre}º Bimestre
-                                  </Badge>
+                                  {avaliacao.bimestre && (
+                                    <Badge variant="outline">
+                                      {avaliacao.bimestre}º Bimestre
+                                    </Badge>
+                                  )}
                                 </div>
                                 <p className="text-sm text-muted-foreground mb-2">
                                   {disciplina?.nome || 'Disciplina'}
