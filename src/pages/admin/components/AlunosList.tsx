@@ -883,9 +883,17 @@ export function AlunosList() {
                   )}
                 </div>
                 <DialogFooter className="mt-6">
-                  <Button type="button" variant="outline" onClick={resetForm} disabled={loading}>
-                    Cancelar
-                  </Button>
+                  <Button 
+  type="button" 
+  variant="outline" 
+  onClick={() => {
+    resetForm();
+    setIsDialogOpen(false);
+  }} 
+  disabled={loading}
+>
+  Cancelar
+</Button>
                   <Button type="submit" disabled={loading}>
                     {loading ? 'Salvando...' : (editingAluno ? 'Salvar Alterações' : 'Cadastrar Aluno')}
                   </Button>
