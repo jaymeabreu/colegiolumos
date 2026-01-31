@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Settings, ChevronDown, ChevronUp, BarChart3, FileText, MessageSquare, Users, BookOpen, GraduationCap, School, Calendar, Clipboard, Menu, X } from 'lucide-react';
+import { Settings, ChevronDown, ChevronUp, BarChart3, FileText, MessageSquare, Users, BookOpen, GraduationCap, School, Calendar, Clipboard, X } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 
 interface ConfiguracaoEscola {
@@ -108,6 +108,16 @@ export function CoordinadorSidebar({ onTabChange }: CoordinadorSidebarProps) {
     };
   }, []);
 
+  // Escutar evento para abrir/fechar menu
+  useEffect(() => {
+    const handleToggle = () => {
+      setMobileMenuOpen(prev => !prev);
+    };
+    
+    window.addEventListener('toggleSidebar', handleToggle);
+    return () => window.removeEventListener('toggleSidebar', handleToggle);
+  }, []);
+
   const loadConfig = async () => {
     try {
       setLoading(true);
@@ -143,19 +153,6 @@ export function CoordinadorSidebar({ onTabChange }: CoordinadorSidebarProps) {
 
   return (
     <>
-      {/* BOTÃO HAMBÚRGUER - Apenas abaixo de 880px */}
-      <button
-        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-        className="fixed top-4 left-4 z-[60] p-2 bg-white dark:bg-gray-900 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 hidden max-[880px]:block"
-        aria-label="Menu"
-      >
-        {mobileMenuOpen ? (
-          <X className="h-6 w-6 text-gray-700 dark:text-gray-300" />
-        ) : (
-          <Menu className="h-6 w-6 text-gray-700 dark:text-gray-300" />
-        )}
-      </button>
-
       {/* OVERLAY - Apenas mobile */}
       {mobileMenuOpen && (
         <div
@@ -177,6 +174,14 @@ export function CoordinadorSidebar({ onTabChange }: CoordinadorSidebarProps) {
         {/* HEADER - LOGO E NOME DA ESCOLA */}
         <div className="p-6 border-b border-gray-200 dark:border-gray-800 flex-shrink-0">
           <div className="flex items-center gap-3">
+            {/* Botão X para fechar (MOBILE) */}
+            <button
+              onClick={() => setMobileMenuOpen(false)}
+              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded min-[881px]:hidden"
+            >
+              <X className="h-5 w-5 text-gray-700 dark:text-gray-300" />
+            </button>
+
             {config?.logo_url ? (
               <img 
                 src={config.logo_url} 
