@@ -87,12 +87,10 @@ export function AdminPage() {
     loadTurmas();
   }, []);
 
-  // Quando activeTab muda, atualiza a URL
   useEffect(() => {
     setSearchParams({ tab: activeTab });
   }, [activeTab, setSearchParams]);
 
-  // Quando a URL muda, atualiza activeTab
   useEffect(() => {
     const tabFromUrl = searchParams.get('tab');
     if (tabFromUrl) {
@@ -130,7 +128,6 @@ export function AdminPage() {
         .limit(5);
 
       if (data) {
-        // Mapeia os dados para incluir o nome do aluno e turma_id
         const ocorrenciasComNome = data.map((occ: any) => ({
           ...occ,
           aluno_nome: occ.alunos?.nome || 'Desconhecido',
@@ -179,12 +176,10 @@ export function AdminPage() {
     try {
       setLoading(true);
       
-      // Buscar alunos
       const alunos = await supabaseService.getAlunos();
       const alunosAtivos = alunos.filter(a => a.situacao === 'Ativo').length;
       const alunosInativos = alunos.length - alunosAtivos;
 
-      // Buscar professores
       const professores = await supabaseService.getProfessores();
       const professoresAtivos = professores.filter(p => p.situacao === 'ATIVO').length;
       const professoresInativos = professores.length - professoresAtivos;
@@ -229,14 +224,9 @@ export function AdminPage() {
 
   const handleLogout = async () => {
     try {
-      // Remove tudo do localStorage
       localStorage.clear();
       sessionStorage.clear();
-      
-      // Tira a sessão do Supabase
       await supabase.auth.signOut().catch(() => {});
-      
-      // Redireciona pra login
       window.location.href = '/';
     } catch (error) {
       console.error('Erro ao fazer logout:', error);
@@ -266,9 +256,7 @@ export function AdminPage() {
           </p>
         </div>
 
-        {/* GRID COM GRÁFICOS */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* TOTAL DE ALUNOS */}
           <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
             <CardHeader>
               <CardTitle className="text-lg text-gray-900 dark:text-white">
@@ -317,7 +305,6 @@ export function AdminPage() {
             </CardContent>
           </Card>
 
-          {/* TOTAL DE PROFESSORES */}
           <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
             <CardHeader>
               <CardTitle className="text-lg text-gray-900 dark:text-white">
@@ -366,7 +353,6 @@ export function AdminPage() {
             </CardContent>
           </Card>
 
-          {/* TOTAL DE FUNCIONÁRIOS */}
           <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
             <CardHeader>
               <CardTitle className="text-lg text-gray-900 dark:text-white">
@@ -396,9 +382,7 @@ export function AdminPage() {
           </Card>
         </div>
 
-        {/* OCORRÊNCIAS + COMUNICADOS */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* OCORRÊNCIAS */}
           <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -446,7 +430,6 @@ export function AdminPage() {
             </CardContent>
           </Card>
 
-          {/* COMUNICADOS */}
           <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -495,15 +478,11 @@ export function AdminPage() {
 
   return (
     <div className="min-h-screen flex bg-background">
-      {/* SIDEBAR FIXO NA ESQUERDA */}
       <CoordinadorSidebar onTabChange={setActiveTab} />
 
-      {/* CONTEÚDO PRINCIPAL COM MARGEM ESQUERDA RESPONSIVA */}
       <div className="flex-1 flex flex-col ml-0 min-[881px]:ml-64">
-        {/* Header Fixo */}
         <header className="sticky top-0 z-50 border-b px-4 sm:px-6 py-4 flex-shrink-0 flex items-center" style={{ backgroundColor: 'var(--primary)' }}>
-          <div className="flex items-center justify-between w-full gap-4">
-            {/* BOTÃO HAMBÚRGUER - SÓ MOBILE */}
+          <div className="flex items-center justify-between w-full gap-3">
             <button
               onClick={() => {
                 const event = new CustomEvent('toggleSidebar');
@@ -517,27 +496,23 @@ export function AdminPage() {
 
             <div className="flex-1 min-w-0">
               <h1 className="text-base sm:text-lg font-semibold text-white truncate">
-                Bem-vindo de volta, {userProfile?.nome || 'Coordenador'} ✏️
+                Bem-vindo, {userProfile?.nome || 'Coordenador'} ✏️
               </h1>
-              <p className="text-xs sm:text-sm text-white/80 mt-1 hidden sm:block">Tenha um bom dia de trabalho.</p>
+              <p className="text-xs sm:text-sm text-white/80 mt-1 hidden min-[881px]:block">
+                Tenha um bom dia de trabalho.
+              </p>
             </div>
             
-            <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
-              <div className="text-white/80 text-xs sm:text-sm hidden md:block">
-                Atualizado em {getFormattedDate()}
-              </div>
-              <Button
-                onClick={handleLogout}
-                className="bg-red-600 hover:bg-red-700 text-white font-medium px-3 sm:px-4 py-2 rounded-lg flex items-center gap-2 transition-all duration-200"
-              >
-                <LogOut className="h-4 w-4" />
-                <span className="hidden sm:inline">Sair</span>
-              </Button>
-            </div>
+            <Button
+              onClick={handleLogout}
+              className="bg-red-600 hover:bg-red-700 text-white font-medium px-3 sm:px-4 py-2 rounded-lg flex items-center gap-2 transition-all duration-200 flex-shrink-0"
+            >
+              <LogOut className="h-4 w-4" />
+              <span className="hidden sm:inline">Sair</span>
+            </Button>
           </div>
         </header>
 
-        {/* Content Scrollável */}
         <main className="flex-1 overflow-hidden">
           <ScrollArea className="h-full scrollbar-thin">
             <div className="p-4 sm:p-6">
