@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Users, BookOpen, School, GraduationCap, FileText, Download, UserCheck, MessageSquare, BarChart3, LogOut } from 'lucide-react';
+import { Users, BookOpen, School, GraduationCap, FileText, Download, UserCheck, MessageSquare, BarChart3, LogOut, Menu } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { Button } from '../../components/ui/button'; 
@@ -498,27 +498,40 @@ export function AdminPage() {
       {/* SIDEBAR FIXO NA ESQUERDA */}
       <CoordinadorSidebar onTabChange={setActiveTab} />
 
-      {/* CONTEÚDO PRINCIPAL COM MARGEM ESQUERDA */}
+      {/* CONTEÚDO PRINCIPAL COM MARGEM ESQUERDA RESPONSIVA */}
       <div className="flex-1 flex flex-col ml-0 min-[881px]:ml-64">
         {/* Header Fixo */}
-        <header className="sticky top-0 z-50 border-b px-6 py-4 flex-shrink-0 flex items-center" style={{ backgroundColor: 'var(--primary)' }}>
-          <div className="flex items-center justify-between w-full">
-            <div>
-              <h1 className="text-lg font-semibold text-white">
+        <header className="sticky top-0 z-50 border-b px-4 sm:px-6 py-4 flex-shrink-0 flex items-center" style={{ backgroundColor: 'var(--primary)' }}>
+          <div className="flex items-center justify-between w-full gap-4">
+            {/* BOTÃO HAMBÚRGUER - SÓ MOBILE */}
+            <button
+              onClick={() => {
+                const event = new CustomEvent('toggleSidebar');
+                window.dispatchEvent(event);
+              }}
+              className="p-2 bg-white/10 hover:bg-white/20 rounded-lg min-[881px]:hidden flex-shrink-0"
+              aria-label="Menu"
+            >
+              <Menu className="h-5 w-5 text-white" />
+            </button>
+
+            <div className="flex-1 min-w-0">
+              <h1 className="text-base sm:text-lg font-semibold text-white truncate">
                 Bem-vindo de volta, {userProfile?.nome || 'Coordenador'} ✏️
               </h1>
-              <p className="text-sm text-white/80 mt-1">Tenha um bom dia de trabalho.</p>
+              <p className="text-xs sm:text-sm text-white/80 mt-1 hidden sm:block">Tenha um bom dia de trabalho.</p>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="text-white/80 text-sm">
-                Atualizado recentemente em {getFormattedDate()}
+            
+            <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+              <div className="text-white/80 text-xs sm:text-sm hidden md:block">
+                Atualizado em {getFormattedDate()}
               </div>
               <Button
                 onClick={handleLogout}
-                className="bg-red-600 hover:bg-red-700 text-white font-medium px-4 py-2 rounded-lg flex items-center gap-2 transition-all duration-200"
+                className="bg-red-600 hover:bg-red-700 text-white font-medium px-3 sm:px-4 py-2 rounded-lg flex items-center gap-2 transition-all duration-200"
               >
                 <LogOut className="h-4 w-4" />
-                <span>Sair</span>
+                <span className="hidden sm:inline">Sair</span>
               </Button>
             </div>
           </div>
@@ -527,7 +540,7 @@ export function AdminPage() {
         {/* Content Scrollável */}
         <main className="flex-1 overflow-hidden">
           <ScrollArea className="h-full scrollbar-thin">
-            <div className="p-6">
+            <div className="p-4 sm:p-6">
               <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
                 <TabsContent value="visao-geral">
                   {loading ? (
