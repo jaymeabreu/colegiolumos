@@ -499,7 +499,7 @@ export function AdminPage() {
       <CoordinadorSidebar onTabChange={setActiveTab} />
 
       {/* CONTEÚDO PRINCIPAL COM MARGEM ESQUERDA */}
-      <div className="flex-1 flex flex-col ml-64">
+      <div className="flex-1 flex flex-col ml-0 min-[881px]:ml-64">
         {/* Header Fixo */}
         <header className="sticky top-0 z-50 border-b px-6 py-4 flex-shrink-0 flex items-center" style={{ backgroundColor: 'var(--primary)' }}>
           <div className="flex items-center justify-between w-full">
