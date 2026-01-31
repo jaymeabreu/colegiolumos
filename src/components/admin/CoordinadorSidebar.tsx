@@ -137,17 +137,16 @@ export function CoordinadorSidebar({ onTabChange }: CoordinadorSidebarProps) {
   const handleMenuItemClick = (tabId?: string) => {
     if (tabId && onTabChange) {
       onTabChange(tabId);
-      // Fechar menu mobile após clicar
       setMobileMenuOpen(false);
     }
   };
 
   return (
     <>
-      {/* BOTÃO HAMBÚRGUER (MOBILE) */}
+      {/* BOTÃO HAMBÚRGUER - Apenas abaixo de 880px */}
       <button
         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-        className="fixed top-4 left-4 z-50 p-2 bg-white dark:bg-gray-900 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 lg:hidden"
+        className="fixed top-4 left-4 z-[60] p-2 bg-white dark:bg-gray-900 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 hidden max-[880px]:block"
         aria-label="Menu"
       >
         {mobileMenuOpen ? (
@@ -157,10 +156,10 @@ export function CoordinadorSidebar({ onTabChange }: CoordinadorSidebarProps) {
         )}
       </button>
 
-      {/* OVERLAY (MOBILE) */}
+      {/* OVERLAY - Apenas mobile */}
       {mobileMenuOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          className="fixed inset-0 bg-black/50 z-40 max-[880px]:block hidden"
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
@@ -169,12 +168,11 @@ export function CoordinadorSidebar({ onTabChange }: CoordinadorSidebarProps) {
       <div 
         className={`
           fixed left-0 top-0 h-screen w-64 bg-white dark:bg-gray-900 
-          border-r border-gray-200 dark:border-gray-800 flex flex-col overflow-hidden
-          transition-transform duration-300 ease-in-out z-50
-          lg:translate-x-0
-          ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+          border-r border-gray-200 dark:border-gray-800 flex flex-col overflow-hidden z-50
+          transition-transform duration-300 ease-in-out
+          max-[880px]:-translate-x-full
+          ${mobileMenuOpen ? 'max-[880px]:translate-x-0' : ''}
         `}
-        style={{ maxWidth: '880px' }}
       >
         {/* HEADER - LOGO E NOME DA ESCOLA */}
         <div className="p-6 border-b border-gray-200 dark:border-gray-800 flex-shrink-0">
@@ -256,15 +254,6 @@ export function CoordinadorSidebar({ onTabChange }: CoordinadorSidebarProps) {
           </button>
         </div>
       </div>
-
-      {/* ESPAÇAMENTO PARA O CONTEÚDO (DESKTOP) */}
-      <style>{`
-        @media (min-width: 1024px) {
-          body {
-            padding-left: 256px;
-          }
-        }
-      `}</style>
     </>
   );
 }
