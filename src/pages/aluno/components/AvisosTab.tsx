@@ -1,240 +1,271 @@
 import { useState, useEffect } from 'react';
-import { MessageSquare, Calendar, User, Users, Bell } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
+import { Bell, Calendar, User, ChevronDown, ChevronUp } from 'lucide-react';
+import { Card, CardContent } from '../../../components/ui/card';
 import { Badge } from '../../../components/ui/badge';
-import { Separator } from '../../../components/ui/separator';
-import { supabaseService } from '../../../services/supabaseService';
-import type { Comunicado, Recado } from '../../../services/supabaseService';
-import { authService } from '../../../services/auth';
+import { supabase } from '../../../lib/supabaseClient';
+
+interface Comunicado {
+  id: number;
+  titulo: string;
+  mensagem: string;
+  tipo: 'geral' | 'turma' | 'individual';
+  data_envio: string;
+  autor_nome?: string;
+  lido?: boolean;
+}
 
 export function AvisosTab() {
   const [comunicados, setComunicados] = useState<Comunicado[]>([]);
-  const [recados, setRecados] = useState<Recado[]>([]);
+  const [expandedId, setExpandedId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
-  const { user } = authService.getAuthState();
 
   useEffect(() => {
-    loadData();
-    
-    // Configurar intervalo para recarregar dados periodicamente
-    const interval = setInterval(loadData, 3000); // Recarrega a cada 3 segundos
-    
-    // Escutar eventos de atualização de dados
-    const handleDataUpdate = () => {
-      console.log('Evento de atualização de dados recebido na área do aluno');
-      loadData();
-    };
+    loadComunicados();
+  }, []);
 
-    const handleRecadoCreated = () => {
-      console.log('Evento de recado criado recebido na área do aluno');
-      loadData();
-    };
-
-    const handleRecadoUpdated = () => {
-      console.log('Evento de recado atualizado recebido na área do aluno');
-      loadData();
-    };
-
-    const handleRecadoDeleted = () => {
-      console.log('Evento de recado excluído recebido na área do aluno');
-      loadData();
-    };
-
-    window.addEventListener('dataUpdated', handleDataUpdate);
-    window.addEventListener('recadoCreated', handleRecadoCreated);
-    window.addEventListener('recadoUpdated', handleRecadoUpdated);
-    window.addEventListener('recadoDeleted', handleRecadoDeleted);
-    
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener('dataUpdated', handleDataUpdate);
-      window.removeEventListener('recadoCreated', handleRecadoCreated);
-      window.removeEventListener('recadoUpdated', handleRecadoUpdated);
-      window.removeEventListener('recadoDeleted', handleRecadoDeleted);
-    };
-  }, [user?.alunoId]);
-
-  const loadData = async () => {
+  const loadComunicados = async () => {
     try {
-      console.log('Carregando avisos para o aluno...', { userId: user?.id, alunoId: user?.alunoId });
-      
-      // ALTERAÇÃO AQUI: usa getComunicadosParaAluno ao invés de getComunicados
-      if (user?.alunoId) {
-        const comunicadosData = await supabaseService.getComunicadosParaAluno(user.alunoId);
-        console.log('Comunicados carregados:', comunicadosData);
-        setComunicados(comunicadosData.sort((a, b) => new Date(b.dataPublicacao || b.data_publicacao).getTime() - new Date(a.dataPublicacao || a.data_publicacao).getTime()));
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('comunicados')
+        .select('*')
+        .order('data_envio', { ascending: false });
 
-        // Carregar recados para o aluno
-        const recadosData = await supabaseService.getRecadosByAluno(user.alunoId);
-        console.log('Recados carregados para o aluno:', recadosData);
-        setRecados(recadosData.sort((a, b) => new Date(b.dataEnvio || b.data_envio).getTime() - new Date(a.dataEnvio || a.data_envio).getTime()));
-      } else {
-        console.log('Usuário não tem alunoId definido');
-        setComunicados([]);
-        setRecados([]);
-      }
+      if (error) throw error;
+      setComunicados(data || []);
     } catch (error) {
-      console.error('Erro ao carregar avisos:', error);
+      console.error('Erro ao carregar comunicados:', error);
     } finally {
       setLoading(false);
     }
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('pt-BR');
+    const date = new Date(dateString);
+    const hoje = new Date();
+    const ontem = new Date(hoje);
+    ontem.setDate(ontem.getDate() - 1);
+
+    if (date.toDateString() === hoje.toDateString()) {
+      return 'Hoje';
+    } else if (date.toDateString() === ontem.toDateString()) {
+      return 'Ontem';
+    } else {
+      return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    }
+  };
+
+  const getTipoBadge = (tipo: string) => {
+    switch (tipo) {
+      case 'geral':
+        return <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">Geral</Badge>;
+      case 'turma':
+        return <Badge className="bg-purple-100 text-purple-700 hover:bg-purple-100">Turma</Badge>;
+      case 'individual':
+        return <Badge className="bg-green-100 text-green-700 hover:bg-green-100">Individual</Badge>;
+      default:
+        return <Badge variant="outline">Aviso</Badge>;
+    }
+  };
+
+  const toggleExpand = (id: number) => {
+    setExpandedId(expandedId === id ? null : id);
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Carregando avisos...</p>
-        </div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     );
   }
 
+  const comunicadosGerais = comunicados.filter(c => c.tipo === 'geral');
+  const outrosComunicados = comunicados.filter(c => c.tipo !== 'geral');
+
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="text-center">
-        <h2 className="text-2xl font-bold text-foreground mb-2">Avisos e Comunicados</h2>
-        <p className="text-muted-foreground">
+    <div className="space-y-6">
+      {/* HEADER */}
+      <div className="text-center max-w-2xl mx-auto">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+          Avisos e Comunicados
+        </h2>
+        <p className="text-gray-500 dark:text-gray-400 text-sm">
           Fique por dentro das novidades da escola e recados dos professores
         </p>
       </div>
 
-      {/* Comunicados Gerais */}
-      <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <Bell className="h-5 w-5 text-primary" />
-          <h3 className="text-xl font-semibold text-foreground">Comunicados Gerais</h3>
-          {comunicados.length > 0 && (
-            <Badge variant="secondary" className="ml-2">
-              {comunicados.length}
+      {/* COMUNICADOS GERAIS */}
+      {comunicadosGerais.length > 0 && (
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <Bell className="h-5 w-5 text-orange-500" />
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              Comunicados Gerais
+            </h3>
+            <Badge className="bg-orange-100 text-orange-700 hover:bg-orange-100">
+              {comunicadosGerais.length}
             </Badge>
-          )}
-        </div>
+          </div>
 
-        {comunicados.length === 0 ? (
-          <Card className="border-border shadow-sm">
-            <CardHeader className="text-center py-8">
-              <div className="mx-auto w-12 h-12 bg-muted rounded-full flex items-center justify-center mb-3">
-                <Bell className="h-6 w-6 text-muted-foreground" />
-              </div>
-              <CardTitle className="text-lg">Nenhum comunicado</CardTitle>
-              <CardDescription>
-                Não há comunicados gerais no momento.
-              </CardDescription>
-            </CardHeader>
-          </Card>
-        ) : (
           <div className="space-y-3">
-            {comunicados.map((comunicado) => (
-              <Card key={comunicado.id} className="border-border shadow-sm">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <CardTitle className="text-lg mb-2">{comunicado.titulo}</CardTitle>
-                      <div className="flex items-center gap-4 text-base text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <User className="h-4 w-4" />
-                          <span>{comunicado.autor}</span>
+            {comunicadosGerais.map((comunicado) => {
+              const isExpanded = expandedId === comunicado.id;
+              const previewText = comunicado.mensagem.slice(0, 100);
+              const needsExpand = comunicado.mensagem.length > 100;
+
+              return (
+                <Card 
+                  key={comunicado.id}
+                  className="hover:shadow-md transition-shadow cursor-pointer"
+                  onClick={() => needsExpand && toggleExpand(comunicado.id)}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="flex-1 min-w-0">
+                        {/* TÍTULO E BADGE */}
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <h4 className="font-semibold text-gray-900 dark:text-white text-base">
+                            {comunicado.titulo}
+                          </h4>
+                          {getTipoBadge(comunicado.tipo)}
                         </div>
-                        <div className="flex items-center gap-1">
-                          <Calendar className="h-4 w-4" />
-                          <span>{formatDate(comunicado.dataPublicacao || comunicado.data_publicacao)}</span>
+
+                        {/* MENSAGEM */}
+                        <p className="text-sm text-gray-600 dark:text-gray-300 mb-3 whitespace-pre-wrap">
+                          {isExpanded ? comunicado.mensagem : previewText}
+                          {!isExpanded && needsExpand && '...'}
+                        </p>
+
+                        {/* FOOTER */}
+                        <div className="flex items-center justify-between gap-4 flex-wrap">
+                          <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
+                            {comunicado.autor_nome && (
+                              <span className="flex items-center gap-1">
+                                <User className="h-3 w-3" />
+                                {comunicado.autor_nome}
+                              </span>
+                            )}
+                            <span className="flex items-center gap-1">
+                              <Calendar className="h-3 w-3" />
+                              {formatDate(comunicado.data_envio)}
+                            </span>
+                          </div>
+
+                          {needsExpand && (
+                            <button className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium">
+                              {isExpanded ? (
+                                <>
+                                  Ver menos <ChevronUp className="h-3 w-3" />
+                                </>
+                              ) : (
+                                <>
+                                  Ver mais <ChevronDown className="h-3 w-3" />
+                                </>
+                              )}
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
-                    <Badge variant="outline" className="text-xs">
-                      <Bell className="h-3 w-3 mr-1" />
-                      Geral
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-foreground whitespace-pre-wrap">{comunicado.mensagem}</p>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
-        )}
-      </div>
-
-      <Separator />
-
-      {/* Recados dos Professores */}
-      <div className="space-y-4">
-        <div className="flex items-center gap-2">
-          <MessageSquare className="h-5 w-5 text-primary" />
-          <h3 className="text-xl font-semibold text-foreground">Recados dos Professores</h3>
-          {recados.length > 0 && (
-            <Badge variant="secondary" className="ml-2">
-              {recados.length}
-            </Badge>
-          )}
         </div>
+      )}
 
-        {recados.length === 0 ? (
-          <Card className="border-border shadow-sm">
-            <CardHeader className="text-center py-8">
-              <div className="mx-auto w-12 h-12 bg-muted rounded-full flex items-center justify-center mb-3">
-                <MessageSquare className="h-6 w-6 text-muted-foreground" />
-              </div>
-              <CardTitle className="text-lg">Nenhum recado</CardTitle>
-              <CardDescription>
-                Não há recados dos professores no momento.
-              </CardDescription>
-            </CardHeader>
-          </Card>
-        ) : (
+      {/* OUTROS COMUNICADOS */}
+      {outrosComunicados.length > 0 && (
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <Bell className="h-5 w-5 text-blue-500" />
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              Outros Avisos
+            </h3>
+            <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">
+              {outrosComunicados.length}
+            </Badge>
+          </div>
+
           <div className="space-y-3">
-            {recados.map((recado) => (
-              <Card key={recado.id} className="border-border shadow-sm">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <CardTitle className="text-lg">{recado.titulo}</CardTitle>
-                        {recado.alunoId || recado.aluno_id ? (
-                          <Badge variant="default" className="text-xs">
-                            <User className="h-3 w-3 mr-1" />
-                            Individual
-                          </Badge>
-                        ) : (
-                          <Badge variant="secondary" className="text-xs">
-                            <Users className="h-3 w-3 mr-1" />
-                            Turma
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-4 text-base text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <User className="h-4 w-4" />
-                          <span>{recado.professorNome || recado.professor_nome}</span>
+            {outrosComunicados.map((comunicado) => {
+              const isExpanded = expandedId === comunicado.id;
+              const previewText = comunicado.mensagem.slice(0, 100);
+              const needsExpand = comunicado.mensagem.length > 100;
+
+              return (
+                <Card 
+                  key={comunicado.id}
+                  className="hover:shadow-md transition-shadow cursor-pointer"
+                  onClick={() => needsExpand && toggleExpand(comunicado.id)}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <h4 className="font-semibold text-gray-900 dark:text-white text-base">
+                            {comunicado.titulo}
+                          </h4>
+                          {getTipoBadge(comunicado.tipo)}
                         </div>
-                        <div className="flex items-center gap-1">
-                          <Calendar className="h-4 w-4" />
-                          <span>{formatDate(recado.dataEnvio || recado.data_envio)}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Users className="h-4 w-4" />
-                          <span>{recado.turmaNome || recado.turma_nome}</span>
+
+                        <p className="text-sm text-gray-600 dark:text-gray-300 mb-3 whitespace-pre-wrap">
+                          {isExpanded ? comunicado.mensagem : previewText}
+                          {!isExpanded && needsExpand && '...'}
+                        </p>
+
+                        <div className="flex items-center justify-between gap-4 flex-wrap">
+                          <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
+                            {comunicado.autor_nome && (
+                              <span className="flex items-center gap-1">
+                                <User className="h-3 w-3" />
+                                {comunicado.autor_nome}
+                              </span>
+                            )}
+                            <span className="flex items-center gap-1">
+                              <Calendar className="h-3 w-3" />
+                              {formatDate(comunicado.data_envio)}
+                            </span>
+                          </div>
+
+                          {needsExpand && (
+                            <button className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 font-medium">
+                              {isExpanded ? (
+                                <>
+                                  Ver menos <ChevronUp className="h-3 w-3" />
+                                </>
+                              ) : (
+                                <>
+                                  Ver mais <ChevronDown className="h-3 w-3" />
+                                </>
+                              )}
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-foreground whitespace-pre-wrap">{recado.mensagem}</p>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      {/* EMPTY STATE */}
+      {comunicados.length === 0 && (
+        <div className="text-center py-16">
+          <Bell className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+            Nenhum aviso ainda
+          </h3>
+          <p className="text-gray-500 dark:text-gray-400 text-sm">
+            Quando houver novos comunicados, eles aparecerão aqui
+          </p>
+        </div>
+      )}
     </div>
   );
 }
