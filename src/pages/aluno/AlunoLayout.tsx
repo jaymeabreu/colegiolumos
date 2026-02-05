@@ -14,15 +14,17 @@ export function AlunoLayout({ children }: AlunoLayoutProps) {
   };
 
   return (
-    <div className="flex min-h-screen w-full bg-background">
-      {/* SIDEBAR - Fixed */}
+    <>
+      {/* SIDEBAR - Fixed (sem afetar o layout) */}
       <AlunoSidebar onTabChange={handleTabChange} />
 
-      {/* CONTEÚDO PRINCIPAL - Com margin-left para não ser coberto */}
-      <div className="flex-1 flex flex-col overflow-hidden ml-0 min-[881px]:ml-64 w-full">
-        {children || <AlunoPage currentTab={activeTab} />}
+      {/* CONTEÚDO PRINCIPAL - Começa após o sidebar no mobile, após 64px no desktop */}
+      <div className="w-full min-h-screen">
+        <div className="max-[880px]:w-full min-[881px]:w-[calc(100%-256px)] min-[881px]:ml-64">
+          {children || <AlunoPage currentTab={activeTab} />}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
