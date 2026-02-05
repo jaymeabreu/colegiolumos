@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BookOpen, ClipboardList, BarChart3, Calendar, User, Bell, AlertCircle, TrendingUp, Award } from 'lucide-react';
+import { Menu, TrendingUp, ClipboardList, BookOpen, Calendar, AlertCircle, Award } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import { Progress } from '../../components/ui/progress';
@@ -45,7 +45,6 @@ export function AlunoPage({ currentTab }: AlunoPageProps) {
     void loadData();
   }, []);
 
-  // Sincroniza o activeTab quando currentTab muda
   useEffect(() => {
     if (currentTab) {
       setActiveTab(currentTab);
@@ -62,7 +61,6 @@ export function AlunoPage({ currentTab }: AlunoPageProps) {
       setLoading(true);
       console.log('🎓 Carregando dados do aluno (VIEW):', user.alunoId);
 
-      // 1) Aluno
       const { data: alunoRow, error: alunoErr } = await supabase
         .from('alunos')
         .select('*')
@@ -74,7 +72,6 @@ export function AlunoPage({ currentTab }: AlunoPageProps) {
       setAluno(alunoData ?? null);
       if (!alunoData) return;
 
-      // 2) BUSCAR DA VIEW (já vem tudo calculado!)
       const { data: boletimRows, error: boletimErr } = await supabase
         .from('boletim_alunos')
         .select('*')
@@ -86,7 +83,6 @@ export function AlunoPage({ currentTab }: AlunoPageProps) {
 
       console.log('📊 Dados da VIEW:', boletimRows);
 
-      // 3) Agrupar por disciplina (somar bimestres)
       const disciplinasMap = new Map<number, DisciplinaBoletim>();
 
       (boletimRows ?? []).forEach((row: any) => {
@@ -113,19 +109,16 @@ export function AlunoPage({ currentTab }: AlunoPageProps) {
           disciplinasMap.set(disciplinaId, entry);
         }
 
-        // Adicionar nota do bimestre
         if (bimestre === 1) entry.bimestre1 = media;
         if (bimestre === 2) entry.bimestre2 = media;
         if (bimestre === 3) entry.bimestre3 = media;
         if (bimestre === 4) entry.bimestre4 = media;
 
-        // Acumular totais
         entry.totalAulas += row.total_presencas_registradas || 0;
         entry.presencas += row.total_presencas || 0;
         entry.faltas += row.total_faltas || 0;
       });
 
-      // 4) Calcular médias finais e situação
       const boletimFinal: DisciplinaBoletim[] = [];
 
       disciplinasMap.forEach((entry) => {
@@ -136,17 +129,14 @@ export function AlunoPage({ currentTab }: AlunoPageProps) {
           entry.bimestre4,
         ].filter((n): n is number => n !== null);
 
-        // Média final = média dos bimestres com nota
         entry.mediaFinal = notas.length > 0 
           ? Number((notas.reduce((s, n) => s + n, 0) / notas.length).toFixed(1))
           : 0;
 
-        // Frequência
         entry.frequencia = entry.totalAulas > 0
           ? Number(((entry.presencas / entry.totalAulas) * 100).toFixed(1))
           : 100;
 
-        // Situação (regras: média >= 5 E frequência >= 75%)
         if (entry.mediaFinal === 0) {
           entry.situacao = 'Em Andamento';
         } else if (entry.mediaFinal >= 5 && entry.frequencia >= 75) {
@@ -162,11 +152,9 @@ export function AlunoPage({ currentTab }: AlunoPageProps) {
 
       setBoletimCompleto(boletimFinal);
 
-      // 5) Buscar outros dados (avaliacoes, ocorrencias)
       const diarioIds = (boletimRows ?? []).map((r: any) => r.diario_id);
 
       if (diarioIds.length > 0) {
-        // Avaliações
         const { data: avRows } = await supabase
           .from('avaliacoes')
           .select('*')
@@ -177,7 +165,6 @@ export function AlunoPage({ currentTab }: AlunoPageProps) {
           diarioId: a.diario_id,
         })));
 
-        // Notas
         const { data: notasRows } = await supabase
           .from('notas')
           .select('*')
@@ -189,7 +176,6 @@ export function AlunoPage({ currentTab }: AlunoPageProps) {
           avaliacaoId: n.avaliacao_id,
         })));
 
-        // Disciplinas
         const disciplinaIds = Array.from(disciplinasMap.keys());
         const { data: discRows } = await supabase
           .from('disciplinas')
@@ -198,7 +184,6 @@ export function AlunoPage({ currentTab }: AlunoPageProps) {
 
         setDisciplinas(discRows ?? []);
 
-        // Diários
         const { data: diariosRows } = await supabase
           .from('diarios')
           .select('*')
@@ -212,7 +197,6 @@ export function AlunoPage({ currentTab }: AlunoPageProps) {
         })));
       }
 
-      // Ocorrências
       const { data: ocRows } = await supabase
         .from('ocorrencias')
         .select('*')
@@ -256,17 +240,9 @@ export function AlunoPage({ currentTab }: AlunoPageProps) {
     return new Date(dateString).toLocaleDateString('pt-BR');
   };
 
-  const tabsConfig = [
-    { id: 'avisos', label: 'Avisos', icon: Bell },
-    { id: 'boletim', label: 'Boletim', icon: BarChart3 },
-    { id: 'frequencia', label: 'Frequência', icon: ClipboardList },
-    { id: 'avaliacoes', label: 'Avaliações', icon: BookOpen },
-    { id: 'ocorrencias', label: 'Ocorrências', icon: AlertCircle }
-  ];
-
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-sm text-muted-foreground">Carregando...</p>
@@ -277,30 +253,15 @@ export function AlunoPage({ currentTab }: AlunoPageProps) {
 
   if (!aluno) {
     return (
-      <div className="min-h-screen flex flex-col bg-background">
-        <header className="sticky top-0 z-50 border-b bg-card px-6 py-4 flex-shrink-0 h-20 flex items-center">
-          <div className="flex items-center justify-between w-full">
-            <div className="flex items-center gap-4">
-              <User className="h-8 w-8 text-primary" />
-              <div>
-                <h1 className="text-xl font-semibold text-foreground">
-                  Área do Aluno
-                </h1>
-              </div>
-            </div>
-            <AuthHeader />
-          </div>
-        </header>
-        <div className="flex-1 flex items-center justify-center">
-          <Card className="max-w-md mx-auto">
-            <CardHeader className="text-center">
-              <CardTitle className="text-xl font-semibold">Dados não encontrados</CardTitle>
-              <CardDescription className="text-sm">
-                Não foi possível carregar os dados do aluno. Entre em contato com a secretaria.
-              </CardDescription>
-            </CardHeader>
-          </Card>
-        </div>
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <Card className="max-w-md mx-auto">
+          <CardHeader className="text-center">
+            <CardTitle className="text-xl font-semibold">Dados não encontrados</CardTitle>
+            <CardDescription className="text-sm">
+              Não foi possível carregar os dados do aluno. Entre em contato com a secretaria.
+            </CardDescription>
+          </CardHeader>
+        </Card>
       </div>
     );
   }
@@ -320,8 +281,8 @@ export function AlunoPage({ currentTab }: AlunoPageProps) {
       
       case 'boletim':
         return (
-          <div className="space-y-6">
-            <div className="grid gap-4 md:grid-cols-3">
+          <div className="space-y-4 lg:space-y-6">
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Média Geral</CardTitle>
@@ -348,7 +309,7 @@ export function AlunoPage({ currentTab }: AlunoPageProps) {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="sm:col-span-2 lg:col-span-1">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Disciplinas</CardTitle>
                   <BookOpen className="h-4 w-4 text-muted-foreground" />
@@ -364,52 +325,50 @@ export function AlunoPage({ currentTab }: AlunoPageProps) {
 
             <Card>
               <CardHeader>
-                <CardTitle>Boletim Completo - {new Date().getFullYear()}</CardTitle>
+                <CardTitle className="text-lg lg:text-xl">Boletim Completo - {new Date().getFullYear()}</CardTitle>
                 <CardDescription>
                   Notas e desempenho por disciplina
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left py-3 px-4 font-medium">Disciplina</th>
-                        <th className="text-center py-3 px-4 font-medium">1º Bim</th>
-                        <th className="text-center py-3 px-4 font-medium">2º Bim</th>
-                        <th className="text-center py-3 px-4 font-medium">3º Bim</th>
-                        <th className="text-center py-3 px-4 font-medium">4º Bim</th>
-                        <th className="text-center py-3 px-4 font-medium">Média</th>
-                        <th className="text-center py-3 px-4 font-medium">Freq.</th>
+              <CardContent className="overflow-x-auto -mx-4 sm:mx-0">
+                <table className="w-full min-w-[600px]">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left py-3 px-2 sm:px-4 font-medium text-xs sm:text-sm">Disciplina</th>
+                      <th className="text-center py-3 px-2 sm:px-4 font-medium text-xs sm:text-sm">1º</th>
+                      <th className="text-center py-3 px-2 sm:px-4 font-medium text-xs sm:text-sm">2º</th>
+                      <th className="text-center py-3 px-2 sm:px-4 font-medium text-xs sm:text-sm">3º</th>
+                      <th className="text-center py-3 px-2 sm:px-4 font-medium text-xs sm:text-sm">4º</th>
+                      <th className="text-center py-3 px-2 sm:px-4 font-medium text-xs sm:text-sm">Média</th>
+                      <th className="text-center py-3 px-2 sm:px-4 font-medium text-xs sm:text-sm">Freq.</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {boletimCompleto.map((item, index) => (
+                      <tr key={index} className="border-b hover:bg-muted/50">
+                        <td className="py-3 px-2 sm:px-4 font-medium text-xs sm:text-sm">{item.disciplina}</td>
+                        <td className="text-center py-3 px-2 sm:px-4 text-xs sm:text-sm">
+                          {item.bimestre1 !== null ? item.bimestre1.toFixed(1) : '-'}
+                        </td>
+                        <td className="text-center py-3 px-2 sm:px-4 text-xs sm:text-sm">
+                          {item.bimestre2 !== null ? item.bimestre2.toFixed(1) : '-'}
+                        </td>
+                        <td className="text-center py-3 px-2 sm:px-4 text-xs sm:text-sm">
+                          {item.bimestre3 !== null ? item.bimestre3.toFixed(1) : '-'}
+                        </td>
+                        <td className="text-center py-3 px-2 sm:px-4 text-xs sm:text-sm">
+                          {item.bimestre4 !== null ? item.bimestre4.toFixed(1) : '-'}
+                        </td>
+                        <td className={`text-center py-3 px-2 sm:px-4 font-bold text-xs sm:text-sm ${getMediaColor(item.mediaFinal)}`}>
+                          {item.mediaFinal > 0 ? item.mediaFinal.toFixed(1) : '-'}
+                        </td>
+                        <td className={`text-center py-3 px-2 sm:px-4 text-xs sm:text-sm ${getFrequenciaColor(item.frequencia)}`}>
+                          {item.frequencia.toFixed(0)}%
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {boletimCompleto.map((item, index) => (
-                        <tr key={index} className="border-b hover:bg-muted/50">
-                          <td className="py-3 px-4 font-medium">{item.disciplina}</td>
-                          <td className="text-center py-3 px-4">
-                            {item.bimestre1 !== null ? item.bimestre1.toFixed(1) : '-'}
-                          </td>
-                          <td className="text-center py-3 px-4">
-                            {item.bimestre2 !== null ? item.bimestre2.toFixed(1) : '-'}
-                          </td>
-                          <td className="text-center py-3 px-4">
-                            {item.bimestre3 !== null ? item.bimestre3.toFixed(1) : '-'}
-                          </td>
-                          <td className="text-center py-3 px-4">
-                            {item.bimestre4 !== null ? item.bimestre4.toFixed(1) : '-'}
-                          </td>
-                          <td className={`text-center py-3 px-4 font-bold ${getMediaColor(item.mediaFinal)}`}>
-                            {item.mediaFinal > 0 ? item.mediaFinal.toFixed(1) : '-'}
-                          </td>
-                          <td className={`text-center py-3 px-4 ${getFrequenciaColor(item.frequencia)}`}>
-                            {item.frequencia.toFixed(0)}%
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                    ))}
+                  </tbody>
+                </table>
               </CardContent>
             </Card>
           </div>
@@ -417,10 +376,10 @@ export function AlunoPage({ currentTab }: AlunoPageProps) {
 
       case 'frequencia':
         return (
-          <div className="space-y-6">
+          <div className="space-y-4 lg:space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Frequência por Disciplina</CardTitle>
+                <CardTitle className="text-lg lg:text-xl">Frequência por Disciplina</CardTitle>
                 <CardDescription>
                   Acompanhe suas presenças e faltas
                 </CardDescription>
@@ -428,11 +387,11 @@ export function AlunoPage({ currentTab }: AlunoPageProps) {
               <CardContent>
                 <div className="space-y-4">
                   {boletimCompleto.map((item, index) => (
-                    <div key={index} className="border rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-3">
+                    <div key={index} className="border rounded-lg p-3 sm:p-4">
+                      <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
                         <div>
-                          <h3 className="font-medium">{item.disciplina}</h3>
-                          <p className="text-sm text-muted-foreground">
+                          <h3 className="font-medium text-sm sm:text-base">{item.disciplina}</h3>
+                          <p className="text-xs sm:text-sm text-muted-foreground">
                             {item.totalAulas} aulas ministradas
                           </p>
                         </div>
@@ -442,7 +401,7 @@ export function AlunoPage({ currentTab }: AlunoPageProps) {
                       </div>
                       <div className="space-y-2">
                         <Progress value={item.frequencia} className="h-2" />
-                        <div className="flex justify-between text-sm">
+                        <div className="flex justify-between text-xs sm:text-sm">
                           <span className="text-green-600">
                             ✓ {item.presencas} presenças
                           </span>
@@ -452,7 +411,7 @@ export function AlunoPage({ currentTab }: AlunoPageProps) {
                         </div>
                       </div>
                       {item.frequencia < 75 && item.totalAulas > 0 && (
-                        <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-800">
+                        <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs sm:text-sm text-yellow-800">
                           <AlertCircle className="h-4 w-4 inline mr-1" />
                           Atenção: Frequência abaixo do mínimo (75%)
                         </div>
@@ -467,17 +426,17 @@ export function AlunoPage({ currentTab }: AlunoPageProps) {
 
       case 'avaliacoes':
         return (
-          <div className="space-y-6">
+          <div className="space-y-4 lg:space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Próximas Avaliações</CardTitle>
+                <CardTitle className="text-lg lg:text-xl">Próximas Avaliações</CardTitle>
                 <CardDescription>
                   Provas e trabalhos agendados
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 {avaliacoes.length === 0 ? (
-                  <p className="text-center py-8 text-muted-foreground">
+                  <p className="text-center py-8 text-muted-foreground text-sm">
                     Nenhuma avaliação cadastrada
                   </p>
                 ) : (
@@ -490,31 +449,31 @@ export function AlunoPage({ currentTab }: AlunoPageProps) {
                         const nota = notas.find(n => n.avaliacaoId === avaliacao.id);
 
                         return (
-                          <div key={avaliacao.id} className="border rounded-lg p-4">
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <h3 className="font-medium">{avaliacao.titulo}</h3>
+                          <div key={avaliacao.id} className="border rounded-lg p-3 sm:p-4">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-2 flex-wrap">
+                                  <h3 className="font-medium text-sm sm:text-base">{avaliacao.titulo}</h3>
                                   {avaliacao.bimestre && (
-                                    <Badge variant="outline">
-                                      {avaliacao.bimestre}º Bimestre
+                                    <Badge variant="outline" className="text-xs">
+                                      {avaliacao.bimestre}º Bim
                                     </Badge>
                                   )}
                                 </div>
-                                <p className="text-sm text-muted-foreground mb-2">
+                                <p className="text-xs sm:text-sm text-muted-foreground mb-2">
                                   {disciplina?.nome || 'Disciplina'}
                                 </p>
-                                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm text-muted-foreground flex-wrap">
                                   <span className="flex items-center gap-1">
-                                    <Calendar className="h-4 w-4" />
+                                    <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
                                     {formatDate(avaliacao.data)}
                                   </span>
                                   <span>Peso: {avaliacao.peso}</span>
                                 </div>
                               </div>
                               {nota && (
-                                <div className="text-right">
-                                  <div className={`text-2xl font-bold ${getMediaColor(nota.valor)}`}>
+                                <div className="text-right flex-shrink-0">
+                                  <div className={`text-xl sm:text-2xl font-bold ${getMediaColor(nota.valor)}`}>
                                     {nota.valor.toFixed(1)}
                                   </div>
                                   <p className="text-xs text-muted-foreground">/ 10.0</p>
@@ -522,7 +481,7 @@ export function AlunoPage({ currentTab }: AlunoPageProps) {
                               )}
                             </div>
                             {avaliacao.descricao && (
-                              <p className="mt-3 text-sm text-muted-foreground">
+                              <p className="mt-3 text-xs sm:text-sm text-muted-foreground">
                                 {avaliacao.descricao}
                               </p>
                             )}
@@ -538,10 +497,10 @@ export function AlunoPage({ currentTab }: AlunoPageProps) {
 
       case 'ocorrencias':
         return (
-          <div className="space-y-6">
+          <div className="space-y-4 lg:space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Ocorrências Registradas</CardTitle>
+                <CardTitle className="text-lg lg:text-xl">Ocorrências Registradas</CardTitle>
                 <CardDescription>
                   Histórico de ocorrências disciplinares e pedagógicas
                 </CardDescription>
@@ -549,9 +508,9 @@ export function AlunoPage({ currentTab }: AlunoPageProps) {
               <CardContent>
                 {ocorrencias.length === 0 ? (
                   <div className="text-center py-8">
-                    <Award className="h-12 w-12 text-green-500 mx-auto mb-3" />
-                    <p className="font-medium text-green-600">Parabéns!</p>
-                    <p className="text-sm text-muted-foreground">
+                    <Award className="h-10 w-10 sm:h-12 sm:w-12 text-green-500 mx-auto mb-3" />
+                    <p className="font-medium text-green-600 text-sm sm:text-base">Parabéns!</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground">
                       Nenhuma ocorrência registrada
                     </p>
                   </div>
@@ -560,20 +519,20 @@ export function AlunoPage({ currentTab }: AlunoPageProps) {
                     {ocorrencias
                       .sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime())
                       .map((ocorrencia) => (
-                        <div key={ocorrencia.id} className="border rounded-lg p-4">
-                          <div className="flex items-start justify-between mb-2">
+                        <div key={ocorrencia.id} className="border rounded-lg p-3 sm:p-4">
+                          <div className="flex items-start justify-between mb-2 gap-2 flex-wrap">
                             <div className="flex items-center gap-2">
-                              <AlertCircle className="h-5 w-5 text-destructive" />
-                              <h3 className="font-medium">{ocorrencia.titulo}</h3>
+                              <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-destructive flex-shrink-0" />
+                              <h3 className="font-medium text-sm sm:text-base">{ocorrencia.titulo}</h3>
                             </div>
-                            <Badge variant={getOcorrenciaColor(ocorrencia.tipo)}>
+                            <Badge variant={getOcorrenciaColor(ocorrencia.tipo)} className="text-xs">
                               {ocorrencia.tipo === 'disciplinar' ? 'Disciplinar' : 'Pedagógica'}
                             </Badge>
                           </div>
-                          <p className="text-sm text-muted-foreground mb-2">
+                          <p className="text-xs sm:text-sm text-muted-foreground mb-2">
                             {ocorrencia.descricao}
                           </p>
-                          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                          <div className="flex items-center gap-3 sm:gap-4 text-xs text-muted-foreground flex-wrap">
                             <span className="flex items-center gap-1">
                               <Calendar className="h-3 w-3" />
                               {formatDate(ocorrencia.data)}
@@ -598,52 +557,50 @@ export function AlunoPage({ currentTab }: AlunoPageProps) {
 
   return (
     <ErrorBoundary>
-      <div className="min-h-screen flex flex-col bg-background">
-        <header className="sticky top-0 z-50 border-b bg-card px-6 py-4 flex-shrink-0 h-20 flex items-center">
-          <div className="flex items-center justify-between w-full">
-            <div className="flex items-center gap-4">
-              <User className="h-8 w-8 text-primary" />
+      {/* HEADER FIXO - FULL WIDTH */}
+      <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-10">
+        <div className="px-4 py-4 sm:px-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {/* BOTÃO HAMBURGER - MOBILE */}
+              <button
+                onClick={() => window.dispatchEvent(new Event('toggleSidebar'))}
+                className="lg:hidden p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"
+              >
+                <Menu className="h-5 w-5 sm:h-6 sm:w-6" />
+              </button>
+              
               <div>
-                <h1 className="text-xl font-semibold text-foreground">
+                <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
                   Área do Aluno
                 </h1>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                   Bem-vindo, {aluno.nome}
                 </p>
               </div>
             </div>
-            <AuthHeader />
-          </div>
-        </header>
-
-        <div className="sticky top-20 z-40 border-b bg-card px-6 flex-shrink-0">
-          <nav className="flex space-x-8 py-0">
-            {tabsConfig.map(({ id, label, icon: Icon }) => (
-              <button
-                key={id}
-                onClick={() => setActiveTab(id)}
-                className={`flex items-center gap-2 py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-fast ${
-                  activeTab === id
-                    ? 'text-primary border-primary'
-                    : 'text-muted-foreground border-transparent hover:text-foreground hover:border-border'
-                }`}
-              >
-                <Icon className="h-4 w-4" />
-                {label}
-              </button>
-            ))}
-          </nav>
-        </div>
-
-        <main className="flex-1 overflow-hidden">
-          <ScrollArea className="h-full">
-            <div className="p-6">
-              <ErrorBoundary>
-                {renderTabContent()}
-              </ErrorBoundary>
+            
+            {/* BADGE + AUTH HEADER - Desktop */}
+            <div className="hidden sm:flex items-center gap-3">
+              <span className="px-3 py-1 sm:px-4 sm:py-2 bg-blue-600 text-white text-xs sm:text-sm font-medium rounded-full">
+                ALUNO
+              </span>
+              <AuthHeader />
             </div>
-          </ScrollArea>
-        </main>
+            
+            {/* AUTH HEADER - Mobile */}
+            <div className="sm:hidden">
+              <AuthHeader />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* CONTEÚDO */}
+      <div className="p-4 sm:p-6">
+        <ErrorBoundary>
+          {renderTabContent()}
+        </ErrorBoundary>
       </div>
     </ErrorBoundary>
   );
