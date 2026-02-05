@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AlunoSidebar } from '../../components/sidebar/AlunoSidebar';
+import { AlunoSidebar } from '../../components/layout/AlunoSidebar';
 import { AlunoPage } from './page';
 
 interface AlunoLayoutProps {
