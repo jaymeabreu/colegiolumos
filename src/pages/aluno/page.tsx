@@ -557,47 +557,40 @@ export function AlunoPage({ currentTab }: AlunoPageProps) {
 
   return (
     <ErrorBoundary>
-      {/* HEADER FIXO - FULL WIDTH */}
-      <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-10">
-        <div className="px-4 py-4 sm:px-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {/* BOTÃO HAMBURGER - MOBILE */}
+      <div className="space-y-0">
+        {/* HEADER FIXO - FULL WIDTH SEM PADDING */}
+        <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 -mx-4 lg:-mx-6 px-4 lg:px-6 py-4 mb-6 sticky top-0 z-10">
+          <div className="flex items-center justify-between gap-3">
+            {/* ESQUERDA: HAMBURGER + TÍTULO */}
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              {/* HAMBURGER - MOBILE */}
               <button
                 onClick={() => window.dispatchEvent(new Event('toggleSidebar'))}
-                className="lg:hidden p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"
+                className="lg:hidden flex-shrink-0 p-2.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                aria-label="Abrir menu"
               >
-                <Menu className="h-5 w-5 sm:h-6 sm:w-6" />
+                <Menu className="h-6 w-6 text-gray-700 dark:text-gray-300" />
               </button>
               
-              <div>
-                <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
+              {/* TÍTULO */}
+              <div className="min-w-0">
+                <h1 className="text-base sm:text-lg lg:text-xl font-bold text-gray-900 dark:text-white truncate">
                   Área do Aluno
                 </h1>
-                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">
                   Bem-vindo, {aluno.nome}
                 </p>
               </div>
             </div>
             
-            {/* BADGE + AUTH HEADER - Desktop */}
-            <div className="hidden sm:flex items-center gap-3">
-              <span className="px-3 py-1 sm:px-4 sm:py-2 bg-blue-600 text-white text-xs sm:text-sm font-medium rounded-full">
-                ALUNO
-              </span>
-              <AuthHeader />
-            </div>
-            
-            {/* AUTH HEADER - Mobile */}
-            <div className="sm:hidden">
+            {/* DIREITA: AUTH HEADER */}
+            <div className="flex-shrink-0">
               <AuthHeader />
             </div>
           </div>
         </div>
-      </div>
 
-      {/* CONTEÚDO */}
-      <div className="p-4 sm:p-6">
+        {/* CONTEÚDO */}
         <ErrorBoundary>
           {renderTabContent()}
         </ErrorBoundary>
