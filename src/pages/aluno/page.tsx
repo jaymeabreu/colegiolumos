@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Menu, TrendingUp, ClipboardList, BookOpen, Calendar, AlertCircle, Award } from 'lucide-react';
+import { TrendingUp, ClipboardList, BookOpen, Calendar, AlertCircle, Award } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import { Progress } from '../../components/ui/progress';
-import { ScrollArea } from '../../components/ui/scroll-area';
 import { AuthHeader } from '../../components/auth/AuthHeader';
 import { ErrorBoundary } from '../../components/ErrorBoundary';
 import { authService } from '../../services/auth';
-import type { Aluno, Diario, Nota, Presenca, Avaliacao, Ocorrencia, Disciplina } from '../../services/supabaseService';
+import type { Aluno, Diario, Nota, Avaliacao, Ocorrencia, Disciplina } from '../../services/supabaseService';
 import { supabase } from '../../lib/supabaseClient';
 import { AvisosTab } from './components/AvisosTab';
 
@@ -59,7 +58,6 @@ export function AlunoPage({ currentTab }: AlunoPageProps) {
 
     try {
       setLoading(true);
-      console.log('🎓 Carregando dados do aluno (VIEW):', user.alunoId);
 
       const { data: alunoRow, error: alunoErr } = await supabase
         .from('alunos')
@@ -80,8 +78,6 @@ export function AlunoPage({ currentTab }: AlunoPageProps) {
         .order('bimestre', { ascending: true });
 
       if (boletimErr) throw boletimErr;
-
-      console.log('📊 Dados da VIEW:', boletimRows);
 
       const disciplinasMap = new Map<number, DisciplinaBoletim>();
 
@@ -207,10 +203,6 @@ export function AlunoPage({ currentTab }: AlunoPageProps) {
         alunoId: o.aluno_id,
       })));
 
-      console.log('✅ Dados carregados:', {
-        boletim: boletimFinal.length,
-      });
-
     } catch (error) {
       console.error('❌ Erro ao carregar dados:', error);
     } finally {
@@ -281,7 +273,7 @@ export function AlunoPage({ currentTab }: AlunoPageProps) {
       
       case 'boletim':
         return (
-          <div className="space-y-4 lg:space-y-6">
+          <div className="space-y-6">
             <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -325,44 +317,42 @@ export function AlunoPage({ currentTab }: AlunoPageProps) {
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg lg:text-xl">Boletim Completo - {new Date().getFullYear()}</CardTitle>
-                <CardDescription>
-                  Notas e desempenho por disciplina
-                </CardDescription>
+                <CardTitle>Boletim Completo - {new Date().getFullYear()}</CardTitle>
+                <CardDescription>Notas e desempenho por disciplina</CardDescription>
               </CardHeader>
-              <CardContent className="overflow-x-auto -mx-4 sm:mx-0">
+              <CardContent className="overflow-x-auto">
                 <table className="w-full min-w-[600px]">
                   <thead>
                     <tr className="border-b">
-                      <th className="text-left py-3 px-2 sm:px-4 font-medium text-xs sm:text-sm">Disciplina</th>
-                      <th className="text-center py-3 px-2 sm:px-4 font-medium text-xs sm:text-sm">1º</th>
-                      <th className="text-center py-3 px-2 sm:px-4 font-medium text-xs sm:text-sm">2º</th>
-                      <th className="text-center py-3 px-2 sm:px-4 font-medium text-xs sm:text-sm">3º</th>
-                      <th className="text-center py-3 px-2 sm:px-4 font-medium text-xs sm:text-sm">4º</th>
-                      <th className="text-center py-3 px-2 sm:px-4 font-medium text-xs sm:text-sm">Média</th>
-                      <th className="text-center py-3 px-2 sm:px-4 font-medium text-xs sm:text-sm">Freq.</th>
+                      <th className="text-left py-3 px-4 font-medium">Disciplina</th>
+                      <th className="text-center py-3 px-4 font-medium">1º</th>
+                      <th className="text-center py-3 px-4 font-medium">2º</th>
+                      <th className="text-center py-3 px-4 font-medium">3º</th>
+                      <th className="text-center py-3 px-4 font-medium">4º</th>
+                      <th className="text-center py-3 px-4 font-medium">Média</th>
+                      <th className="text-center py-3 px-4 font-medium">Freq.</th>
                     </tr>
                   </thead>
                   <tbody>
                     {boletimCompleto.map((item, index) => (
                       <tr key={index} className="border-b hover:bg-muted/50">
-                        <td className="py-3 px-2 sm:px-4 font-medium text-xs sm:text-sm">{item.disciplina}</td>
-                        <td className="text-center py-3 px-2 sm:px-4 text-xs sm:text-sm">
+                        <td className="py-3 px-4 font-medium">{item.disciplina}</td>
+                        <td className="text-center py-3 px-4">
                           {item.bimestre1 !== null ? item.bimestre1.toFixed(1) : '-'}
                         </td>
-                        <td className="text-center py-3 px-2 sm:px-4 text-xs sm:text-sm">
+                        <td className="text-center py-3 px-4">
                           {item.bimestre2 !== null ? item.bimestre2.toFixed(1) : '-'}
                         </td>
-                        <td className="text-center py-3 px-2 sm:px-4 text-xs sm:text-sm">
+                        <td className="text-center py-3 px-4">
                           {item.bimestre3 !== null ? item.bimestre3.toFixed(1) : '-'}
                         </td>
-                        <td className="text-center py-3 px-2 sm:px-4 text-xs sm:text-sm">
+                        <td className="text-center py-3 px-4">
                           {item.bimestre4 !== null ? item.bimestre4.toFixed(1) : '-'}
                         </td>
-                        <td className={`text-center py-3 px-2 sm:px-4 font-bold text-xs sm:text-sm ${getMediaColor(item.mediaFinal)}`}>
+                        <td className={`text-center py-3 px-4 font-bold ${getMediaColor(item.mediaFinal)}`}>
                           {item.mediaFinal > 0 ? item.mediaFinal.toFixed(1) : '-'}
                         </td>
-                        <td className={`text-center py-3 px-2 sm:px-4 text-xs sm:text-sm ${getFrequenciaColor(item.frequencia)}`}>
+                        <td className={`text-center py-3 px-4 ${getFrequenciaColor(item.frequencia)}`}>
                           {item.frequencia.toFixed(0)}%
                         </td>
                       </tr>
@@ -376,22 +366,20 @@ export function AlunoPage({ currentTab }: AlunoPageProps) {
 
       case 'frequencia':
         return (
-          <div className="space-y-4 lg:space-y-6">
+          <div className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg lg:text-xl">Frequência por Disciplina</CardTitle>
-                <CardDescription>
-                  Acompanhe suas presenças e faltas
-                </CardDescription>
+                <CardTitle>Frequência por Disciplina</CardTitle>
+                <CardDescription>Acompanhe suas presenças e faltas</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   {boletimCompleto.map((item, index) => (
-                    <div key={index} className="border rounded-lg p-3 sm:p-4">
+                    <div key={index} className="border rounded-lg p-4">
                       <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
                         <div>
-                          <h3 className="font-medium text-sm sm:text-base">{item.disciplina}</h3>
-                          <p className="text-xs sm:text-sm text-muted-foreground">
+                          <h3 className="font-medium">{item.disciplina}</h3>
+                          <p className="text-sm text-muted-foreground">
                             {item.totalAulas} aulas ministradas
                           </p>
                         </div>
@@ -401,17 +389,13 @@ export function AlunoPage({ currentTab }: AlunoPageProps) {
                       </div>
                       <div className="space-y-2">
                         <Progress value={item.frequencia} className="h-2" />
-                        <div className="flex justify-between text-xs sm:text-sm">
-                          <span className="text-green-600">
-                            ✓ {item.presencas} presenças
-                          </span>
-                          <span className="text-red-600">
-                            ✗ {item.faltas} faltas
-                          </span>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-green-600">✓ {item.presencas} presenças</span>
+                          <span className="text-red-600">✗ {item.faltas} faltas</span>
                         </div>
                       </div>
                       {item.frequencia < 75 && item.totalAulas > 0 && (
-                        <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs sm:text-sm text-yellow-800">
+                        <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-800">
                           <AlertCircle className="h-4 w-4 inline mr-1" />
                           Atenção: Frequência abaixo do mínimo (75%)
                         </div>
@@ -426,13 +410,11 @@ export function AlunoPage({ currentTab }: AlunoPageProps) {
 
       case 'avaliacoes':
         return (
-          <div className="space-y-4 lg:space-y-6">
+          <div className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg lg:text-xl">Próximas Avaliações</CardTitle>
-                <CardDescription>
-                  Provas e trabalhos agendados
-                </CardDescription>
+                <CardTitle>Próximas Avaliações</CardTitle>
+                <CardDescription>Provas e trabalhos agendados</CardDescription>
               </CardHeader>
               <CardContent>
                 {avaliacoes.length === 0 ? (
@@ -449,23 +431,23 @@ export function AlunoPage({ currentTab }: AlunoPageProps) {
                         const nota = notas.find(n => n.avaliacaoId === avaliacao.id);
 
                         return (
-                          <div key={avaliacao.id} className="border rounded-lg p-3 sm:p-4">
+                          <div key={avaliacao.id} className="border rounded-lg p-4">
                             <div className="flex items-start justify-between gap-3">
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-2 flex-wrap">
-                                  <h3 className="font-medium text-sm sm:text-base">{avaliacao.titulo}</h3>
+                                  <h3 className="font-medium">{avaliacao.titulo}</h3>
                                   {avaliacao.bimestre && (
                                     <Badge variant="outline" className="text-xs">
                                       {avaliacao.bimestre}º Bim
                                     </Badge>
                                   )}
                                 </div>
-                                <p className="text-xs sm:text-sm text-muted-foreground mb-2">
+                                <p className="text-sm text-muted-foreground mb-2">
                                   {disciplina?.nome || 'Disciplina'}
                                 </p>
-                                <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm text-muted-foreground flex-wrap">
+                                <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
                                   <span className="flex items-center gap-1">
-                                    <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
+                                    <Calendar className="h-4 w-4" />
                                     {formatDate(avaliacao.data)}
                                   </span>
                                   <span>Peso: {avaliacao.peso}</span>
@@ -473,7 +455,7 @@ export function AlunoPage({ currentTab }: AlunoPageProps) {
                               </div>
                               {nota && (
                                 <div className="text-right flex-shrink-0">
-                                  <div className={`text-xl sm:text-2xl font-bold ${getMediaColor(nota.valor)}`}>
+                                  <div className={`text-2xl font-bold ${getMediaColor(nota.valor)}`}>
                                     {nota.valor.toFixed(1)}
                                   </div>
                                   <p className="text-xs text-muted-foreground">/ 10.0</p>
@@ -481,7 +463,7 @@ export function AlunoPage({ currentTab }: AlunoPageProps) {
                               )}
                             </div>
                             {avaliacao.descricao && (
-                              <p className="mt-3 text-xs sm:text-sm text-muted-foreground">
+                              <p className="mt-3 text-sm text-muted-foreground">
                                 {avaliacao.descricao}
                               </p>
                             )}
@@ -497,20 +479,18 @@ export function AlunoPage({ currentTab }: AlunoPageProps) {
 
       case 'ocorrencias':
         return (
-          <div className="space-y-4 lg:space-y-6">
+          <div className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg lg:text-xl">Ocorrências Registradas</CardTitle>
-                <CardDescription>
-                  Histórico de ocorrências disciplinares e pedagógicas
-                </CardDescription>
+                <CardTitle>Ocorrências Registradas</CardTitle>
+                <CardDescription>Histórico de ocorrências disciplinares e pedagógicas</CardDescription>
               </CardHeader>
               <CardContent>
                 {ocorrencias.length === 0 ? (
                   <div className="text-center py-8">
-                    <Award className="h-10 w-10 sm:h-12 sm:w-12 text-green-500 mx-auto mb-3" />
-                    <p className="font-medium text-green-600 text-sm sm:text-base">Parabéns!</p>
-                    <p className="text-xs sm:text-sm text-muted-foreground">
+                    <Award className="h-12 w-12 text-green-500 mx-auto mb-3" />
+                    <p className="font-medium text-green-600">Parabéns!</p>
+                    <p className="text-sm text-muted-foreground">
                       Nenhuma ocorrência registrada
                     </p>
                   </div>
@@ -519,20 +499,20 @@ export function AlunoPage({ currentTab }: AlunoPageProps) {
                     {ocorrencias
                       .sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime())
                       .map((ocorrencia) => (
-                        <div key={ocorrencia.id} className="border rounded-lg p-3 sm:p-4">
+                        <div key={ocorrencia.id} className="border rounded-lg p-4">
                           <div className="flex items-start justify-between mb-2 gap-2 flex-wrap">
                             <div className="flex items-center gap-2">
-                              <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-destructive flex-shrink-0" />
-                              <h3 className="font-medium text-sm sm:text-base">{ocorrencia.titulo}</h3>
+                              <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0" />
+                              <h3 className="font-medium">{ocorrencia.titulo}</h3>
                             </div>
                             <Badge variant={getOcorrenciaColor(ocorrencia.tipo)} className="text-xs">
                               {ocorrencia.tipo === 'disciplinar' ? 'Disciplinar' : 'Pedagógica'}
                             </Badge>
                           </div>
-                          <p className="text-xs sm:text-sm text-muted-foreground mb-2">
+                          <p className="text-sm text-muted-foreground mb-2">
                             {ocorrencia.descricao}
                           </p>
-                          <div className="flex items-center gap-3 sm:gap-4 text-xs text-muted-foreground flex-wrap">
+                          <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
                             <span className="flex items-center gap-1">
                               <Calendar className="h-3 w-3" />
                               {formatDate(ocorrencia.data)}
@@ -557,43 +537,28 @@ export function AlunoPage({ currentTab }: AlunoPageProps) {
 
   return (
     <ErrorBoundary>
-      <div className="space-y-0">
-        {/* HEADER FIXO - FULL WIDTH SEM PADDING */}
-        <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 -mx-4 lg:-mx-6 px-4 lg:px-6 py-4 mb-6 sticky top-0 z-10">
-          <div className="flex items-center justify-between gap-3">
-            {/* ESQUERDA: HAMBURGER + TÍTULO */}
-            <div className="flex items-center gap-3 min-w-0 flex-1">
-              {/* HAMBURGER - MOBILE */}
-              <button
-                onClick={() => window.dispatchEvent(new Event('toggleSidebar'))}
-                className="lg:hidden flex-shrink-0 p-2.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-                aria-label="Abrir menu"
-              >
-                <Menu className="h-6 w-6 text-gray-700 dark:text-gray-300" />
-              </button>
-              
-              {/* TÍTULO */}
-              <div className="min-w-0">
-                <h1 className="text-base sm:text-lg lg:text-xl font-bold text-gray-900 dark:text-white truncate">
-                  Área do Aluno
-                </h1>
-                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate">
-                  Bem-vindo, {aluno.nome}
-                </p>
-              </div>
+      <div className="w-full">
+        {/* HEADER FULL WIDTH */}
+        <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 lg:px-6 py-4 sticky top-0 z-10">
+          <div className="flex items-center justify-between">
+            <div className="min-w-0 flex-1 lg:pl-16">
+              <h1 className="text-lg lg:text-xl font-bold text-gray-900 dark:text-white truncate">
+                Área do Aluno
+              </h1>
+              <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                Bem-vindo, {aluno.nome}
+              </p>
             </div>
-            
-            {/* DIREITA: AUTH HEADER */}
-            <div className="flex-shrink-0">
-              <AuthHeader />
-            </div>
+            <AuthHeader />
           </div>
         </div>
 
         {/* CONTEÚDO */}
-        <ErrorBoundary>
-          {renderTabContent()}
-        </ErrorBoundary>
+        <div className="p-4 lg:p-6">
+          <ErrorBoundary>
+            {renderTabContent()}
+          </ErrorBoundary>
+        </div>
       </div>
     </ErrorBoundary>
   );
