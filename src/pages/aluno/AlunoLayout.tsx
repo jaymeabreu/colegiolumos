@@ -14,14 +14,12 @@ export function AlunoLayout({ children }: AlunoLayoutProps) {
   };
 
   return (
-    <div className="flex h-[100dvh] w-screen overflow-hidden bg-background">
+    <div className="flex min-h-screen w-full bg-background">
       {/* SIDEBAR - Fixed */}
-      <div className="flex-shrink-0">
-        <AlunoSidebar onTabChange={handleTabChange} />
-      </div>
+      <AlunoSidebar onTabChange={handleTabChange} />
 
-      {/* CONTEÚDO PRINCIPAL - Scrollável */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      {/* CONTEÚDO PRINCIPAL - Com margin-left para não ser coberto */}
+      <div className="flex-1 flex flex-col overflow-hidden ml-0 min-[881px]:ml-64 w-full">
         {children || <AlunoPage currentTab={activeTab} />}
       </div>
     </div>
