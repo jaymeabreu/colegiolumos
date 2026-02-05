@@ -5,7 +5,7 @@ import { HomePage } from "../pages/home/page"
 import { NotFound } from "../pages/NotFound"
 import { ProfessorPage } from "../pages/professor/page"
 import { AdminPage } from "../pages/admin/page"
-import { AlunoPage } from "../pages/aluno/page"
+import { AlunoLayout } from "../pages/aluno/layout"
 import { AdminDashboard } from "../pages/admin/AdminDashboard"
 import { Configuracoes } from "../pages/admin/Configuracoes"
 import { ProtectedRoute } from "../components/auth/ProtectedRoute"
@@ -43,7 +43,7 @@ const routes: RouteObject[] = [
     path: "/app/aluno",
     element: (
       <ProtectedRoute requiredRole="ALUNO">
-        <AlunoPage />
+        <AlunoLayout />
       </ProtectedRoute>
     )
   },
