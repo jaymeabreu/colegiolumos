@@ -536,28 +536,32 @@ export function AlunoPage({ currentTab }: AlunoPageProps) {
   };
 
   return (
-    <ErrorBoundary>
-      <div className="w-full">
-        {/* HEADER FULL WIDTH */}
-        <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 lg:px-6 py-4 sticky top-0 z-10">
-          <div className="flex items-center justify-between">
-            <div className="min-w-0 flex-1 lg:pl-16">
-              <h1 className="text-lg lg:text-xl font-bold text-gray-900 dark:text-white truncate">
-                Área do Aluno
-              </h1>
-              <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
-                Bem-vindo, {aluno.nome}
-              </p>
-            </div>
-            <AuthHeader />
+  <ErrorBoundary>
+    <div className="w-full">
+      {/* HEADER FULL WIDTH */}
+      <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 lg:px-6 py-4 sticky top-0 z-10">
+        <div className="flex items-center justify-between">
+          <div className="min-w-0 flex-1 pl-14 lg:pl-0">
+            <h1 className="text-lg lg:text-xl font-bold text-gray-900 dark:text-white truncate">
+              Área do Aluno
+            </h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+              Bem-vindo, {aluno.nome}
+            </p>
           </div>
+          <AuthHeader />
         </div>
+      </div>
 
-        {/* CONTEÚDO */}
-        <div className="p-4 lg:p-6">
-          <ErrorBoundary>
-            {renderTabContent()}
-          </ErrorBoundary>
+      {/* CONTEÚDO */}
+      <div className="p-4 lg:p-6">
+        <ErrorBoundary>
+          {renderTabContent()}
+        </ErrorBoundary>
+      </div>
+    </div>
+  </ErrorBoundary>
+);
         </div>
       </div>
     </ErrorBoundary>
