@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Settings, Bell, BarChart3, ClipboardList, BookOpen, AlertCircle, X, Menu } from 'lucide-react';
+import { Settings, Bell, BarChart3, ClipboardList, BookOpen, AlertCircle, X } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 
 interface ConfiguracaoEscola {
@@ -118,37 +118,32 @@ export function AlunoSidebar({ onTabChange, alunoNome }: AlunoSidebarProps) {
 
   return (
     <>
-      {/* BOTÃO HAMBURGUER FIXO - MOBILE */}
-      <button
-        onClick={() => setMobileMenuOpen(true)}
-        className="fixed top-4 left-4 z-[100] p-2.5 bg-white dark:bg-gray-900 rounded-lg shadow-lg lg:hidden hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-        aria-label="Abrir menu"
-      >
-        <Menu className="h-6 w-6 text-gray-700 dark:text-gray-300" />
-      </button>
-
-      {/* OVERLAY */}
+      {/* OVERLAY - Apenas mobile */}
       {mobileMenuOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-[110] lg:hidden"
+          className="fixed inset-0 bg-black/50 z-40 max-[880px]:block hidden"
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
 
       {/* SIDEBAR */}
-      <aside 
+      <div 
         className={`
-          fixed lg:static top-0 left-0 h-screen w-64 bg-white dark:bg-gray-900 
+          fixed left-0 top-0 h-[100dvh] w-full min-[881px]:w-64 bg-white dark:bg-gray-900 
           border-r border-gray-200 dark:border-gray-800 flex flex-col overflow-hidden
-          transition-transform duration-300 ease-in-out z-[120]
-          ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+          transition-transform duration-300 ease-in-out
+          max-[880px]:-translate-x-full
+          ${mobileMenuOpen ? 'max-[880px]:translate-x-0' : ''}
         `}
+        style={{ zIndex: 9999 }}
       >
+        {/* HEADER - LOGO E NOME DA ESCOLA + TIPO USUÁRIO */}
         <div className="p-6 border-b border-gray-200 dark:border-gray-800 flex-shrink-0">
           <div className="flex items-center gap-3">
+            {/* Botão X para fechar (MOBILE) */}
             <button
               onClick={() => setMobileMenuOpen(false)}
-              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded lg:hidden"
+              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded min-[881px]:hidden"
             >
               <X className="h-5 w-5 text-gray-700 dark:text-gray-300" />
             </button>
@@ -160,26 +155,28 @@ export function AlunoSidebar({ onTabChange, alunoNome }: AlunoSidebarProps) {
                 className="w-12 h-12 rounded-lg object-contain"
               />
             ) : (
-              <div className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 bg-blue-600">
+              <div className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'var(--primary)' }}>
                 <span className="text-white font-bold text-sm">CL</span>
               </div>
             )}
             <div className="flex-1 min-w-0">
               <h2 className="text-sm font-bold text-gray-900 dark:text-white truncate">
-                {config?.nome_escola || 'Colégio Lumos'}
+                {config?.nome_escola || 'Colégio'}
               </h2>
               <p className="text-xs text-gray-500 dark:text-gray-400">Aluno</p>
             </div>
           </div>
         </div>
 
+        {/* HEADER MOBILE COM NOME DO ALUNO */}
         {alunoNome && (
-          <div className="lg:hidden px-6 py-3 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-800">
+          <div className="max-[880px]:block hidden px-6 py-3 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-800 flex-shrink-0">
             <p className="text-xs text-gray-500 dark:text-gray-400">Bem-vindo,</p>
             <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{alunoNome}</p>
           </div>
         )}
 
+        {/* MENUS - SCROLLÁVEL */}
         <div className="flex-1 overflow-y-auto px-3 py-4 space-y-2">
           {menuItems.map((menu) => (
             <button
@@ -188,7 +185,7 @@ export function AlunoSidebar({ onTabChange, alunoNome }: AlunoSidebarProps) {
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all ${
                 activeTab === menu.tabId 
                   ? menu.color + ' shadow-md' 
-                  : 'hover:bg-gray-50 dark:hover:bg-gray-800'
+                  : 'hover:bg-gray-100 dark:hover:bg-gray-800'
               } text-gray-800 dark:text-gray-200`}
             >
               {menu.icon}
@@ -197,6 +194,7 @@ export function AlunoSidebar({ onTabChange, alunoNome }: AlunoSidebarProps) {
           ))}
         </div>
 
+        {/* CONFIGURAÇÕES - EMBAIXO */}
         <div className="border-t border-gray-200 dark:border-gray-800 p-4 flex-shrink-0">
           <button 
             onClick={() => navigate('/app/aluno/configuracoes')}
@@ -206,7 +204,7 @@ export function AlunoSidebar({ onTabChange, alunoNome }: AlunoSidebarProps) {
             <span className="text-sm font-medium">Configurações</span>
           </button>
         </div>
-      </aside>
+      </div>
     </>
   );
 }
