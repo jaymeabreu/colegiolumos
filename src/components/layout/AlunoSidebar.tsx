@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Settings, Bell, BarChart3, ClipboardList, BookOpen, AlertCircle, X } from 'lucide-react';
+import { Settings, Bell, BarChart3, ClipboardList, BookOpen, AlertCircle, X, Menu } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 
 interface ConfiguracaoEscola {
@@ -30,6 +30,7 @@ export function AlunoSidebar({ onTabChange }: AlunoSidebarProps) {
   const [config, setConfig] = useState<ConfiguracaoEscola | null>(null);
   const [loading, setLoading] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('avisos');
 
   const menuItems: MenuItem[] = [
     {
@@ -107,6 +108,7 @@ export function AlunoSidebar({ onTabChange }: AlunoSidebarProps) {
   };
 
   const handleMenuItemClick = (tabId: string) => {
+    setActiveTab(tabId);
     if (onTabChange) {
       onTabChange(tabId);
       setMobileMenuOpen(false);
@@ -118,21 +120,19 @@ export function AlunoSidebar({ onTabChange }: AlunoSidebarProps) {
       {/* OVERLAY - Apenas mobile */}
       {mobileMenuOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 max-[880px]:block hidden"
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
 
       {/* SIDEBAR */}
-      <div 
+      <aside 
         className={`
-          fixed left-0 top-0 h-[100dvh] w-full min-[881px]:w-64 bg-white dark:bg-gray-900 
+          fixed lg:static top-0 left-0 h-screen w-64 bg-white dark:bg-gray-900 
           border-r border-gray-200 dark:border-gray-800 flex flex-col overflow-hidden
-          transition-transform duration-300 ease-in-out
-          max-[880px]:-translate-x-full
-          ${mobileMenuOpen ? 'max-[880px]:translate-x-0' : ''}
+          transition-transform duration-300 ease-in-out z-50
+          ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}
-        style={{ zIndex: 9999 }}
       >
         {/* HEADER - LOGO E NOME DA ESCOLA + TIPO USUÁRIO */}
         <div className="p-6 border-b border-gray-200 dark:border-gray-800 flex-shrink-0">
@@ -140,7 +140,7 @@ export function AlunoSidebar({ onTabChange }: AlunoSidebarProps) {
             {/* Botão X para fechar (MOBILE) */}
             <button
               onClick={() => setMobileMenuOpen(false)}
-              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded min-[881px]:hidden"
+              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded lg:hidden"
             >
               <X className="h-5 w-5 text-gray-700 dark:text-gray-300" />
             </button>
@@ -172,8 +172,10 @@ export function AlunoSidebar({ onTabChange }: AlunoSidebarProps) {
               key={menu.id}
               onClick={() => handleMenuItemClick(menu.tabId)}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-all ${
-                menu.color
-              } text-gray-800 dark:text-gray-200 hover:shadow-md`}
+                activeTab === menu.tabId 
+                  ? menu.color + ' shadow-md' 
+                  : 'hover:bg-gray-50 dark:hover:bg-gray-800'
+              } text-gray-800 dark:text-gray-200`}
             >
               {menu.icon}
               <span className="text-sm">{menu.label}</span>
@@ -191,7 +193,15 @@ export function AlunoSidebar({ onTabChange }: AlunoSidebarProps) {
             <span className="text-sm font-medium">Configurações</span>
           </button>
         </div>
-      </div>
+      </aside>
+
+      {/* BOTÃO HAMBURGUER - Mobile */}
+      <button
+        onClick={() => setMobileMenuOpen(true)}
+        className="fixed top-4 left-4 z-30 p-2 bg-white dark:bg-gray-900 rounded-lg shadow-lg lg:hidden"
+      >
+        <Menu className="h-6 w-6 text-gray-700 dark:text-gray-300" />
+      </button>
     </>
   );
 }
