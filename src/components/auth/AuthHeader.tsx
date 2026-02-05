@@ -1,4 +1,4 @@
-import { LogOut, User } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { authService } from '../../services/auth';
 import { Button } from '../ui/button';
@@ -7,7 +7,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '../ui/avatar';
@@ -54,11 +53,6 @@ export function AuthHeader() {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
-          <DropdownMenuItem>
-            <User className="mr-2 h-4 w-4" />
-            Meu Perfil
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
           <DropdownMenuItem 
             onClick={handleLogout} 
             className="text-white bg-red-600 hover:bg-red-700 focus:bg-red-700 cursor-pointer font-medium"
