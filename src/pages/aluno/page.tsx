@@ -25,8 +25,12 @@ interface DisciplinaBoletim {
   faltas: number;
 }
 
-export function AlunoPage() {
-  const [activeTab, setActiveTab] = useState('avisos');
+interface AlunoPageProps {
+  currentTab?: string;
+}
+
+export function AlunoPage({ currentTab }: AlunoPageProps) {
+  const [activeTab, setActiveTab] = useState(currentTab || 'avisos');
   const [aluno, setAluno] = useState<Aluno | null>(null);
   const [diarios, setDiarios] = useState<Diario[]>([]);
   const [notas, setNotas] = useState<Nota[]>([]);
@@ -40,6 +44,13 @@ export function AlunoPage() {
   useEffect(() => {
     void loadData();
   }, []);
+
+  // Sincroniza o activeTab quando currentTab muda
+  useEffect(() => {
+    if (currentTab) {
+      setActiveTab(currentTab);
+    }
+  }, [currentTab]);
 
   const loadData = async () => {
     if (!user?.alunoId) {
