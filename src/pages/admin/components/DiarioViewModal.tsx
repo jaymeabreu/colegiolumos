@@ -261,7 +261,7 @@ export function DiarioViewModal({
 
           {/* CONTEÚDO COM SCROLL */}
           <ScrollArea className="flex-1 overflow-auto">
-            
+            <div className="p-8 flex flex-col gap-6">
               
               {/* BLOCO 1: INFORMAÇÕES DA TURMA */}
               {identificacao && (
