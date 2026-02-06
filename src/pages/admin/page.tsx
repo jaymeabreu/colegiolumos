@@ -268,10 +268,10 @@ export function AdminPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
             <CardHeader className="text-left">
-              <CardTitle className="text-lg text-gray-900 dark:text-white">
-                Total de alunos
-              </CardTitle>
-              <div className="mt-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg text-gray-900 dark:text-white">
+                  Total de alunos
+                </CardTitle>
                 <Button 
                   variant="link"
                   size="sm"
@@ -321,10 +321,10 @@ export function AdminPage() {
 
           <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
             <CardHeader className="text-left">
-              <CardTitle className="text-lg text-gray-900 dark:text-white">
-                Total de professores
-              </CardTitle>
-              <div className="mt-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg text-gray-900 dark:text-white">
+                  Total de professores
+                </CardTitle>
                 <Button 
                   variant="link"
                   size="sm"
@@ -374,10 +374,10 @@ export function AdminPage() {
 
           <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
             <CardHeader className="text-left">
-              <CardTitle className="text-lg text-gray-900 dark:text-white">
-                Total de funcionários
-              </CardTitle>
-              <div className="mt-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg text-gray-900 dark:text-white">
+                  Total de funcionários
+                </CardTitle>
                 <Button 
                   variant="link"
                   size="sm"
