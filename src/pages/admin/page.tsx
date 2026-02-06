@@ -267,17 +267,19 @@ export function AdminPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-            <CardHeader>
+            <CardHeader className="text-left">
               <CardTitle className="text-lg text-gray-900 dark:text-white">
                 Total de alunos
               </CardTitle>
               <div className="flex items-center gap-2 mt-2">
-                <button 
+                <Button 
+                  variant="link"
+                  size="sm"
                   onClick={() => setActiveTab('alunos')}
-                  className="text-blue-600 dark:text-blue-400 text-sm hover:underline"
+                  className="text-blue-600 dark:text-blue-400 p-0 h-auto"
                 >
                   Ver tudo
-                </button>
+                </Button>
               </div>
             </CardHeader>
             <CardContent>
@@ -318,17 +320,19 @@ export function AdminPage() {
           </Card>
 
           <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-            <CardHeader>
+            <CardHeader className="text-left">
               <CardTitle className="text-lg text-gray-900 dark:text-white">
                 Total de professores
               </CardTitle>
               <div className="flex items-center gap-2 mt-2">
-                <button 
+                <Button 
+                  variant="link"
+                  size="sm"
                   onClick={() => setActiveTab('professores')}
-                  className="text-blue-600 dark:text-blue-400 text-sm hover:underline"
+                  className="text-blue-600 dark:text-blue-400 p-0 h-auto"
                 >
                   Ver tudo
-                </button>
+                </Button>
               </div>
             </CardHeader>
             <CardContent>
@@ -369,17 +373,19 @@ export function AdminPage() {
           </Card>
 
           <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-            <CardHeader>
+            <CardHeader className="text-left">
               <CardTitle className="text-lg text-gray-900 dark:text-white">
                 Total de funcionários
               </CardTitle>
               <div className="flex items-center gap-2 mt-2">
-                <button 
+                <Button 
+                  variant="link"
+                  size="sm"
                   onClick={() => alert('Página de funcionários ainda não implementada')}
-                  className="text-blue-600 dark:text-blue-400 text-sm hover:underline"
+                  className="text-blue-600 dark:text-blue-400 p-0 h-auto"
                 >
                   Ver tudo
-                </button>
+                </Button>
               </div>
             </CardHeader>
             <CardContent>
