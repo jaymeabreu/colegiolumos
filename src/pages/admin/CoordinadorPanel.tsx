@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabaseService, Aluno, Professor } from '@/services/supabaseService';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
@@ -27,6 +28,7 @@ interface DashboardStats {
 const COLORS_CHART = ['#1e40af', '#fbbf24'];
 
 export function CoordinadorPanel() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabId>('visao-geral');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -127,9 +129,12 @@ export function CoordinadorPanel() {
                 Total de alunos
               </CardTitle>
               <div className="flex items-center gap-2 mt-2">
-                <a href="#" className="text-blue-600 dark:text-blue-400 text-sm hover:underline">
+                <button 
+                  onClick={() => navigate('/app/admin/alunos')}
+                  className="text-blue-600 dark:text-blue-400 text-sm hover:underline"
+                >
                   Ver tudo
-                </a>
+                </button>
               </div>
             </CardHeader>
             <CardContent>
@@ -176,9 +181,12 @@ export function CoordinadorPanel() {
                 Total de professores
               </CardTitle>
               <div className="flex items-center gap-2 mt-2">
-                <a href="#" className="text-blue-600 dark:text-blue-400 text-sm hover:underline">
+                <button 
+                  onClick={() => navigate('/app/admin/professores')}
+                  className="text-blue-600 dark:text-blue-400 text-sm hover:underline"
+                >
                   Ver tudo
-                </a>
+                </button>
               </div>
             </CardHeader>
             <CardContent>
@@ -225,9 +233,12 @@ export function CoordinadorPanel() {
                 Total de funcionários
               </CardTitle>
               <div className="flex items-center gap-2 mt-2">
-                <a href="#" className="text-blue-600 dark:text-blue-400 text-sm hover:underline">
+                <button 
+                  onClick={() => alert('Página de funcionários ainda não implementada')}
+                  className="text-blue-600 dark:text-blue-400 text-sm hover:underline"
+                >
                   Ver tudo
-                </a>
+                </button>
               </div>
             </CardHeader>
             <CardContent>
