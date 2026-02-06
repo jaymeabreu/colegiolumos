@@ -169,7 +169,7 @@ export function CoordinadorSidebar({ onTabChange }: CoordinadorSidebarProps) {
           max-[880px]:-translate-x-full
           ${mobileMenuOpen ? 'max-[880px]:translate-x-0' : ''}
         `}
-        style={{ zIndex: 9999 }}
+        style={{ zIndex: mobileMenuOpen ? 50 : 10 }}
       >
         {/* HEADER - LOGO E NOME DA ESCOLA */}
         <div className="p-6 border-b border-gray-200 dark:border-gray-800 flex-shrink-0">
