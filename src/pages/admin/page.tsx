@@ -404,7 +404,7 @@ export function AdminPage() {
           <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">Ocorrências Recentes</CardTitle>
+                <h3 className="card-title">Ocorrências Recentes</h3>
                 <button 
                   onClick={() => setActiveTab('ocorrencias')}
                   className="text-blue-600 dark:text-blue-400 text-sm hover:underline"
@@ -451,7 +451,7 @@ export function AdminPage() {
           <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">Comunicados Recentes</CardTitle>
+                <h3 className="card-title">Comunicados Recentes</h3>
                 <button 
                   onClick={() => setActiveTab('comunicados')}
                   className="text-blue-600 dark:text-blue-400 text-sm hover:underline"
