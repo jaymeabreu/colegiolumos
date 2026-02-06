@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef, memo } from 'react';
-import { BookOpen, Users, ClipboardList, AlertTriangle, ChevronRight, Calendar, ArrowLeft, CheckCircle, MessageSquare } from 'lucide-react';
+import { BookOpen, Users, ClipboardList, AlertTriangle, ArrowLeft, MessageSquare } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button'; 
 import { AuthHeader } from '../../components/auth/AuthHeader';
@@ -20,14 +20,24 @@ const MemoizedAlunosTab = memo(AlunosTab);
 const MemoizedOcorrenciasTab = memo(OcorrenciasTab);
 const MemoizedRecadosTab = memo(RecadosTab);
 
-export function ProfessorPage() {
-  const [activeTab, setActiveTab] = useState('aulas');
+interface ProfessorPageProps {
+  currentTab?: string;
+}
+
+export function ProfessorPage({ currentTab }: ProfessorPageProps) {
+  const [activeTab, setActiveTab] = useState(currentTab || 'aulas');
   const [selectedDiario, setSelectedDiario] = useState<number | null>(null);
   const [diarios, setDiarios] = useState<Diario[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = authService.getAuthState();
   const loadedRef = useRef(false);
-  const tabContentRef = useRef<HTMLDivElement>(null);
+
+  // Sincroniza o activeTab quando currentTab muda
+  useEffect(() => {
+    if (currentTab) {
+      setActiveTab(currentTab);
+    }
+  }, [currentTab]);
 
   // Carregar diários uma única vez
   useEffect(() => {
@@ -35,7 +45,6 @@ export function ProfessorPage() {
 
     const carregarDiarios = async () => {
       try {
-        // CORRIGIDO: Usar professorId (camelCase) ao invés de professor_id
         if (user.professorId) {
           const dados = await supabaseService.getDiariosByProfessor(user.professorId);
           setDiarios(dados);
@@ -58,14 +67,6 @@ export function ProfessorPage() {
     return diarios.find(d => d.id === selectedDiario) || null;
   }, [diarios, selectedDiario]);
 
-  const tabsConfig = useMemo(() => [
-    { id: 'aulas', label: 'Aulas', icon: BookOpen },
-    { id: 'avaliacoes', label: 'Avaliações', icon: ClipboardList },
-    { id: 'alunos', label: 'Alunos', icon: Users },
-    { id: 'ocorrencias', label: 'Ocorrências', icon: AlertTriangle },
-    { id: 'recados', label: 'Recados', icon: MessageSquare }
-  ], []);
-
   const renderTabContent = useMemo(() => {
     if (!selectedDiario) return null;
 
@@ -79,7 +80,6 @@ export function ProfessorPage() {
       case 'ocorrencias':
         return <MemoizedOcorrenciasTab key={`ocorrencias-${selectedDiario}`} diarioId={selectedDiario} />;
       case 'recados':
-        // 🔧 CORREÇÃO: Agora passa o diarioId para RecadosTab
         return <MemoizedRecadosTab key={`recados-${selectedDiario}`} diarioId={selectedDiario} />;
       default:
         return null;
@@ -89,9 +89,9 @@ export function ProfessorPage() {
   // Tela de carregamento
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="loading mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-muted-foreground">Carregando diários...</p>
         </div>
       </div>
@@ -102,18 +102,24 @@ export function ProfessorPage() {
   if (!selectedDiario) {
     return (
       <ErrorBoundary>
-        <div className="min-h-screen flex flex-col bg-background">
-          <header className="sticky top-0 z-50 border-b bg-card px-6 py-4 flex-shrink-0 h-20 flex items-center">
-            <div className="flex items-center justify-between w-full">
-              <div>
-                <h1 className="text-2xl font-bold">Área do Professor</h1>
-                <p className="text-base text-muted-foreground">Selecione um diário para gerenciar</p>
+        <div className="w-full">
+          {/* HEADER FULL WIDTH */}
+          <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 lg:px-6 py-4 sticky top-0 z-10">
+            <div className="flex items-center justify-between">
+              <div className="min-w-0 flex-1 pl-14 lg:pl-0">
+                <h1 className="text-lg lg:text-xl font-bold text-gray-900 dark:text-white truncate">
+                  Área do Professor
+                </h1>
+                <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                  Selecione um diário para gerenciar
+                </p>
               </div>
               <AuthHeader />
             </div>
-          </header>
+          </div>
 
-          <main className="flex-1 p-6 overflow-y-auto">
+          {/* CONTEÚDO */}
+          <div className="p-4 lg:p-6">
             <div className="max-w-4xl mx-auto">
               {diarios.length === 0 ? (
                 <Card>
@@ -137,7 +143,7 @@ export function ProfessorPage() {
                 </div>
               )}
             </div>
-          </main>
+          </div>
         </div>
       </ErrorBoundary>
     );
@@ -146,10 +152,11 @@ export function ProfessorPage() {
   // Tela de visualização do diário
   return (
     <ErrorBoundary>
-      <div className="min-h-screen flex flex-col bg-background">
-        <header className="sticky top-0 z-50 border-b bg-card px-6 py-4 flex-shrink-0 h-20 flex items-center">
-          <div className="flex items-center justify-between w-full">
-            <div className="flex items-center gap-4">
+      <div className="w-full">
+        {/* HEADER FULL WIDTH */}
+        <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 lg:px-6 py-4 sticky top-0 z-10">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3 min-w-0 flex-1 pl-14 lg:pl-0">
               <Button
                 variant="outline"
                 size="icon"
@@ -157,44 +164,29 @@ export function ProfessorPage() {
                   setSelectedDiario(null);
                   setActiveTab('aulas');
                 }}
+                className="flex-shrink-0"
               >
                 <ArrowLeft className="h-4 w-4" />
               </Button>
-              <div>
-                <h1 className="text-2xl font-bold">{currentDiario?.nome}</h1>
-                <p className="text-sm text-muted-foreground">{currentDiario?.bimestre}º Bimestre</p>
+              <div className="min-w-0">
+                <h1 className="text-lg lg:text-xl font-bold text-gray-900 dark:text-white truncate">
+                  {currentDiario?.nome}
+                </h1>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  {currentDiario?.bimestre}º Bimestre
+                </p>
               </div>
             </div>
             <AuthHeader />
           </div>
-        </header>
-
-        <div className="sticky top-20 z-40 border-b bg-card px-6 flex-shrink-0">
-          <nav className="flex space-x-8 py-0">
-            {tabsConfig.map(({ id, label, icon: Icon }) => (
-              <button
-                key={id}
-                onClick={() => setActiveTab(id)}
-                className={`flex items-center gap-2 py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-all ${
-                  activeTab === id
-                    ? 'text-primary border-primary'
-                    : 'text-muted-foreground border-transparent hover:text-foreground'
-                }`}
-              >
-                <Icon className="h-4 w-4" />
-                {label}
-              </button>
-            ))}
-          </nav>
         </div>
 
-        <main className="flex-1 overflow-y-auto">
-          <div className="p-6">
-            <ErrorBoundary>
-              {renderTabContent}
-            </ErrorBoundary>
-          </div>
-        </main>
+        {/* CONTEÚDO */}
+        <div className="p-4 lg:p-6">
+          <ErrorBoundary>
+            {renderTabContent}
+          </ErrorBoundary>
+        </div>
       </div>
     </ErrorBoundary>
   );
