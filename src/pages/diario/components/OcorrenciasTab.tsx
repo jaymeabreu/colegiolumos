@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Plus, Calendar, AlertTriangle, Edit, Trash2, X } from 'lucide-react';
+import { Plus, AlertTriangle, Edit, Trash2, X } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
 import { Label } from '../../../components/ui/label';
@@ -10,6 +10,25 @@ import { Badge } from '../../../components/ui/badge';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../../components/ui/card';
 import { supabaseService } from '../../../services/supabaseService';
 import type { Ocorrencia, Aluno } from '../../../services/supabaseService';
+
+// Ícone de Calendário em SVG customizado (Conforme solicitado pelo cliente)
+const CalendarIcon = ({ className }: { className?: string }) => (
+  <svg 
+    xmlns="http://www.w3.org/2000/svg" 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round" 
+    className={className}
+  >
+    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+    <line x1="16" y1="2" x2="16" y2="6"></line>
+    <line x1="8" y1="2" x2="8" y2="6"></line>
+    <line x1="3" y1="10" x2="21" y2="10"></line>
+  </svg>
+);
 
 interface OcorrenciasTabProps {
   diarioId: number;
@@ -84,6 +103,29 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
     resetForm();
   };
 
+  const handleDelete = async (id: number) => {
+    if (window.confirm('Tem certeza que deseja excluir esta ocorrência?')) {
+      try {
+        await supabaseService.deleteOcorrencia(id);
+        await loadData();
+      } catch (error) {
+        console.error('Erro ao excluir ocorrência:', error);
+      }
+    }
+  };
+
+  const handleEdit = (ocorrencia: Ocorrencia) => {
+    setEditingOcorrencia(ocorrencia);
+    setFormData({
+      alunoId: (ocorrencia.aluno_id ?? ocorrencia.alunoId)?.toString() || '',
+      tipo: ocorrencia.tipo.charAt(0).toUpperCase() + ocorrencia.tipo.slice(1),
+      data: ocorrencia.data,
+      descricao: ocorrencia.descricao,
+      acaoTomada: ocorrencia.acao_tomada || ocorrencia.acaoTomada || ''
+    });
+    setIsDialogOpen(true);
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -102,7 +144,49 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
       </CardHeader>
 
       <CardContent>
-        {/* ... Listagem de ocorrências ... */}
+        <div className="space-y-4">
+          {ocorrencias.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              Nenhuma ocorrência registrada.
+            </div>
+          ) : (
+            ocorrencias.map(ocorrencia => (
+              <div key={ocorrencia.id} className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 p-4 border rounded-lg">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Badge variant={ocorrencia.tipo === 'elogio' ? 'outline' : 'destructive'} className="capitalize">
+                      {ocorrencia.tipo}
+                    </Badge>
+                    <h3 className="font-medium text-gray-900">{alunos.find(a => a.id === (ocorrencia.aluno_id ?? ocorrencia.alunoId))?.nome || 'Aluno'}</h3>
+                  </div>
+                  <p className="text-sm text-gray-600 mb-2">{ocorrencia.descricao}</p>
+                  <div className="flex flex-wrap items-center gap-4 text-xs text-gray-500">
+                    <span className="flex items-center gap-1">
+                      <CalendarIcon className="h-3 w-3" />
+                      {new Date(ocorrencia.data).toLocaleDateString('pt-BR')}
+                    </span>
+                    {(ocorrencia.acao_tomada || ocorrencia.acaoTomada) && (
+                      <span className="flex items-center gap-1">
+                        <AlertTriangle className="h-3 w-3" />
+                        Ação: {ocorrencia.acao_tomada || ocorrencia.acaoTomada}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                {!readOnly && (
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" onClick={() => handleEdit(ocorrencia)}>
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button variant="destructive" size="sm" onClick={() => handleDelete(ocorrencia.id)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+        </div>
       </CardContent>
 
       {/* PORTAL DO MODAL DE OCORRÊNCIA */}
