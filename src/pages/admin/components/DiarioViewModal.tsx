@@ -242,7 +242,7 @@ export function DiarioViewModal({
   return (
     <>
       <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4 backdrop-blur-sm">
-        <div className="bg-background rounded-xl !w-[95vw] !max-w-none flex flex-col shadow-2xl overflow-hidden border h-[95vh]" style={{ width: '95vw', maxWidth: '95vw' }}>
+        <div className="bg-background rounded-xl w-full max-w-[1400px] flex flex-col shadow-2xl overflow-hidden border h-[95vh]">
           
           {/* HEADER */}
           <div className="flex items-center justify-between p-6 border-b bg-gradient-to-r from-blue-50 to-indigo-50 flex-shrink-0">
