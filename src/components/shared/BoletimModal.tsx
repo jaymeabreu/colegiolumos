@@ -291,7 +291,7 @@ export function BoletimModal({ aluno, onClose, diarioId }: BoletimModalProps) {
         {/* Tabs Content */}
         <div className="flex-1 flex flex-col min-h-0">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
-            <div className="px-6 border-b bg-slate-50/30">
+            <div className="px-6 border-b bg-slate-50/30 top-auto">
               <TabsList className="h-14 bg-transparent gap-2">
                 <TabsTrigger value="resumo" className="px-6 h-full">Resumo</TabsTrigger>
                 <TabsTrigger value="boletim" className="px-6 h-full">Boletim Completo</TabsTrigger>
