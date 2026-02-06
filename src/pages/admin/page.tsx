@@ -273,10 +273,9 @@ export function AdminPage() {
                   Total de alunos
                 </CardTitle>
                 <Button 
-                  variant="link"
                   size="sm"
                   onClick={() => setActiveTab('alunos')}
-                  className="text-blue-600 dark:text-blue-400 p-0 h-auto"
+                  className="bg-teal-600 hover:bg-teal-700 text-white"
                 >
                   Ver tudo
                 </Button>
@@ -326,10 +325,9 @@ export function AdminPage() {
                   Total de professores
                 </CardTitle>
                 <Button 
-                  variant="link"
                   size="sm"
                   onClick={() => setActiveTab('professores')}
-                  className="text-blue-600 dark:text-blue-400 p-0 h-auto"
+                  className="bg-teal-600 hover:bg-teal-700 text-white"
                 >
                   Ver tudo
                 </Button>
@@ -379,10 +377,9 @@ export function AdminPage() {
                   Total de funcionários
                 </CardTitle>
                 <Button 
-                  variant="link"
                   size="sm"
                   onClick={() => alert('Página de funcionários ainda não implementada')}
-                  className="text-blue-600 dark:text-blue-400 p-0 h-auto"
+                  className="bg-teal-600 hover:bg-teal-700 text-white"
                 >
                   Ver tudo
                 </Button>
