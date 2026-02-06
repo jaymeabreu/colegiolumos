@@ -263,9 +263,12 @@ export function AdminPage() {
                 Total de alunos
               </CardTitle>
               <div className="flex items-center gap-2 mt-2">
-                <a href="#" className="text-blue-600 dark:text-blue-400 text-sm hover:underline">
+                <button 
+                  onClick={() => setActiveTab('alunos')}
+                  className="text-blue-600 dark:text-blue-400 text-sm hover:underline"
+                >
                   Ver tudo
-                </a>
+                </button>
               </div>
             </CardHeader>
             <CardContent>
@@ -311,9 +314,12 @@ export function AdminPage() {
                 Total de professores
               </CardTitle>
               <div className="flex items-center gap-2 mt-2">
-                <a href="#" className="text-blue-600 dark:text-blue-400 text-sm hover:underline">
+                <button 
+                  onClick={() => setActiveTab('professores')}
+                  className="text-blue-600 dark:text-blue-400 text-sm hover:underline"
+                >
                   Ver tudo
-                </a>
+                </button>
               </div>
             </CardHeader>
             <CardContent>
@@ -359,9 +365,12 @@ export function AdminPage() {
                 Total de funcionários
               </CardTitle>
               <div className="flex items-center gap-2 mt-2">
-                <a href="#" className="text-blue-600 dark:text-blue-400 text-sm hover:underline">
+                <button 
+                  onClick={() => alert('Página de funcionários ainda não implementada')}
+                  className="text-blue-600 dark:text-blue-400 text-sm hover:underline"
+                >
                   Ver tudo
-                </a>
+                </button>
               </div>
             </CardHeader>
             <CardContent>
