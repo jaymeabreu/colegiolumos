@@ -1,365 +1,342 @@
 import { useState, useEffect } from 'react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../../components/ui/card';
-import { Badge } from '../../../components/ui/badge';
-import { Input } from '../../../components/ui/input';
+import { createPortal } from 'react-dom';
+import { Plus, Edit, Trash2, MessageSquare, Users, User, X } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
-import { Eye, Search, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { Input } from '../../../components/ui/input';
+import { Label } from '../../../components/ui/label';
+import { Textarea } from '../../../components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
 import { supabaseService } from '../../../services/supabaseService';
-import type { Aluno, Diario, Avaliacao } from '../../../services/supabaseService';
+import type { Recado, Turma, Aluno, Diario } from '../../../services/supabaseService';
+import { authService } from '../../../services/auth';
 
-interface RendimentoTabProps {
-  diarioId: number;
+// Ícone de Calendário em SVG customizado (Conforme solicitado pelo cliente)
+const CalendarIcon = ({ className }: { className?: string }) => (
+  <svg 
+    xmlns="http://www.w3.org/2000/svg" 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round" 
+    className={className}
+  >
+    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+    <line x1="16" y1="2" x2="16" y2="6"></line>
+    <line x1="8" y1="2" x2="8" y2="6"></line>
+    <line x1="3" y1="10" x2="21" y2="10"></line>
+  </svg>
+);
+
+interface RecadosTabProps {
+  diarioId?: number;
 }
 
-interface AlunoRendimento {
-  id: number;
-  nome: string;
-  media: number;
-  faltas: number;
-  situacao: 'Aprovado' | 'Reprovado' | 'Em Análise' | 'Recuperação';
-  frequencia: number;
-  notas: { [avaliacaoId: number]: number };
-}
-
-export function RendimentoTab({ diarioId }: RendimentoTabProps) {
-  const [alunos, setAlunos] = useState<AlunoRendimento[]>([]);
-  const [avaliacoes, setAvaliacoes] = useState<Avaliacao[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
+export function RecadosTab({ diarioId }: RecadosTabProps) {
+  const [recados, setRecados] = useState<Recado[]>([]);
+  const [turmas, setTurmas] = useState<Turma[]>([]);
+  const [alunos, setAlunos] = useState<Aluno[]>([]);
   const [diario, setDiario] = useState<Diario | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingRecado, setEditingRecado] = useState<Recado | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [formData, setFormData] = useState({
+    titulo: '',
+    mensagem: '',
+    alunoId: ''
+  });
+
+  const { user } = authService.getAuthState();
 
   useEffect(() => {
-    loadRendimento();
-  }, [diarioId]);
+    loadData();
+  }, [user?.professorId, diarioId]);
 
-  const loadRendimento = async () => {
+  const loadData = async () => {
     try {
       setLoading(true);
 
-      // Buscar informações do diário
-      const diarioData = await supabaseService.getDiarioById(diarioId);
-      setDiario(diarioData);
-
-      if (!diarioData) {
-        console.error('Diário não encontrado');
-        setAlunos([]);
-        setAvaliacoes([]);
-        return;
+      // 1. Carregar dados do diário e alunos da turma
+      let currentTurmaId: number | null = null;
+      if (diarioId) {
+        const diarios = await supabaseService.getDiarios();
+        const diarioAtual = diarios.find(d => d.id === diarioId);
+        if (diarioAtual) {
+          setDiario(diarioAtual);
+          currentTurmaId = diarioAtual.turma_id || diarioAtual.turmaId || null;
+          if (currentTurmaId) {
+            const alunosData = await supabaseService.getAlunosByTurma(currentTurmaId);
+            setAlunos(alunosData || []);
+          }
+        }
       }
 
-      // Buscar avaliações do diário
-      const avaliacoesData = await supabaseService.getAvaliacoesByDiario(diarioId);
-      setAvaliacoes(avaliacoesData || []);
+      // 2. Carregar recados
+      if (user?.professorId) {
+        const recadosData = await supabaseService.getRecadosByProfessor(user.professorId);
+        let recadosFiltrados = recadosData || [];
+        
+        // Se estivermos em um diário específico, filtrar apenas os recados daquela turma
+        if (currentTurmaId) {
+          recadosFiltrados = recadosFiltrados.filter(r => 
+            (r.turmaId || r.turma_id) === currentTurmaId
+          );
+        }
+        
+        setRecados(recadosFiltrados.sort(
+          (a, b) =>
+            new Date(b.dataEnvio || b.data_envio || '').getTime() -
+            new Date(a.dataEnvio || a.data_envio || '').getTime()
+        ));
+      }
 
-      // Buscar alunos do diário
-      const alunosDoDiario = await supabaseService.getAlunosByDiario(diarioId);
-
-      // Buscar rendimento de cada aluno
-      const rendimentos = await Promise.all(
-        alunosDoDiario.map(async (aluno) => {
-          try {
-            const boletim = await supabaseService.getBoletimAluno(diarioId, aluno.id);
-            
-            // Buscar notas individuais de cada avaliação
-            const notasAluno = await supabaseService.getNotasByAluno(aluno.id);
-            const notasPorAvaliacao: { [key: number]: number } = {};
-            
-            notasAluno.forEach(nota => {
-              const avaliacaoId = nota.avaliacao_id ?? nota.avaliacaoId;
-              if (avaliacaoId) {
-                notasPorAvaliacao[avaliacaoId] = nota.valor ?? 0;
-              }
-            });
-            
-            return {
-              id: aluno.id,
-              nome: aluno.nome,
-              media: boletim.mediaGeral,
-              faltas: boletim.faltas,
-              situacao: boletim.situacao as AlunoRendimento['situacao'],
-              frequencia: boletim.frequencia,
-              notas: notasPorAvaliacao
-            };
-          } catch (error) {
-            console.error(`Erro ao buscar rendimento de ${aluno.nome}:`, error);
-            return {
-              id: aluno.id,
-              nome: aluno.nome,
-              media: 0,
-              faltas: 0,
-              situacao: 'Em Análise' as const,
-              frequencia: 0,
-              notas: {}
-            };
-          }
-        })
-      );
-
-      setAlunos(rendimentos);
+      // 3. Carregar turmas para referência
+      const turmasData = await supabaseService.getTurmas();
+      setTurmas(turmasData || []);
     } catch (error) {
-      console.error('Erro ao carregar rendimento:', error);
-      setAlunos([]);
-      setAvaliacoes([]);
+      console.error('Erro ao carregar dados:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const filteredAlunos = alunos.filter(aluno =>
-    aluno.nome.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const getTurmaNome = () => {
+    const turmaId = diario?.turma_id || diario?.turmaId;
+    if (turmaId) {
+      const turma = turmas.find(t => t.id === turmaId);
+      return turma?.nome || 'Turma';
+    }
+    return 'Turma';
+  };
 
-  const getSituacaoColor = (situacao: string) => {
-    switch (situacao) {
-      case 'Aprovado':
-        return 'bg-green-100 text-green-800 border-green-200';
-      case 'Reprovado':
-        return 'bg-red-100 text-red-800 border-red-200';
-      case 'Recuperação':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!formData.titulo.trim() || !formData.mensagem.trim()) {
+      alert('Por favor, preencha todos os campos obrigatórios.');
+      return;
+    }
+
+    const turmaId = diario?.turma_id || diario?.turmaId;
+    if (!turmaId) {
+      alert('Erro: Turma do diário não encontrada.');
+      return;
+    }
+
+    try {
+      const turma = turmas.find(t => t.id === turmaId);
+      const aluno = formData.alunoId && formData.alunoId.trim()
+        ? alunos.find(a => a.id === parseInt(formData.alunoId))
+        : null;
+
+      if (editingRecado) {
+        const updatedRecado = await supabaseService.updateRecado(editingRecado.id, {
+          titulo: formData.titulo.trim(),
+          mensagem: formData.mensagem.trim(),
+          turmaId: turmaId,
+          turmaNome: turma?.nome || '',
+          alunoId: formData.alunoId && formData.alunoId.trim() ? parseInt(formData.alunoId) : null,
+          alunoNome: aluno?.nome || null
+        });
+
+        if (updatedRecado) {
+          setRecados(prev => prev.map(r => r.id === updatedRecado.id ? updatedRecado : r));
+        }
+      } else {
+        const novoRecado = await supabaseService.createRecado({
+          titulo: formData.titulo.trim(),
+          mensagem: formData.mensagem.trim(),
+          professorId: user?.professorId || 1,
+          professorNome: user?.nome || 'Professor',
+          turmaId: turmaId,
+          turmaNome: turma?.nome || '',
+          alunoId: formData.alunoId && formData.alunoId.trim() ? parseInt(formData.alunoId) : null,
+          alunoNome: aluno?.nome || null,
+          dataEnvio: new Date().toISOString().split('T')[0]
+        });
+
+        if (novoRecado) {
+          setRecados(prev => [novoRecado, ...prev]);
+        }
+      }
+
+      handleCloseModal();
+      await loadData();
+    } catch (error) {
+      console.error('Erro ao salvar recado:', error);
+      alert('Erro ao salvar recado. Tente novamente.');
     }
   };
 
-  const getMediaIcon = (media: number) => {
-    if (media >= 7) return <TrendingUp className="h-4 w-4 text-green-600" />;
-    if (media >= 5) return <Minus className="h-4 w-4 text-yellow-600" />;
-    return <TrendingDown className="h-4 w-4 text-red-600" />;
+  const handleEdit = (recado: Recado) => {
+    setEditingRecado(recado);
+    setFormData({
+      titulo: recado.titulo,
+      mensagem: recado.mensagem,
+      alunoId: (recado.alunoId || recado.aluno_id)?.toString() || ''
+    });
+    setIsModalOpen(true);
   };
 
-  const getMediaColor = (media: number) => {
-    if (media >= 7) return 'text-green-600 font-bold';
-    if (media >= 5) return 'text-yellow-600 font-bold';
-    return 'text-red-600 font-bold';
+  const handleDelete = async (id: number) => {
+    if (window.confirm('Tem certeza que deseja excluir este recado?')) {
+      try {
+        const success = await supabaseService.deleteRecado(id);
+        if (success) {
+          setRecados(prev => prev.filter(r => r.id !== id));
+          await loadData();
+        }
+      } catch (error) {
+        console.error('Erro ao excluir recado:', error);
+        alert('Erro ao excluir recado. Tente novamente.');
+      }
+    }
   };
 
-  const stats = {
-    total: alunos.length,
-    aprovados: alunos.filter(a => a.situacao === 'Aprovado').length,
-    reprovados: alunos.filter(a => a.situacao === 'Reprovado').length,
-    recuperacao: alunos.filter(a => a.situacao === 'Recuperação').length,
-    mediaGeral: alunos.length > 0 
-      ? (alunos.reduce((acc, a) => acc + a.media, 0) / alunos.length).toFixed(1)
-      : '0.0'
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingRecado(null);
+    setFormData({ titulo: '', mensagem: '', alunoId: '' });
   };
 
-  if (loading) {
-    return (
-      <Card>
-        <CardContent className="flex items-center justify-center py-12">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Carregando rendimento dos alunos...</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('pt-BR');
+  };
 
   return (
-    <div className="space-y-6">
-      {/* Cards de Estatísticas */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-blue-600">{stats.total}</div>
-            <p className="text-xs text-muted-foreground mt-1">Total de Alunos</p>
-          </CardContent>
-        </Card>
+    <>
+      {/* PORTAL - MODAL CENTRADO */}
+      {isModalOpen && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={handleCloseModal} />
+          <div className="relative bg-white w-full max-w-xl rounded-xl shadow-2xl flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center justify-between p-6 border-b">
+              <h2 className="text-xl font-semibold">{editingRecado ? 'Editar Recado' : 'Novo Recado'}</h2>
+              <button onClick={handleCloseModal} className="p-2 rounded-full hover:bg-gray-100"><X className="h-5 w-5 text-gray-400" /></button>
+            </div>
+            <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto">
+              <div className="space-y-2">
+                <Label htmlFor="titulo">Título *</Label>
+                <Input
+                  id="titulo"
+                  value={formData.titulo}
+                  onChange={e => setFormData(prev => ({ ...prev, titulo: e.target.value }))}
+                  placeholder="Digite o título do recado"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Turma</Label>
+                <div className="flex items-center gap-2 p-3 bg-gray-100 rounded-md">
+                  <Users className="h-4 w-4 text-gray-500" />
+                  <span className="font-medium">{getTurmaNome()}</span>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="aluno">Aluno (Opcional)</Label>
+                <Select value={formData.alunoId} onValueChange={value => setFormData(prev => ({ ...prev, alunoId: value }))}>
+                  <SelectTrigger><SelectValue placeholder="Deixe vazio para toda a turma" /></SelectTrigger>
+                  <SelectContent>
+                    {(alunos || []).map(aluno => (
+                      <SelectItem key={aluno.id} value={aluno.id.toString()}>{aluno.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="mensagem">Mensagem *</Label>
+                <Textarea
+                  id="mensagem"
+                  value={formData.mensagem}
+                  onChange={e => setFormData(prev => ({ ...prev, mensagem: e.target.value }))}
+                  placeholder="Digite a mensagem do recado"
+                  className="min-h-[100px]"
+                  required
+                />
+              </div>
+              <div className="flex justify-end gap-3 pt-4">
+                <Button type="button" variant="outline" onClick={handleCloseModal}>Cancelar</Button>
+                <Button type="submit">{editingRecado ? 'Salvar Alterações' : 'Enviar Recado'}</Button>
+              </div>
+            </form>
+          </div>
+        </div>,
+        document.body
+      )}
 
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-green-600">{stats.aprovados}</div>
-            <p className="text-xs text-muted-foreground mt-1">Aprovados</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-yellow-600">{stats.recuperacao}</div>
-            <p className="text-xs text-muted-foreground mt-1">Recuperação</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-red-600">{stats.reprovados}</div>
-            <p className="text-xs text-muted-foreground mt-1">Reprovados</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-2xl font-bold text-purple-600">{stats.mediaGeral}</div>
-            <p className="text-xs text-muted-foreground mt-1">Média Geral</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Tabela de Rendimento */}
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <span className="text-purple-600">📊</span>
-                Rendimento dos Alunos
-              </CardTitle>
+            <div className="space-y-2">
+              <CardTitle>Recados</CardTitle>
               <CardDescription>
-                Acompanhamento de notas, faltas e situação dos alunos
+                Envie recados para {getTurmaNome()} ou para um aluno específico
               </CardDescription>
             </div>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={loadRendimento}
-            >
-              Atualizar
+            <Button onClick={() => { setFormData({ titulo: '', mensagem: '', alunoId: '' }); setIsModalOpen(true); }} className="flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              <span className="sm:hidden">Novo</span>
+              <span className="hidden sm:inline">Novo Recado</span>
             </Button>
           </div>
         </CardHeader>
 
         <CardContent>
-          {/* Campo de Busca */}
-          <div className="mb-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar aluno..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                <p className="text-muted-foreground">Carregando recados...</p>
+              </div>
             </div>
-          </div>
-
-          {/* Tabela */}
-          {filteredAlunos.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <p className="font-medium mb-2">
-                {searchTerm ? 'Nenhum aluno encontrado' : 'Nenhum aluno matriculado'}
-              </p>
-              {!searchTerm && (
-                <p className="text-sm">
-                  Os alunos serão listados automaticamente quando matriculados no diário
-                </p>
-              )}
+          ) : (recados || []).length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+                <MessageSquare className="h-8 w-8 opacity-60" />
+              </div>
+              <p className="font-medium mb-1">Nenhum recado encontrado</p>
+              <p className="text-sm">Crie o primeiro recado para {getTurmaNome()}.</p>
             </div>
           ) : (
-            <div className="border rounded-lg overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50 border-b">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 whitespace-nowrap">
-                        Nº
-                      </th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 whitespace-nowrap min-w-[200px]">
-                        Nome
-                      </th>
-                      {/* Colunas dinâmicas de avaliações */}
-                      {avaliacoes.map((avaliacao) => (
-                        <th key={avaliacao.id} className="px-4 py-3 text-center text-sm font-medium text-gray-700 whitespace-nowrap">
-                          <div>{avaliacao.titulo}</div>
-                          <div className="text-xs text-gray-500 font-normal">
-                            Peso: {avaliacao.peso}
-                          </div>
-                        </th>
-                      ))}
-                      <th className="px-4 py-3 text-center text-sm font-medium text-gray-700 whitespace-nowrap">
-                        Média
-                      </th>
-                      <th className="px-4 py-3 text-center text-sm font-medium text-gray-700 whitespace-nowrap">
-                        Faltas
-                      </th>
-                      <th className="px-4 py-3 text-center text-sm font-medium text-gray-700 whitespace-nowrap">
-                        Situação
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {filteredAlunos.map((aluno, index) => (
-                      <tr key={aluno.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-4 py-4 text-sm text-gray-900 font-medium">
-                          {index + 1}
-                        </td>
-                        <td className="px-4 py-4 text-sm text-gray-900">
-                          {aluno.nome}
-                        </td>
-                        {/* Notas de cada avaliação */}
-                        {avaliacoes.map((avaliacao) => {
-                          const nota = aluno.notas[avaliacao.id];
-                          return (
-                            <td key={avaliacao.id} className="px-4 py-4 text-center">
-                              <span className={`font-semibold text-sm ${
-                                nota === undefined ? 'text-gray-400' :
-                                nota >= 7 ? 'text-green-600' :
-                                nota >= 5 ? 'text-yellow-600' : 'text-red-600'
-                              }`}>
-                                {nota !== undefined ? nota.toFixed(1) : '-'}
-                              </span>
-                            </td>
-                          );
-                        })}
-                        <td className="px-4 py-4 text-center">
-                          <div className="flex items-center justify-center gap-2">
-                            {getMediaIcon(aluno.media)}
-                            <span className={getMediaColor(aluno.media)}>
-                              {aluno.media > 0 ? aluno.media.toFixed(1) : '-'}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-4 py-4 text-center">
-                          <span className={`font-medium ${
-                            aluno.faltas === 0 ? 'text-green-600' :
-                            aluno.faltas <= 3 ? 'text-yellow-600' : 'text-red-600'
-                          }`}>
-                            {aluno.faltas > 0 ? aluno.faltas : '-'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-4 text-center">
-                          <Badge 
-                            variant="outline" 
-                            className={getSituacaoColor(aluno.situacao)}
-                          >
-                            {aluno.situacao}
-                          </Badge>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* Legenda */}
-          {filteredAlunos.length > 0 && (
-            <div className="mt-4 pt-4 border-t">
-              <p className="text-xs text-muted-foreground mb-2 font-medium">Legenda:</p>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                  <span className="text-muted-foreground">Média ≥ 7.0</span>
+            <div className="space-y-4">
+              {(recados || []).map(recado => (
+                <div key={recado.id} className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 p-4 border rounded-lg">
+                  <div className="flex-1">
+                    <h3 className="font-medium">{recado.titulo}</h3>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-1 text-sm text-gray-600">
+                      <span className="flex items-center gap-2 sm:gap-1">
+                        <CalendarIcon className="h-4 w-4" />
+                        {formatDate(recado.dataEnvio || recado.data_envio || '')}
+                      </span>
+                      <span className="flex items-center gap-2 sm:gap-1">
+                        <Users className="h-4 w-4" />
+                        {recado.turmaNome || recado.turma_nome}
+                      </span>
+                      {(recado.alunoNome || recado.aluno_nome) && (
+                        <span className="flex items-center gap-2 sm:gap-1">
+                          <User className="h-4 w-4" />
+                          {recado.alunoNome || recado.aluno_nome}
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-2 text-sm text-gray-700 whitespace-pre-wrap">{recado.mensagem}</p>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <Button variant="outline" size="sm" onClick={() => handleEdit(recado)}>
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button variant="destructive" size="sm" onClick={() => handleDelete(recado.id)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                  <span className="text-muted-foreground">Média 5.0 - 6.9</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                  <span className="text-muted-foreground">Média {'<'} 5.0</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-gray-400"></div>
-                  <span className="text-muted-foreground">Sem avaliações</span>
-                </div>
-              </div>
+              ))}
             </div>
           )}
         </CardContent>
       </Card>
-    </div>
+    </>
   );
 }
