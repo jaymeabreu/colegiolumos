@@ -3,7 +3,7 @@ import { LoginPage } from "../pages/login/page"
 import { DiarioPage } from "../pages/diario/page"
 import { HomePage } from "../pages/home/page"
 import { NotFound } from "../pages/NotFound"
-import { ProfessorPage } from "../pages/professor/page"
+import { ProfessorLayout } from "../pages/professor/Layout"
 import { AdminPage } from "../pages/admin/page"
 import { AlunoLayout } from "../pages/aluno/layout"
 import { AdminDashboard } from "../pages/admin/AdminDashboard"
@@ -35,7 +35,7 @@ const routes: RouteObject[] = [
     path: "/app/professor",
     element: (
       <ProtectedRoute requiredRole="PROFESSOR">
-        <ProfessorPage />
+        <ProfessorLayout />
       </ProtectedRoute>
     )
   },
