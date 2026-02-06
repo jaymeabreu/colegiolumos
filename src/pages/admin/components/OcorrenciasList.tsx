@@ -67,7 +67,6 @@ export function OcorrenciasList() {
         .order('data', { ascending: false });
 
       if (data) {
-        // Mapeia os dados para incluir o nome do aluno e turma_id
         const ocorrenciasComNome = data.map((occ: any) => ({
           ...occ,
           aluno_nome: occ.alunos?.nome || 'Desconhecido',
@@ -197,14 +196,23 @@ export function OcorrenciasList() {
   const getTipoColor = (tipo: string) => {
     switch(tipo?.toLowerCase()) {
       case 'comportamento':
-        return 'bg-red-100 text-red-800 border-red-300';
+        return 'bg-red-500 text-white';
       case 'falta':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-300';
+        return 'bg-yellow-500 text-white';
       case 'positivo':
-        return 'bg-green-100 text-green-800 border-green-300';
+        return 'bg-green-500 text-white';
+      case 'elogio':
+        return 'bg-blue-500 text-white';
+      case 'disciplinar':
+        return 'bg-orange-500 text-white';
       default:
-        return 'bg-blue-100 text-blue-800 border-blue-300';
+        return 'bg-gray-500 text-white';
     }
+  };
+
+  const capitalize = (text: string) => {
+    if (!text) return '';
+    return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
   };
 
   const getTurmaNome = (turmaId?: number) => {
@@ -221,7 +229,7 @@ export function OcorrenciasList() {
       <Card>
         <CardHeader style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '1rem' }}>
           <div>
-            <CardTitle className="text-2xl font-bold">Ocorrências</CardTitle>
+            <h3 className="card-title">Ocorrências</h3>
             <CardDescription>Registre e gerencie ocorrências dos alunos</CardDescription>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -264,6 +272,7 @@ export function OcorrenciasList() {
                           <SelectItem value="Comportamento">Comportamento</SelectItem>
                           <SelectItem value="Falta">Falta</SelectItem>
                           <SelectItem value="Positivo">Positivo</SelectItem>
+                          <SelectItem value="Elogio">Elogio</SelectItem>
                           <SelectItem value="Disciplinar">Disciplinar</SelectItem>
                           <SelectItem value="Outro">Outro</SelectItem>
                         </SelectContent>
@@ -353,6 +362,7 @@ export function OcorrenciasList() {
                         <SelectItem value="Comportamento">Comportamento</SelectItem>
                         <SelectItem value="Falta">Falta</SelectItem>
                         <SelectItem value="Positivo">Positivo</SelectItem>
+                        <SelectItem value="Elogio">Elogio</SelectItem>
                         <SelectItem value="Disciplinar">Disciplinar</SelectItem>
                       </SelectContent>
                     </Select>
@@ -403,7 +413,7 @@ export function OcorrenciasList() {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       <Badge className={getTipoColor(ocorrencia.tipo)}>
-                        {ocorrencia.tipo}
+                        {capitalize(ocorrencia.tipo)}
                       </Badge>
                       <span className="text-sm font-medium text-gray-600">
                         {ocorrencia.aluno_nome}
