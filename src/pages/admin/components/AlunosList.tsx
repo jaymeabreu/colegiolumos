@@ -78,6 +78,9 @@ export function AlunosList() {
   // Estados para upload de imagem
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Estado para matrícula sugerida
+  const [suggestedMatricula, setSuggestedMatricula] = useState<string>('');
 
   // Estado do formulário
   const [formData, setFormData] = useState({
@@ -130,20 +133,32 @@ export function AlunosList() {
     loadData();
   }, [loadData]);
 
+  // Função para carregar a matrícula sugerida quando abre o modal
+  const loadSuggestedMatricula = useCallback(async () => {
+    try {
+      const suggested = await supabaseService.getSuggestedMatricula();
+      setSuggestedMatricula(suggested);
+      // Pré-preenche no formulário
+      setFormData(prev => ({ ...prev, matricula: suggested }));
+    } catch (error) {
+      console.error('Erro ao carregar matrícula sugerida:', error);
+      setSuggestedMatricula('01');
+      setFormData(prev => ({ ...prev, matricula: '01' }));
+    }
+  }, []);
+
   // Filtros otimizados com cache mais eficiente
   const filteredAlunos = useMemo(() => {
     if (!searchTerm && !Object.values(filters).some(v => v && v !== 'all')) {
-      return alunos; // Retorna lista completa sem processamento se não há filtros
+      return alunos;
     }
 
     return alunos.filter(aluno => {
-      // Filtro de busca simples
       if (searchTerm && !aluno.nome.toLowerCase().includes(searchTerm.toLowerCase()) && 
           !aluno.matricula.toLowerCase().includes(searchTerm.toLowerCase())) {
         return false;
       }
 
-      // Filtros específicos apenas se necessário
       if (filters.turmaId && filters.turmaId !== 'all' && 
           aluno.turma_id?.toString() !== filters.turmaId) return false;
       
@@ -238,7 +253,6 @@ export function AlunosList() {
 
       await loadData();
       
-      // ✅ Fechar modal PRIMEIRO, depois resetar formulário
       setIsDialogOpen(false);
       resetForm();
       
@@ -333,6 +347,7 @@ export function AlunosList() {
     setSelectedImage(null);
     setEditingAluno(null);
     setShowPassword(false);
+    setSuggestedMatricula('');
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -374,20 +389,17 @@ export function AlunosList() {
   const handleImageUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // Validar tamanho do arquivo (máximo 5MB)
       if (file.size > 5 * 1024 * 1024) {
         alert('Arquivo muito grande. Máximo permitido: 5MB');
         return;
       }
 
-      // Validar tipo do arquivo
       const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
       if (!allowedTypes.includes(file.type)) {
         alert('Formato não suportado. Use JPG, PNG ou WEBP');
         return;
       }
 
-      // Comprimir e redimensionar a imagem
       compressImage(file, 150, 0.8).then(compressedImage => {
         setSelectedImage(compressedImage);
         setFormData(prev => ({ ...prev, foto: compressedImage }));
@@ -406,7 +418,6 @@ export function AlunosList() {
     }
   }, []);
 
-  // Função para redimensionar e comprimir imagem
   const compressImage = useCallback((file: File, maxWidth: number = 150, quality: number = 0.8): Promise<string> => {
     return new Promise((resolve, reject) => {
       const canvas = document.createElement('canvas');
@@ -415,15 +426,12 @@ export function AlunosList() {
       
       img.onload = () => {
         try {
-          // Calcular dimensões mantendo proporção
           const ratio = Math.min(maxWidth / img.width, maxWidth / img.height);
           canvas.width = img.width * ratio;
           canvas.height = img.height * ratio;
           
-          // Desenhar imagem redimensionada
           ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
           
-          // Converter para base64 comprimido
           const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
           resolve(compressedDataUrl);
         } catch (error) {
@@ -447,7 +455,13 @@ export function AlunosList() {
             <h3 className="card-title">Alunos</h3>
             <p className="card-description">Gerencie os alunos da escola</p>
           </div>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <Dialog open={isDialogOpen} onOpenChange={(open) => {
+            setIsDialogOpen(open);
+            if (open && !editingAluno) {
+              // Quando abre modal para NOVO aluno, carrega matrícula sugerida
+              loadSuggestedMatricula();
+            }
+          }}>
             <DialogTrigger asChild>
               <Button onClick={resetForm} className="btn btn-primary btn-md flex items-center gap-2">
                 <Plus className="h-4 w-4" />
@@ -533,7 +547,7 @@ export function AlunosList() {
                         />
                       </div>
                       <div>
-                        <Label>Matrícula *</Label>
+                        <Label>Matrícula * {suggestedMatricula && !editingAluno && <span className="text-xs text-blue-600">(Sugerida: {suggestedMatricula})</span>}</Label>
                         <Input
                           id="matricula"
                           value={formData.matricula}
