@@ -292,18 +292,18 @@ export function RecadosTab({ diarioId }: RecadosTabProps) {
                 <div key={recado.id} className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 p-4 border rounded-lg">
                   <div className="flex-1">
                     <h3 className="font-medium">{recado.titulo}</h3>
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-1 text-base text-muted-foreground">
-                      <span className="flex items-center gap-1">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-1 text-sm text-gray-600">
+                      <span className="flex items-center gap-2 sm:gap-1">
                         <Calendar className="h-4 w-4 text-red-500" />
                         {formatDate(recado.dataEnvio || recado.data_envio || '')}
                       </span>
-                      <span className="flex items-center gap-1">
-                        <Users className="h-3 w-3" />
+                      <span className="flex items-center gap-2 sm:gap-1">
+                        <Users className="h-4 w-4 text-blue-500" />
                         {recado.turmaNome || recado.turma_nome}
                       </span>
                       {(recado.alunoNome || recado.aluno_nome) && (
-                        <span className="flex items-center gap-1">
-                          <User className="h-3 w-3" />
+                        <span className="flex items-center gap-2 sm:gap-1">
+                          <User className="h-4 w-4 text-purple-500" />
                           {recado.alunoNome || recado.aluno_nome}
                         </span>
                       )}
