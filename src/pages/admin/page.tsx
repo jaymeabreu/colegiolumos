@@ -271,7 +271,7 @@ export function AdminPage() {
               <CardTitle className="text-lg text-gray-900 dark:text-white">
                 Total de alunos
               </CardTitle>
-              <div className="flex items-center gap-2 mt-2">
+              <div className="mt-2">
                 <Button 
                   variant="link"
                   size="sm"
@@ -324,7 +324,7 @@ export function AdminPage() {
               <CardTitle className="text-lg text-gray-900 dark:text-white">
                 Total de professores
               </CardTitle>
-              <div className="flex items-center gap-2 mt-2">
+              <div className="mt-2">
                 <Button 
                   variant="link"
                   size="sm"
@@ -377,7 +377,7 @@ export function AdminPage() {
               <CardTitle className="text-lg text-gray-900 dark:text-white">
                 Total de funcionários
               </CardTitle>
-              <div className="flex items-center gap-2 mt-2">
+              <div className="mt-2">
                 <Button 
                   variant="link"
                   size="sm"
