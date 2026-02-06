@@ -241,7 +241,7 @@ export function DiarioViewModal({
 
   return (
     <>
-      <div className="fixed left-0 right-0 bottom-0 bg-black/60 flex items-center justify-center z-[60] p-4 backdrop-blur-sm">
+      <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4 backdrop-blur-sm">
         <div className="bg-background rounded-xl !w-[95vw] !max-w-none flex flex-col shadow-2xl overflow-hidden border h-[95vh]" style={{ width: '95vw', maxWidth: '95vw' }}>
           
           {/* HEADER */}
@@ -544,7 +544,7 @@ export function DiarioViewModal({
 
       {/* Modal de Devolver Diário - INLINE (sem componente separado) */}
       {isDevolverOpen && (
-        <div className="fixed left-0 right-0 bottom-0 bg-black/60 flex items-center justify-center z-[70] backdrop-blur-sm p-4">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[70] backdrop-blur-sm p-4">
           <div className="bg-white rounded-lg shadow-2xl w-full max-w-md overflow-hidden border border-gray-200">
             
             <div className="bg-white p-6 border-b flex items-start justify-between">
