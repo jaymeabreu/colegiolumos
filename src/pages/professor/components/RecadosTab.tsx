@@ -294,7 +294,7 @@ export function RecadosTab({ diarioId }: RecadosTabProps) {
                     <h3 className="font-medium">{recado.titulo}</h3>
                     <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-1 text-base text-muted-foreground">
                       <span className="flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
+                        <Calendar className="h-4 w-4 text-red-500" />
                         {formatDate(recado.dataEnvio || recado.data_envio || '')}
                       </span>
                       <span className="flex items-center gap-1">
