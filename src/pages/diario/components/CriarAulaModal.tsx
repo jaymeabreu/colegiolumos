@@ -74,11 +74,21 @@ export function CriarAulaModal({
       if (sidebarElement) {
         (sidebarElement as HTMLElement).style.display = 'none';
       }
+      // Também ocultar o main
+      const mainElement = document.querySelector('main');
+      if (mainElement) {
+        (mainElement as HTMLElement).style.display = 'none';
+      }
     } else {
       // Mostrar sidebar quando modal fechar
       const sidebarElement = document.querySelector('[data-sidebar="sidebar"]');
       if (sidebarElement) {
         (sidebarElement as HTMLElement).style.display = '';
+      }
+      // Mostrar o main
+      const mainElement = document.querySelector('main');
+      if (mainElement) {
+        (mainElement as HTMLElement).style.display = '';
       }
     }
 
@@ -87,6 +97,10 @@ export function CriarAulaModal({
       const sidebarElement = document.querySelector('[data-sidebar="sidebar"]');
       if (sidebarElement) {
         (sidebarElement as HTMLElement).style.display = '';
+      }
+      const mainElement = document.querySelector('main');
+      if (mainElement) {
+        (mainElement as HTMLElement).style.display = '';
       }
     };
   }, [open]);
@@ -171,24 +185,16 @@ export function CriarAulaModal({
       </Button>
 
       <Dialog open={open} onOpenChange={onOpenChange}>
-        {/* Overlay fullscreen */}
         <DialogContent 
-          className="fixed inset-0 w-screen h-screen max-w-none max-h-none rounded-0 p-0 m-0 border-0 bg-white"
+          className="!fixed !inset-0 !w-screen !h-screen !max-w-none !max-h-none !rounded-none !p-0 !m-0 !border-0"
           style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            width: '100vw',
-            height: '100vh',
-            maxWidth: 'unset',
-            maxHeight: 'unset',
-            borderRadius: 0
+            display: 'flex',
+            flexDirection: 'column',
+            backgroundColor: '#ffffff'
           }}
         >
           {/* Header com fechar button */}
-          <div className="flex items-center justify-between p-6 border-b bg-white sticky top-0 z-50">
+          <div className="flex items-center justify-between p-6 border-b bg-white sticky top-0 z-50 flex-shrink-0">
             <div>
               <DialogTitle className="text-2xl font-bold">
                 {aulaEditando ? 'Editar Aula' : 'Nova Aula'}
@@ -199,7 +205,7 @@ export function CriarAulaModal({
             </div>
             <button
               onClick={handleClose}
-              className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              className="p-2 rounded-lg hover:bg-gray-100 transition-colors flex-shrink-0"
             >
               <X className="h-6 w-6 text-gray-500" />
             </button>
@@ -302,7 +308,7 @@ export function CriarAulaModal({
           </div>
 
           {/* Footer fixo */}
-          <div className="flex gap-3 justify-end p-6 border-t bg-white sticky bottom-0 z-50">
+          <div className="flex gap-3 justify-end p-6 border-t bg-white sticky bottom-0 z-50 flex-shrink-0">
             <Button 
               type="button" 
               variant="outline" 
