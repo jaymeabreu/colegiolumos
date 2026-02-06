@@ -235,7 +235,7 @@ export function BoletimModal({ aluno, onClose, diarioId }: BoletimModalProps) {
 
   if (loading) {
     return (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[70]">
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" style={{ zIndex: 51 }}>
         <div className="bg-background rounded-lg p-8 text-center">
           <div className="loading mx-auto mb-4"></div>
           <p className="text-muted-foreground">Carregando dados do aluno...</p>
@@ -246,7 +246,7 @@ export function BoletimModal({ aluno, onClose, diarioId }: BoletimModalProps) {
 
   if (!desempenho) {
     return (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[70]">
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" style={{ zIndex: 51 }}>
         <div className="bg-background rounded-lg p-8 text-center">
           <AlertCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
           <p className="text-muted-foreground">Nenhum dado encontrado</p>
@@ -257,10 +257,10 @@ export function BoletimModal({ aluno, onClose, diarioId }: BoletimModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[70] p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
       <div 
         className="bg-background rounded-xl !w-[95vw] !max-w-none h-[92vh] flex flex-col shadow-2xl overflow-hidden border"
-        style={{ width: '95vw', maxWidth: '95vw' }}
+        style={{ width: '95vw', maxWidth: '95vw', zIndex: 51 }}
       >
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b bg-gradient-to-r from-slate-50 to-white">
