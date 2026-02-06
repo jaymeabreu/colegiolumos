@@ -1,399 +1,337 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, MessageSquare, Calendar, Users, User } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
+import { Plus, X } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../../../components/ui/dialog';
 import { Input } from '../../../components/ui/input';
 import { Label } from '../../../components/ui/label';
 import { Textarea } from '../../../components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../../../components/ui/dialog';
 import { supabaseService } from '../../../services/supabaseService';
-import type { Recado, Turma, Aluno, Diario } from '../../../services/supabaseService';
-import { authService } from '../../../services/auth';
+import { MarcarPresencaModal } from './MarcarPresencaModal';
+import type { Aula, Aluno } from '../../../services/supabaseService';
 
-interface RecadosTabProps {
-  diarioId?: number;
+interface CriarAulaModalProps {
+  diarioId: number;
+  alunos: Aluno[];
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onAulaCriada?: () => void;
+  aulaEditando?: Aula | null;
 }
 
-export function RecadosTab({ diarioId }: RecadosTabProps) {
-  const [recados, setRecados] = useState<Recado[]>([]);
-  const [turmas, setTurmas] = useState<Turma[]>([]);
-  const [alunos, setAlunos] = useState<Aluno[]>([]);
-  const [diario, setDiario] = useState<Diario | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingRecado, setEditingRecado] = useState<Recado | null>(null);
-  const [loading, setLoading] = useState(true);
+export function CriarAulaModal({
+  diarioId,
+  alunos,
+  open,
+  onOpenChange,
+  onAulaCriada,
+  aulaEditando
+}: CriarAulaModalProps) {
+  const [loading, setLoading] = useState(false);
+  const [aulaCriada, setAulaCriada] = useState<Aula | null>(null);
+  const [isMarcarPresencaOpen, setIsMarcarPresencaOpen] = useState(false);
+  
   const [formData, setFormData] = useState({
-    titulo: '',
-    mensagem: '',
-    alunoId: ''
+    data: new Date().toISOString().split('T')[0],
+    conteudo: '',
+    quantidade_aulas: '1',
+    tipo_aula: 'Teórica',
+    aula_assincrona: false,
+    conteudo_detalhado: '',
+    observacoes: ''
   });
 
-  const { user } = authService.getAuthState();
-
+  // Carregar dados da aula quando estiver editando
   useEffect(() => {
-    loadData();
-  }, [user?.professorId, diarioId]);
+    if (aulaEditando) {
+      setFormData({
+        data: aulaEditando.data || new Date().toISOString().split('T')[0],
+        conteudo: aulaEditando.conteudo || '',
+        quantidade_aulas: (aulaEditando.quantidade_aulas || 1).toString(),
+        tipo_aula: aulaEditando.tipo_aula || 'Teórica',
+        aula_assincrona: aulaEditando.aula_assincrona || false,
+        conteudo_detalhado: aulaEditando.conteudo_detalhado || '',
+        observacoes: aulaEditando.observacoes || ''
+      });
+    } else {
+      setFormData({
+        data: new Date().toISOString().split('T')[0],
+        conteudo: '',
+        quantidade_aulas: '1',
+        tipo_aula: 'Teórica',
+        aula_assincrona: false,
+        conteudo_detalhado: '',
+        observacoes: ''
+      });
+    }
+  }, [aulaEditando, open]);
 
-  const loadData = async () => {
+  // Controlar visibilidade do sidebar
+  useEffect(() => {
+    if (open) {
+      // Ocultar sidebar quando modal abrir
+      const sidebarElement = document.querySelector('[data-sidebar="sidebar"]');
+      if (sidebarElement) {
+        (sidebarElement as HTMLElement).style.display = 'none';
+      }
+    } else {
+      // Mostrar sidebar quando modal fechar
+      const sidebarElement = document.querySelector('[data-sidebar="sidebar"]');
+      if (sidebarElement) {
+        (sidebarElement as HTMLElement).style.display = '';
+      }
+    }
+
+    return () => {
+      // Garantir que sidebar volte ao normal ao desmontar
+      const sidebarElement = document.querySelector('[data-sidebar="sidebar"]');
+      if (sidebarElement) {
+        (sidebarElement as HTMLElement).style.display = '';
+      }
+    };
+  }, [open]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!formData.conteudo.trim()) {
+      alert('Preencha o título do conteúdo');
+      return;
+    }
+
     try {
       setLoading(true);
 
-      // Carregar dados do diário atual para pegar a turma
-      if (diarioId) {
-        const diarios = await supabaseService.getDiarios();
-        const diarioAtual = diarios.find(d => d.id === diarioId);
-        if (diarioAtual) {
-          setDiario(diarioAtual);
-          
-          // Carregar alunos da turma do diário
-          if (diarioAtual.turma_id) {
-            const alunosData = await supabaseService.getAlunosByTurma(diarioAtual.turma_id);
-            setAlunos(alunosData || []);
-          }
-        }
+      if (aulaEditando) {
+        // Editar aula existente
+        const aulaAtualizada = await supabaseService.updateAula(aulaEditando.id, {
+          data: formData.data,
+          conteudo: formData.conteudo,
+          quantidade_aulas: parseInt(formData.quantidade_aulas),
+          tipo_aula: formData.tipo_aula,
+          aula_assincrona: formData.aula_assincrona,
+          conteudo_detalhado: formData.conteudo_detalhado || undefined,
+          observacoes: formData.observacoes || null
+        });
+
+        setAulaCriada(aulaAtualizada);
+        alert('✅ Aula atualizada com sucesso!');
+      } else {
+        // Criar nova aula
+        const novaAula = await supabaseService.createAula({
+          diario_id: diarioId,
+          data: formData.data,
+          conteudo: formData.conteudo,
+          quantidade_aulas: parseInt(formData.quantidade_aulas),
+          tipo_aula: formData.tipo_aula,
+          aula_assincrona: formData.aula_assincrona,
+          conteudo_detalhado: formData.conteudo_detalhado || undefined,
+          observacoes: formData.observacoes || null
+        });
+
+        setAulaCriada(novaAula);
+        
+        setFormData({
+          data: new Date().toISOString().split('T')[0],
+          conteudo: '',
+          quantidade_aulas: '1',
+          tipo_aula: 'Teórica',
+          aula_assincrona: false,
+          conteudo_detalhado: '',
+          observacoes: ''
+        });
+
+        setTimeout(() => {
+          setIsMarcarPresencaOpen(true);
+        }, 300);
       }
 
-      if (user?.professorId) {
-        const recadosData = await supabaseService.getRecadosByProfessor(user.professorId);
-        
-        // Se tem diarioId, filtra recados apenas da turma desse diário
-        let recadosFiltrados = recadosData || [];
-        if (diarioId && diario?.turma_id) {
-          recadosFiltrados = recadosFiltrados.filter(r => 
-            (r.turmaId || r.turma_id) === diario.turma_id
-          );
-        }
-        
-        setRecados(recadosFiltrados.sort(
-          (a, b) =>
-            new Date(b.dataEnvio || b.data_envio || '').getTime() -
-            new Date(a.dataEnvio || a.data_envio || '').getTime()
-        ));
-      }
-
-      const turmasData = await supabaseService.getTurmas();
-      setTurmas(turmasData || []);
+      onOpenChange(false);
+      onAulaCriada?.();
     } catch (error) {
-      console.error('Erro ao carregar dados:', error);
+      console.error('Erro ao salvar aula:', error);
+      alert('Erro ao salvar aula. Tente novamente.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Recarregar quando diario mudar
-  useEffect(() => {
-    if (diario?.turma_id) {
-      loadAlunosByTurma(diario.turma_id);
-    }
-  }, [diario?.turma_id]);
-
-  const loadAlunosByTurma = async (turmaId: number) => {
-    try {
-      const alunosData = await supabaseService.getAlunosByTurma(turmaId);
-      setAlunos(alunosData || []);
-    } catch (error) {
-      console.error('Erro ao carregar alunos:', error);
-      setAlunos([]);
-    }
-  };
-
-  // Pegar nome da turma do diário atual
-  const getTurmaNome = () => {
-    if (diario?.turma_id) {
-      const turma = turmas.find(t => t.id === diario.turma_id);
-      return turma?.nome || 'Turma';
-    }
-    return 'Turma';
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!formData.titulo.trim() || !formData.mensagem.trim()) {
-      alert('Por favor, preencha todos os campos obrigatórios.');
-      return;
-    }
-
-    // Usa a turma do diário automaticamente
-    if (!diario?.turma_id) {
-      alert('Erro: Turma do diário não encontrada.');
-      return;
-    }
-
-    try {
-      const turma = turmas.find(t => t.id === diario.turma_id);
-      const aluno = formData.alunoId && formData.alunoId.trim()
-        ? alunos.find(a => a.id === parseInt(formData.alunoId))
-        : null;
-
-      if (editingRecado) {
-        const updatedRecado = await supabaseService.updateRecado(editingRecado.id, {
-          titulo: formData.titulo.trim(),
-          mensagem: formData.mensagem.trim(),
-          turmaId: diario.turma_id,
-          turmaNome: turma?.nome || '',
-          alunoId: formData.alunoId && formData.alunoId.trim() ? parseInt(formData.alunoId) : null,
-          alunoNome: aluno?.nome || null
-        });
-
-        if (updatedRecado) {
-          setRecados(prev =>
-            prev.map(r => (r.id === updatedRecado.id ? updatedRecado : r))
-          );
-        }
-      } else {
-        const novoRecado = await supabaseService.createRecado({
-          titulo: formData.titulo.trim(),
-          mensagem: formData.mensagem.trim(),
-          professorId: user?.professorId || 1,
-          professorNome: user?.nome || 'Professor',
-          turmaId: diario.turma_id,
-          turmaNome: turma?.nome || '',
-          alunoId: formData.alunoId && formData.alunoId.trim() ? parseInt(formData.alunoId) : null,
-          alunoNome: aluno?.nome || null,
-          dataEnvio: new Date().toISOString().split('T')[0]
-        });
-
-        if (novoRecado) {
-          setRecados(prev => [novoRecado, ...prev]);
-        }
-      }
-
-      handleCloseDialog();
-      await loadData();
-    } catch (error) {
-      console.error('Erro ao salvar recado:', error);
-      alert('Erro ao salvar recado. Tente novamente.');
-    }
-  };
-
-  const handleEdit = (recado: Recado) => {
-    setEditingRecado(recado);
-    setFormData({
-      titulo: recado.titulo,
-      mensagem: recado.mensagem,
-      alunoId: (recado.alunoId || recado.aluno_id)?.toString() || ''
-    });
-    setIsDialogOpen(true);
-  };
-
-  const handleDelete = async (id: number) => {
-    if (window.confirm('Tem certeza que deseja excluir este recado?')) {
-      try {
-        const success = await supabaseService.deleteRecado(id);
-
-        if (success) {
-          setRecados(prev => prev.filter(r => r.id !== id));
-          await loadData();
-        }
-      } catch (error) {
-        console.error('Erro ao excluir recado:', error);
-        alert('Erro ao excluir recado. Tente novamente.');
-      }
-    }
-  };
-
-  const handleCloseDialog = () => {
-    setIsDialogOpen(false);
-    setEditingRecado(null);
-    setFormData({
-      titulo: '',
-      mensagem: '',
-      alunoId: ''
-    });
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('pt-BR');
+  const handleClose = () => {
+    onOpenChange(false);
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="space-y-2">
-            <CardTitle>Recados</CardTitle>
-            <CardDescription>
-              Envie recados para {getTurmaNome()} ou para um aluno específico
-            </CardDescription>
+    <>
+      <Button 
+        onClick={() => onOpenChange(true)}
+        className="bg-blue-600 hover:bg-blue-700"
+      >
+        <Plus className="h-4 w-4 mr-2" />
+        Nova Aula
+      </Button>
+
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        {/* Overlay fullscreen */}
+        <DialogContent 
+          className="fixed inset-0 w-screen h-screen max-w-none max-h-none rounded-0 p-0 m-0 border-0 bg-white"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            width: '100vw',
+            height: '100vh',
+            maxWidth: 'unset',
+            maxHeight: 'unset',
+            borderRadius: 0
+          }}
+        >
+          {/* Header com fechar button */}
+          <div className="flex items-center justify-between p-6 border-b bg-white sticky top-0 z-50">
+            <div>
+              <DialogTitle className="text-2xl font-bold">
+                {aulaEditando ? 'Editar Aula' : 'Nova Aula'}
+              </DialogTitle>
+              <DialogDescription className="mt-2">
+                {aulaEditando ? 'Atualize os dados da aula' : 'Conteúdo Ministrado da Aula'}
+              </DialogDescription>
+            </div>
+            <button
+              onClick={handleClose}
+              className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              <X className="h-6 w-6 text-gray-500" />
+            </button>
           </div>
 
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={handleCloseDialog} className="flex items-center gap-2">
-                <Plus className="h-4 w-4" />
-                <span className="sm:hidden">Novo</span>
-                <span className="hidden sm:inline">Novo Recado</span>
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-[95vw] lg:max-w-[800px] max-h-[95vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>
-                  {editingRecado ? 'Editar Recado' : 'Novo Recado'}
-                </DialogTitle>
-                <DialogDescription>
-                  {editingRecado
-                    ? 'Edite as informações do recado abaixo.'
-                    : `Crie um novo recado para ${getTurmaNome()} ou aluno específico.`}
-                </DialogDescription>
-              </DialogHeader>
-
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="titulo">Título *</Label>
+          {/* Conteúdo scrollável */}
+          <div className="flex-1 overflow-y-auto p-6">
+            <form onSubmit={handleSubmit} className="space-y-6 max-w-3xl mx-auto">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="data">Data da aula</Label>
                   <Input
-                    id="titulo"
-                    value={formData.titulo}
-                    onChange={e =>
-                      setFormData(prev => ({ ...prev, titulo: e.target.value }))
-                    }
-                    placeholder="Digite o título do recado"
+                    id="data"
+                    type="date"
+                    value={formData.data}
+                    onChange={(e) => setFormData({ ...formData, data: e.target.value })}
                     required
                   />
                 </div>
-
-                {/* Mostra a turma como informação (não editável) */}
-                <div className="space-y-2">
-                  <Label>Turma</Label>
-                  <div className="flex items-center gap-2 p-3 bg-muted rounded-md">
-                    <Users className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-medium">{getTurmaNome()}</span>
-                    <span className="text-xs text-muted-foreground">(turma do diário atual)</span>
-                  </div>
-                </div>
-
-                {/* Select de aluno (opcional) */}
-                <div className="space-y-2">
-                  <Label htmlFor="aluno">Aluno (Opcional)</Label>
-                  <Select
-                    value={formData.alunoId}
-                    onValueChange={value =>
-                      setFormData(prev => ({ ...prev, alunoId: value }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Deixe vazio para toda a turma" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(alunos || []).map(aluno => (
-                        <SelectItem
-                          key={aluno.id}
-                          value={aluno.id.toString()}
-                        >
-                          {aluno.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">
-                    Deixe vazio para enviar para toda a turma
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="mensagem">Mensagem *</Label>
-                  <Textarea
-                    id="mensagem"
-                    value={formData.mensagem}
-                    onChange={e =>
-                      setFormData(prev => ({
-                        ...prev,
-                        mensagem: e.target.value
-                      }))
-                    }
-                    placeholder="Digite a mensagem do recado"
-                    rows={6}
+                <div>
+                  <Label htmlFor="conteudo">Título do conteúdo</Label>
+                  <Input
+                    id="conteudo"
+                    placeholder="Ex: As Grandes Navegações"
+                    value={formData.conteudo}
+                    onChange={(e) => setFormData({ ...formData, conteudo: e.target.value })}
                     required
                   />
-                </div>
-
-                <div className="flex justify-end gap-2 pt-4 border-t">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleCloseDialog}
-                  >
-                    Cancelar
-                  </Button>
-                  <Button type="submit">
-                    {editingRecado
-                      ? 'Salvar Alterações'
-                      : 'Enviar Recado'}
-                  </Button>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </CardHeader>
-
-      <CardContent>
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-              <p className="text-muted-foreground">Carregando recados...</p>
-            </div>
-          </div>
-        ) : (recados || []).length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
-              <MessageSquare className="h-8 w-8 opacity-60" />
-            </div>
-            <p className="font-medium mb-1">Nenhum recado encontrado</p>
-            <p className="text-sm">
-              Crie o primeiro recado para {getTurmaNome()}.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {(recados || []).map(recado => (
-              <div
-                key={recado.id}
-                className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 p-4 border rounded-lg"
-              >
-                <div className="flex-1">
-                  <h3 className="font-medium">{recado.titulo}</h3>
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-1 text-base text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3" />
-                      {formatDate(recado.dataEnvio || recado.data_envio || '')}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Users className="h-3 w-3" />
-                      {recado.turmaNome || recado.turma_nome}
-                    </span>
-                    {(recado.alunoNome || recado.aluno_nome) && (
-                      <span className="flex items-center gap-1">
-                        <User className="h-3 w-3" />
-                        {recado.alunoNome || recado.aluno_nome}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleEdit(recado)}
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => handleDelete(recado.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
                 </div>
               </div>
-            ))}
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <Label>Quantidade de aulas</Label>
+                  <Select 
+                    value={formData.quantidade_aulas}
+                    onValueChange={(value) => setFormData({ ...formData, quantidade_aulas: value })}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">1 aula</SelectItem>
+                      <SelectItem value="2">2 aulas</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label>Tipo de aula</Label>
+                  <Select 
+                    value={formData.tipo_aula}
+                    onValueChange={(value) => setFormData({ ...formData, tipo_aula: value })}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Teórica">Teórica</SelectItem>
+                      <SelectItem value="Prática">Prática</SelectItem>
+                      <SelectItem value="Teórica e Prática">Teórica e Prática</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label>Aula assíncrona</Label>
+                  <Select 
+                    value={formData.aula_assincrona ? 'Sim' : 'Não'}
+                    onValueChange={(value) => setFormData({ ...formData, aula_assincrona: value === 'Sim' })}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Não">Não</SelectItem>
+                      <SelectItem value="Sim">Sim</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div>
+                <Label>Conteúdo detalhado da aula</Label>
+                <Textarea
+                  placeholder="Descrição detalhada..."
+                  value={formData.conteudo_detalhado}
+                  onChange={(e) => setFormData({ ...formData, conteudo_detalhado: e.target.value })}
+                  rows={5}
+                />
+              </div>
+
+              <div>
+                <Label>Observações</Label>
+                <Textarea
+                  placeholder="Observações..."
+                  value={formData.observacoes}
+                  onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
+                  rows={4}
+                />
+              </div>
+
+              {/* Spacer para separar do footer */}
+              <div className="h-4" />
+            </form>
           </div>
-        )}
-      </CardContent>
-    </Card>
+
+          {/* Footer fixo */}
+          <div className="flex gap-3 justify-end p-6 border-t bg-white sticky bottom-0 z-50">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={handleClose}
+              className="min-w-24"
+            >
+              Cancelar
+            </Button>
+            <Button 
+              type="submit" 
+              disabled={loading} 
+              className="bg-blue-600 hover:bg-blue-700 min-w-24"
+              onClick={handleSubmit}
+            >
+              {loading ? 'Salvando...' : aulaEditando ? 'Atualizar Aula' : 'Salvar Aula'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {aulaCriada && !aulaEditando && (
+        <MarcarPresencaModal
+          aula={aulaCriada}
+          alunos={alunos}
+          open={isMarcarPresencaOpen}
+          onOpenChange={setIsMarcarPresencaOpen}
+          onSave={() => setIsMarcarPresencaOpen(false)}
+        />
+      )}
+    </>
   );
 }
