@@ -133,61 +133,54 @@ export function CriarAulaModal({
     onOpenChange(false);
   };
 
-  // PORTAL - TELETRANSPORTE PARA O BODY
-  if (!open) return (
-    <Button 
-      onClick={() => onOpenChange(true)}
-      className="bg-blue-600 hover:bg-blue-700"
-    >
-      <Plus className="h-4 w-4 mr-2" />
-      Nova Aula
-    </Button>
-  );
-
   return (
     <>
+      {/* Botão de Gatilho (fica onde o componente for chamado) */}
       <Button 
         onClick={() => onOpenChange(true)}
         className="bg-blue-600 hover:bg-blue-700"
       >
         <Plus className="h-4 w-4 mr-2" />
-        Nova Aula
+        {aulaEditando ? 'Editar Aula' : 'Nova Aula'}
       </Button>
 
-      {createPortal(
-        // OVERLAY PRETO - COBRE TUDO INCLUINDO SIDEBAR
-        <div 
-          className="fixed inset-0 bg-black/50 z-[9998]"
-          onClick={handleClose}
-        >
-          {/* MODAL FULLSCREEN - TELETRANSPORTADO PARA O BODY */}
+      {/* PORTAL - RENDERIZA NO FINAL DO BODY */}
+      {open && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden">
+          {/* OVERLAY ESCURO - Cobre tudo inclusive sidebar */}
           <div 
-            className="fixed inset-0 w-screen h-screen bg-white z-[9999] flex flex-col"
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
+            onClick={handleClose}
+          />
+
+          {/* CARD DO MODAL - Centralizado e flutuante */}
+          <div 
+            className="relative bg-white w-full max-w-2xl mx-4 rounded-xl shadow-2xl flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-200"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* HEADER STICKY */}
-            <div className="flex items-center justify-between p-6 border-b bg-white sticky top-0 z-50 flex-shrink-0">
+            {/* HEADER */}
+            <div className="flex items-center justify-between p-6 border-b">
               <div>
-                <h2 className="text-2xl font-bold">
+                <h2 className="text-xl font-semibold text-gray-900">
                   {aulaEditando ? 'Editar Aula' : 'Nova Aula'}
                 </h2>
-                <p className="text-sm text-gray-500 mt-2">
-                  {aulaEditando ? 'Atualize os dados da aula' : 'Conteúdo Ministrado da Aula'}
+                <p className="text-sm text-gray-500 mt-1">
+                  {aulaEditando ? 'Atualize os dados da aula' : 'Preencha os dados abaixo para registrar a aula'}
                 </p>
               </div>
               <button
                 onClick={handleClose}
-                className="p-2 rounded-lg hover:bg-gray-100 transition-colors flex-shrink-0"
+                className="p-2 rounded-full hover:bg-gray-100 transition-colors"
               >
-                <X className="h-6 w-6 text-gray-500" />
+                <X className="h-5 w-5 text-gray-400" />
               </button>
             </div>
 
-            {/* CONTEÚDO SCROLLÁVEL */}
+            {/* CONTEÚDO COM SCROLL SE NECESSÁRIO */}
             <div className="flex-1 overflow-y-auto p-6">
-              <form onSubmit={handleSubmit} className="space-y-6 max-w-3xl mx-auto">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
+              <form id="aula-form" onSubmit={handleSubmit} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
                     <Label htmlFor="data">Data da aula</Label>
                     <Input
                       id="data"
@@ -197,7 +190,7 @@ export function CriarAulaModal({
                       required
                     />
                   </div>
-                  <div>
+                  <div className="space-y-2">
                     <Label htmlFor="conteudo">Título do conteúdo</Label>
                     <Input
                       id="conteudo"
@@ -209,8 +202,8 @@ export function CriarAulaModal({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
                     <Label>Quantidade de aulas</Label>
                     <Select 
                       value={formData.quantidade_aulas}
@@ -224,7 +217,7 @@ export function CriarAulaModal({
                     </Select>
                   </div>
 
-                  <div>
+                  <div className="space-y-2">
                     <Label>Tipo de aula</Label>
                     <Select 
                       value={formData.tipo_aula}
@@ -239,7 +232,7 @@ export function CriarAulaModal({
                     </Select>
                   </div>
 
-                  <div>
+                  <div className="space-y-2">
                     <Label>Aula assíncrona</Label>
                     <Select 
                       value={formData.aula_assincrona ? 'Sim' : 'Não'}
@@ -254,54 +247,53 @@ export function CriarAulaModal({
                   </div>
                 </div>
 
-                <div>
-                  <Label>Conteúdo detalhado da aula</Label>
+                <div className="space-y-2">
+                  <Label>Conteúdo detalhado</Label>
                   <Textarea
                     placeholder="Descrição detalhada..."
                     value={formData.conteudo_detalhado}
                     onChange={(e) => setFormData({ ...formData, conteudo_detalhado: e.target.value })}
-                    rows={5}
+                    rows={4}
                   />
                 </div>
 
-                <div>
+                <div className="space-y-2">
                   <Label>Observações</Label>
                   <Textarea
                     placeholder="Observações..."
                     value={formData.observacoes}
                     onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
-                    rows={4}
+                    rows={3}
                   />
                 </div>
-
-                <div className="h-4" />
               </form>
             </div>
 
-            {/* FOOTER STICKY */}
-            <div className="flex gap-3 justify-end p-6 border-t bg-white sticky bottom-0 z-50 flex-shrink-0">
+            {/* FOOTER */}
+            <div className="flex items-center justify-end gap-3 p-6 border-t bg-gray-50/50">
               <Button 
                 type="button" 
                 variant="outline" 
                 onClick={handleClose}
-                className="min-w-24"
+                className="px-6"
               >
                 Cancelar
               </Button>
               <Button 
+                form="aula-form"
                 type="submit" 
                 disabled={loading} 
-                className="bg-blue-600 hover:bg-blue-700 min-w-24"
-                onClick={handleSubmit}
+                className="bg-[#0e4a5e] hover:bg-[#0a3645] text-white px-8"
               >
-                {loading ? 'Salvando...' : aulaEditando ? 'Atualizar Aula' : 'Salvar Aula'}
+                {loading ? 'Salvando...' : aulaEditando ? 'Atualizar' : 'Criar'}
               </Button>
             </div>
           </div>
         </div>,
-        document.body // TELETRANSPORTE PARA O BODY!
+        document.body
       )}
 
+      {/* Modal de Presença (Também deve usar portal internamente se necessário) */}
       {aulaCriada && !aulaEditando && (
         <MarcarPresencaModal
           aula={aulaCriada}
