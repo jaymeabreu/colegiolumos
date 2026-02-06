@@ -231,6 +231,29 @@ export function AdminPage() {
     return turmas.find(t => t.id === turmaId)?.nome || 'N/A';
   };
 
+  const getComunicadoBadge = (comunicado: any) => {
+    if (comunicado.turma_id) {
+      const turmaNome = turmas.find(t => t.id === comunicado.turma_id)?.nome || 'N/A';
+      return (
+        <span className="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full bg-blue-500 text-white">
+          Turma: {turmaNome}
+        </span>
+      );
+    } else if (comunicado.usuario_id) {
+      return (
+        <span className="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full bg-purple-500 text-white">
+          Individual
+        </span>
+      );
+    } else {
+      return (
+        <span className="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full bg-green-500 text-white">
+          Geral
+        </span>
+      );
+    }
+  };
+
   const handleLogout = async () => {
     try {
       localStorage.clear();
@@ -471,9 +494,12 @@ export function AdminPage() {
                   <div key={comunicado.id} className="pb-3 border-b border-gray-200 dark:border-gray-700 last:border-0">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
-                          {comunicado.titulo}
-                        </p>
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                            {comunicado.titulo}
+                          </p>
+                          {getComunicadoBadge(comunicado)}
+                        </div>
                         <p className="text-xs text-gray-600 dark:text-gray-300 mt-1 line-clamp-2">
                           {comunicado.mensagem}
                         </p>
