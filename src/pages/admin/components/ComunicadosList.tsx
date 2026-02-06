@@ -243,7 +243,7 @@ export function ComunicadosList() {
     if (comunicado.turma_id) {
       const turma = turmas.find(t => t.id === comunicado.turma_id);
       return (
-        <span className="inline-flex items-center px-2 py-1 text-[11px] rounded-full border border-blue-200 bg-blue-50 text-blue-700">
+        <span className="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full bg-blue-500 text-white">
           <Users className="h-3 w-3 mr-1" />
           Turma: {turma?.nome || 'N/A'}
         </span>
@@ -255,14 +255,14 @@ export function ComunicadosList() {
       const nomeUsuario = aluno?.nome || professor?.nome || 'N/A';
       
       return (
-        <span className="inline-flex items-center px-2 py-1 text-[11px] rounded-full border border-purple-200 bg-purple-50 text-purple-700">
+        <span className="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full bg-purple-500 text-white">
           <User className="h-3 w-3 mr-1" />
-          Individual: {nomeUsuario}
+          {nomeUsuario}
         </span>
       );
     } else {
       return (
-        <span className="inline-flex items-center px-2 py-1 text-[11px] rounded-full border border-green-200 bg-green-50 text-green-700">
+        <span className="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full bg-green-500 text-white">
           <Globe className="h-3 w-3 mr-1" />
           Geral
         </span>
@@ -530,22 +530,25 @@ export function ComunicadosList() {
               >
                 <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
                       <h4 className="font-medium text-base">
                         {comunicado.titulo}
                       </h4>
                       {getDestinatarioBadge(comunicado)}
                     </div>
-                    <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+                    <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground mb-2">
                       <div className="flex items-center gap-1">
                         <User className="h-3 w-3" />
-                        <span>{comunicado.autor}</span>
+                        <span>Por: {comunicado.autor}</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
                         <span>{formatDate(comunicado.data_publicacao)}</span>
                       </div>
                     </div>
+                    <p className="text-sm text-foreground whitespace-pre-wrap line-clamp-2">
+                      {comunicado.mensagem}
+                    </p>
                   </div>
 
                   <div className="flex items-center gap-2 flex-shrink-0">
@@ -568,12 +571,6 @@ export function ComunicadosList() {
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
-                </div>
-
-                <div>
-                  <p className="text-sm text-foreground whitespace-pre-wrap">
-                    {comunicado.mensagem}
-                  </p>
                 </div>
               </div>
             ))}
