@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import { Plus, AlertTriangle, Edit, Trash2, X } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
@@ -127,71 +126,73 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="space-y-2">
-            <CardTitle>Ocorrências</CardTitle>
-            <CardDescription>Registre ocorrências disciplinares e pedagógicas</CardDescription>
-          </div>
-          {!readOnly && (
-            <Button onClick={() => { resetForm(); setIsDialogOpen(true); }} className="flex items-center gap-2 bg-[#0e4a5e] hover:bg-[#0a3645]">
-              <Plus className="h-4 w-4" />
-              <span>Nova Ocorrência</span>
-            </Button>
-          )}
-        </div>
-      </CardHeader>
-
-      <CardContent>
-        <div className="space-y-4">
-          {ocorrencias.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              Nenhuma ocorrência registrada.
+    <div className="relative">
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="space-y-2">
+              <CardTitle>Ocorrências</CardTitle>
+              <CardDescription>Registre ocorrências disciplinares e pedagógicas</CardDescription>
             </div>
-          ) : (
-            ocorrencias.map(ocorrencia => (
-              <div key={ocorrencia.id} className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 p-4 border rounded-lg">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Badge variant={ocorrencia.tipo === 'elogio' ? 'outline' : 'destructive'} className="capitalize">
-                      {ocorrencia.tipo}
-                    </Badge>
-                    <h3 className="font-medium text-gray-900">{alunos.find(a => a.id === (ocorrencia.aluno_id ?? ocorrencia.alunoId))?.nome || 'Aluno'}</h3>
-                  </div>
-                  <p className="text-sm text-gray-600 mb-2">{ocorrencia.descricao}</p>
-                  <div className="flex flex-wrap items-center gap-4 text-xs text-gray-500">
-                    <span className="flex items-center gap-1">
-                      <CalendarIcon className="h-3 w-3" />
-                      {new Date(ocorrencia.data).toLocaleDateString('pt-BR')}
-                    </span>
-                    {(ocorrencia.acao_tomada || ocorrencia.acaoTomada) && (
-                      <span className="flex items-center gap-1">
-                        <AlertTriangle className="h-3 w-3" />
-                        Ação: {ocorrencia.acao_tomada || ocorrencia.acaoTomada}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                {!readOnly && (
-                  <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" onClick={() => handleEdit(ocorrencia)}>
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button variant="destructive" size="sm" onClick={() => handleDelete(ocorrencia.id)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                )}
-              </div>
-            ))
-          )}
-        </div>
-      </CardContent>
+            {!readOnly && (
+              <Button onClick={() => { resetForm(); setIsDialogOpen(true); }} className="flex items-center gap-2 bg-[#0e4a5e] hover:bg-[#0a3645]">
+                <Plus className="h-4 w-4" />
+                <span>Nova Ocorrência</span>
+              </Button>
+            )}
+          </div>
+        </CardHeader>
 
-      {/* PORTAL DO MODAL DE OCORRÊNCIA */}
-      {isDialogOpen && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden p-4">
+        <CardContent>
+          <div className="space-y-4">
+            {ocorrencias.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                Nenhuma ocorrência registrada.
+              </div>
+            ) : (
+              ocorrencias.map(ocorrencia => (
+                <div key={ocorrencia.id} className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 p-4 border rounded-lg">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Badge variant={ocorrencia.tipo === 'elogio' ? 'outline' : 'destructive'} className="capitalize">
+                        {ocorrencia.tipo}
+                      </Badge>
+                      <h3 className="font-medium text-gray-900">{alunos.find(a => a.id === (ocorrencia.aluno_id ?? ocorrencia.alunoId))?.nome || 'Aluno'}</h3>
+                    </div>
+                    <p className="text-sm text-gray-600 mb-2">{ocorrencia.descricao}</p>
+                    <div className="flex flex-wrap items-center gap-4 text-xs text-gray-500">
+                      <span className="flex items-center gap-1">
+                        <CalendarIcon className="h-3 w-3" />
+                        {new Date(ocorrencia.data).toLocaleDateString('pt-BR')}
+                      </span>
+                      {(ocorrencia.acao_tomada || ocorrencia.acaoTomada) && (
+                        <span className="flex items-center gap-1">
+                          <AlertTriangle className="h-3 w-3" />
+                          Ação: {ocorrencia.acao_tomada || ocorrencia.acaoTomada}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  {!readOnly && (
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm" onClick={() => handleEdit(ocorrencia)}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button variant="destructive" size="sm" onClick={() => handleDelete(ocorrencia.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* MODAL DE OCORRÊNCIA INTEGRADO (SEM PORTAL PARA EVITAR TRAVAMENTO) */}
+      {isDialogOpen && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={handleClose} />
           <div className="relative bg-white w-full max-w-xl rounded-xl shadow-2xl flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-200">
             <div className="flex items-center justify-between p-6 border-b">
@@ -202,8 +203,8 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
               <div className="space-y-2">
                 <Label>Aluno *</Label>
                 <Select value={formData.alunoId} onValueChange={(val) => setFormData({ ...formData, alunoId: val })}>
-                  <SelectTrigger><SelectValue placeholder="Selecione o aluno" /></SelectTrigger>
-                  <SelectContent>
+                  <SelectTrigger className="w-full"><SelectValue placeholder="Selecione o aluno" /></SelectTrigger>
+                  <SelectContent className="z-[10000]">
                     {alunos.map(aluno => (
                       <SelectItem key={aluno.id} value={aluno.id.toString()}>{aluno.nome}</SelectItem>
                     ))}
@@ -214,8 +215,8 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
                 <div className="space-y-2">
                   <Label>Tipo *</Label>
                   <Select value={formData.tipo} onValueChange={(val) => setFormData({ ...formData, tipo: val })}>
-                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                    <SelectContent>
+                    <SelectTrigger className="w-full"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent className="z-[10000]">
                       <SelectItem value="Disciplinar">Disciplinar</SelectItem>
                       <SelectItem value="Pedagogica">Pedagógica</SelectItem>
                       <SelectItem value="Elogio">Elogio</SelectItem>
@@ -241,9 +242,8 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
               </div>
             </form>
           </div>
-        </div>,
-        document.body
+        </div>
       )}
-    </Card>
+    </div>
   );
 }
