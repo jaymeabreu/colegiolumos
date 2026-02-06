@@ -8,6 +8,26 @@ import { Label } from '../../../components/ui/label';
 import { supabaseService } from '../../../services/supabaseService';
 import type { Disciplina } from '../../../services/supabaseService';
 
+// Paleta de cores para disciplinas - distribuindo de forma equilibrada
+const DISCIPLINE_COLORS = [
+  'bg-red-500',      // Vermelho
+  'bg-yellow-500',   // Amarelo
+  'bg-green-500',    // Verde
+  'bg-blue-500',     // Azul
+  'bg-orange-500',   // Laranja
+  'bg-purple-500',   // Roxo
+];
+
+// Função para obter cor consistente baseada no ID da disciplina
+const getDisciplinaColor = (disciplinaId: number): string => {
+  return DISCIPLINE_COLORS[disciplinaId % DISCIPLINE_COLORS.length];
+};
+
+// Função para capitalizar a primeira letra
+const capitalize = (str: string): string => {
+  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+};
+
 export function DisciplinasList() {
   const [disciplinas, setDisciplinas] = useState<Disciplina[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -206,8 +226,8 @@ export function DisciplinasList() {
                   <div className="flex items-center gap-2">
                     <h3 className="font-medium">{disciplina.nome}</h3>
                     {disciplina.codigo && (
-                      <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
-                        {disciplina.codigo}
+                      <span className={`${getDisciplinaColor(disciplina.id)} text-white rounded-full px-3 py-1 text-xs font-semibold`}>
+                        {capitalize(disciplina.codigo)}
                       </span>
                     )}
                   </div>
