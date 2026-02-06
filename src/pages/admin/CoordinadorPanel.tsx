@@ -74,11 +74,6 @@ export function CoordinadorPanel() {
       const professoresAtivos = professores.filter(p => p.situacao === 'ATIVO').length;
       const professoresInativos = professores.length - professoresAtivos;
 
-      // TODO: Buscar funcionários quando implementar
-      // const funcionarios = await supabaseService.getFuncionarios();
-      // const funcionariosAtivos = funcionarios.filter(f => f.situacao === 'ATIVO').length;
-      // const funcionariosInativos = funcionarios.length - funcionariosAtivos;
-
       setStats({
         totalAlunos: alunos.length,
         alunosAtivos,
@@ -110,7 +105,6 @@ export function CoordinadorPanel() {
 
     return (
       <div className="space-y-8">
-        {/* HEADER */}
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
             Painel Administrativo
@@ -120,7 +114,6 @@ export function CoordinadorPanel() {
           </p>
         </div>
 
-        {/* GRID COM GRÁFICOS */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* TOTAL DE ALUNOS */}
           <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
@@ -130,7 +123,7 @@ export function CoordinadorPanel() {
               </CardTitle>
               <div className="flex items-center gap-2 mt-2">
                 <button 
-                  onClick={() => navigate('/app/admin/alunos')}
+                  onClick={() => navigate('/app/admin?tab=alunos')}
                   className="text-blue-600 dark:text-blue-400 text-sm hover:underline"
                 >
                   Ver tudo
@@ -182,7 +175,7 @@ export function CoordinadorPanel() {
               </CardTitle>
               <div className="flex items-center gap-2 mt-2">
                 <button 
-                  onClick={() => navigate('/app/admin/professores')}
+                  onClick={() => navigate('/app/admin?tab=professores')}
                   className="text-blue-600 dark:text-blue-400 text-sm hover:underline"
                 >
                   Ver tudo
@@ -226,7 +219,7 @@ export function CoordinadorPanel() {
             </CardContent>
           </Card>
 
-          {/* TOTAL DE FUNCIONÁRIOS (PLACEHOLDER) */}
+          {/* TOTAL DE FUNCIONÁRIOS */}
           <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
             <CardHeader>
               <CardTitle className="text-lg text-gray-900 dark:text-white">
@@ -259,7 +252,6 @@ export function CoordinadorPanel() {
           </Card>
         </div>
 
-        {/* CALENDÁRIO */}
         <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
           <CardHeader>
             <CardTitle className="text-lg text-gray-900 dark:text-white">
@@ -303,7 +295,6 @@ export function CoordinadorPanel() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* HEADER COM MENU */}
       <div className="sticky top-0 z-40 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3">
         <div className="flex items-center justify-between max-w-7xl mx-auto">
           <div className="flex items-center gap-4">
@@ -326,7 +317,6 @@ export function CoordinadorPanel() {
         </div>
       </div>
 
-      {/* TABS NAVIGATION */}
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-14 z-30 px-4">
         <div className="max-w-7xl mx-auto overflow-x-auto">
           <div className="flex gap-8 min-w-full">
@@ -351,7 +341,6 @@ export function CoordinadorPanel() {
         </div>
       </div>
 
-      {/* MAIN CONTENT */}
       <div className="max-w-7xl mx-auto px-4 py-8">
         {loading ? (
           <div className="flex items-center justify-center h-96">
