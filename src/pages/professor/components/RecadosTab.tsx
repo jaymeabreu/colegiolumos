@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Plus, Edit, Trash2, MessageSquare, Calendar, Users, User, X } from 'lucide-react';
+import { Plus, Edit, Trash2, MessageSquare, Users, User, X } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
@@ -294,7 +294,7 @@ export function RecadosTab({ diarioId }: RecadosTabProps) {
                     <h3 className="font-medium">{recado.titulo}</h3>
                     <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-1 text-sm text-gray-600">
                       <span className="flex items-center gap-2 sm:gap-1">
-                        <Calendar className="h-4 w-4" />
+                        <span className="h-4 w-4 flex items-center justify-center text-[14px]">📅</span>
                         {formatDate(recado.dataEnvio || recado.data_envio || '')}
                       </span>
                       <span className="flex items-center gap-2 sm:gap-1">
