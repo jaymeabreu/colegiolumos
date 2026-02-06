@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Plus, AlertTriangle, Edit, Trash2, X } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
@@ -126,7 +127,7 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
   };
 
   return (
-    <div className="relative">
+    <>
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -190,9 +191,9 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
         </CardContent>
       </Card>
 
-      {/* MODAL DE OCORRÊNCIA INTEGRADO (SEM PORTAL PARA EVITAR TRAVAMENTO) */}
-      {isDialogOpen && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+      {/* PORTAL DO MODAL DE OCORRÊNCIA */}
+      {isDialogOpen && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden p-4">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={handleClose} />
           <div className="relative bg-white w-full max-w-xl rounded-xl shadow-2xl flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-200">
             <div className="flex items-center justify-between p-6 border-b">
@@ -203,8 +204,8 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
               <div className="space-y-2">
                 <Label>Aluno *</Label>
                 <Select value={formData.alunoId} onValueChange={(val) => setFormData({ ...formData, alunoId: val })}>
-                  <SelectTrigger className="w-full"><SelectValue placeholder="Selecione o aluno" /></SelectTrigger>
-                  <SelectContent className="z-[10000]">
+                  <SelectTrigger><SelectValue placeholder="Selecione o aluno" /></SelectTrigger>
+                  <SelectContent>
                     {alunos.map(aluno => (
                       <SelectItem key={aluno.id} value={aluno.id.toString()}>{aluno.nome}</SelectItem>
                     ))}
@@ -215,8 +216,8 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
                 <div className="space-y-2">
                   <Label>Tipo *</Label>
                   <Select value={formData.tipo} onValueChange={(val) => setFormData({ ...formData, tipo: val })}>
-                    <SelectTrigger className="w-full"><SelectValue placeholder="Selecione" /></SelectTrigger>
-                    <SelectContent className="z-[10000]">
+                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent>
                       <SelectItem value="Disciplinar">Disciplinar</SelectItem>
                       <SelectItem value="Pedagogica">Pedagógica</SelectItem>
                       <SelectItem value="Elogio">Elogio</SelectItem>
@@ -242,8 +243,9 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
-    </div>
+    </>
   );
 }
