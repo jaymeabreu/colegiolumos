@@ -271,65 +271,65 @@ class SupabaseService {
     );
   }
 
-  // ========== NOVA FUNÇÃO: GERAR MATRÍCULA ÚNICA ==========
+  // ========== NOVO MÉTODO: OBTER MATRÍCULA SUGERIDA ==========
   /**
-   * Gera uma matrícula única para o aluno
-   * Formato: Ano atual + número sequencial de 4 dígitos (ex: 20250001, 20250002...)
+   * Encontra a próxima matrícula disponível começando de 01
+   * Se 01 existe, tenta 02, se 02 existe tenta 03, e assim por diante
+   * Retorna string com 2 dígitos: "01", "02", "03", etc
+   * @returns Promise<string> - matrícula sugerida (ex: "01", "02", "03")
    */
-  private async gerarMatriculaUnica(): Promise<string> {
-    const anoAtual = new Date().getFullYear();
-    const prefixoAno = anoAtual.toString();
-
+  async getSuggestedMatricula(): Promise<string> {
     try {
-      // Busca a última matrícula do ano atual
+      console.log('🔍 Buscando próxima matrícula disponível...');
+
+      // 1. Busca TODOS os alunos e seus IDs
       const { data: alunos, error } = await supabase
         .from('alunos')
-        .select('matricula')
-        .like('matricula', `${prefixoAno}%`)
-        .order('matricula', { ascending: false })
-        .limit(1);
+        .select('matricula');
 
-      if (error && error.code !== 'PGRST116') {
-        console.error('Erro ao buscar última matrícula:', error);
-        throw error;
+      if (error) {
+        console.error('❌ Erro ao buscar matrículas:', error);
+        return '01'; // Retorna padrão em caso de erro
       }
 
-      let numeroSequencial = 1;
+      // 2. Cria um Set com as matrículas existentes
+      // Normaliza para formato "01", "02", etc (2 dígitos)
+      const existingMatriculas = new Set<string>(
+        (alunos ?? [])
+          .map(a => a.matricula)
+          .filter(m => m && typeof m === 'string')
+          .map(m => {
+            // Se for numérica, formata para 2 dígitos
+            const num = parseInt(m, 10);
+            if (!isNaN(num)) {
+              return num.toString().padStart(2, '0');
+            }
+            // Se não for numérica, deixa como está
+            return m;
+          })
+      );
 
-      if (alunos && alunos.length > 0 && alunos[0]?.matricula) {
-        // Extrai o número sequencial da última matrícula
-        const ultimaMatricula = alunos[0].matricula;
-        const ultimoNumero = parseInt(ultimaMatricula.slice(-4));
-        if (!isNaN(ultimoNumero)) {
-          numeroSequencial = ultimoNumero + 1;
+      console.log('📊 Matrículas existentes:', Array.from(existingMatriculas));
+
+      // 3. Procura a primeira matrícula disponível começando de 01
+      for (let i = 1; i <= 9999; i++) {
+        const suggested = i.toString().padStart(2, '0'); // Formata: "01", "02", etc
+        
+        if (!existingMatriculas.has(suggested)) {
+          console.log(`✅ Matrícula sugerida: ${suggested}`);
+          return suggested;
         }
       }
 
-      // Formata o número com 4 dígitos (padding com zeros à esquerda)
-      const numeroFormatado = numeroSequencial.toString().padStart(4, '0');
-      const novaMatricula = `${prefixoAno}${numeroFormatado}`;
-
-      // Verifica se a matrícula já existe (segurança extra)
-      const { data: verificacao } = await supabase
-        .from('alunos')
-        .select('matricula')
-        .eq('matricula', novaMatricula)
-        .maybeSingle();
-
-      if (verificacao) {
-        // Se por algum motivo já existe, tenta recursivamente a próxima
-        console.warn(`Matrícula ${novaMatricula} já existe, gerando próxima...`);
-        return this.gerarMatriculaUnica();
-      }
-
-      console.log('✅ Matrícula gerada:', novaMatricula);
-      return novaMatricula;
+      // Se por algum motivo chegou aqui (todas as 9999 existem), retorna erro
+      console.warn('⚠️ Não há matrículas disponíveis!');
+      return '9999';
     } catch (error) {
-      console.error('Erro ao gerar matrícula:', error);
-      throw new Error('Não foi possível gerar uma matrícula única');
+      console.error('❌ Erro ao gerar matrícula sugerida:', error);
+      return '01'; // Retorna padrão em caso de erro
     }
   }
-  // ========================================================
+  // =========================================================
 
   async getUsuarios(): Promise<Usuario[]> {
     const { data, error } = await supabase
@@ -692,65 +692,42 @@ class SupabaseService {
     return (alunos ?? []).map(withCamel) as Aluno[];
   }
 
-  // ========== FUNÇÃO CREATEALUNO CORRIGIDA ==========
   async createAluno(aluno: any): Promise<Aluno> {
-    try {
-      // 1. GERA MATRÍCULA ÚNICA AUTOMATICAMENTE
-      const matriculaGerada = await this.gerarMatriculaUnica();
-      console.log('📝 Criando aluno com matrícula:', matriculaGerada);
+    const payload: any = {
+      nome: aluno.nome,
+      matricula: aluno.matricula,
+      email: aluno.email ?? null,
+      turma_id: aluno.turma_id ?? aluno.turmaId ?? null,
+      data_nascimento: aluno.dataNascimento ?? aluno.data_nascimento ?? null,
+      cpf: aluno.cpf ?? null,
+      rg: aluno.rg ?? null,
+      sexo: aluno.sexo ?? null,
+      contato: aluno.contato ?? null,
+      observacoes: aluno.observacoes ?? null,
+      endereco: aluno.endereco ?? null,
+      bairro: aluno.bairro ?? null,
+      cidade: aluno.cidade ?? null,
+      estado: aluno.estado ?? null,
+      cep: aluno.cep ?? null,
+      nome_responsavel: aluno.nomeResponsavel ?? aluno.nome_responsavel ?? null,
+      telefone_responsavel: aluno.contatoResponsavel ?? aluno.telefone_responsavel ?? null,
+      email_responsavel: aluno.emailResponsavel ?? aluno.email_responsavel ?? null,
+      parentesco: aluno.parentesco ?? null,
+      ano_letivo: aluno.anoLetivo ?? aluno.ano_letivo ?? null,
+      situacao: aluno.situacao ?? null
+    };
 
-      // 2. Monta o payload SEM usar a matrícula enviada pelo form
-      const payload: any = {
-        nome: aluno.nome,
-        matricula: matriculaGerada, // <-- USA A MATRÍCULA GERADA
-        email: aluno.email ?? null,
-        turma_id: aluno.turma_id ?? aluno.turmaId ?? null,
-        data_nascimento: aluno.dataNascimento ?? aluno.data_nascimento ?? null,
-        cpf: aluno.cpf ?? null,
-        rg: aluno.rg ?? null,
-        sexo: aluno.sexo ?? null,
-        contato: aluno.contato ?? null,
-        observacoes: aluno.observacoes ?? null,
-        endereco: aluno.endereco ?? null,
-        bairro: aluno.bairro ?? null,
-        cidade: aluno.cidade ?? null,
-        estado: aluno.estado ?? null,
-        cep: aluno.cep ?? null,
-        nome_responsavel: aluno.nomeResponsavel ?? aluno.nome_responsavel ?? null,
-        telefone_responsavel: aluno.contatoResponsavel ?? aluno.telefone_responsavel ?? null,
-        email_responsavel: aluno.emailResponsavel ?? aluno.email_responsavel ?? null,
-        parentesco: aluno.parentesco ?? null,
-        ano_letivo: aluno.anoLetivo ?? aluno.ano_letivo ?? null,
-        situacao: aluno.situacao ?? null
-      };
+    const { data, error } = await supabase
+      .from('alunos')
+      .insert(payload)
+      .select('*')
+      .single();
 
-      // 3. Insere no banco
-      const { data, error } = await supabase
-        .from('alunos')
-        .insert(payload)
-        .select('*')
-        .single();
+    if (error) throw error;
 
-      if (error) {
-        console.error('❌ Erro ao inserir aluno:', error);
-        throw error;
-      }
-
-      console.log('✅ Aluno criado com sucesso!', data);
-      this.dispatchDataUpdated('alunos');
-      return withCamel(data) as Aluno;
-    } catch (error: any) {
-      console.error('❌ Erro em createAluno:', error);
-      
-      // Tratamento especial para erro de matrícula duplicada
-      if (error.code === '23505' && error.message.includes('matricula')) {
-        throw new Error('Erro ao gerar matrícula única. Tente novamente.');
-      }
-      
-      throw error;
-    }
+    this.dispatchDataUpdated('alunos');
+    return withCamel(data) as Aluno;
   }
-  // ===================================================
 
   async updateAluno(id: number, updates: Partial<any>): Promise<Aluno | null> {
     const payload: any = {};
@@ -1296,7 +1273,6 @@ class SupabaseService {
   }
 
   async getComunicadosParaAluno(alunoId: number): Promise<Comunicado[]> {
-    // 1. Busca o aluno pra pegar a turma
     const { data: aluno } = await supabase
       .from('alunos')
       .select('turma_id')
@@ -1305,7 +1281,6 @@ class SupabaseService {
 
     if (!aluno) return [];
 
-    // 2. Busca comunicados: gerais OU da turma OU individuais
     const { data, error } = await supabase
       .from('comunicados')
       .select('*')
@@ -1327,7 +1302,6 @@ class SupabaseService {
       data_publicacao: comunicado.data_publicacao ?? comunicado.dataPublicacao ?? new Date().toISOString().split('T')[0]
     };
 
-    // Adiciona campos opcionais para destinatário específico
     if (comunicado.turma_id || comunicado.turmaId) {
       payload.turma_id = comunicado.turma_id ?? comunicado.turmaId;
     }
@@ -1358,7 +1332,6 @@ class SupabaseService {
     if (updates.data_publicacao !== undefined) payload.data_publicacao = updates.data_publicacao;
     if (updates.dataPublicacao !== undefined) payload.data_publicacao = updates.dataPublicacao;
     
-    // Campos opcionais para destinatário específico
     if (updates.turma_id !== undefined) payload.turma_id = updates.turma_id;
     if (updates.turmaId !== undefined) payload.turma_id = updates.turmaId;
     if (updates.usuario_id !== undefined) payload.usuario_id = updates.usuario_id;
@@ -1431,7 +1404,6 @@ class SupabaseService {
   async createRecado(
     recado: Omit<Recado, 'id' | 'created_at' | 'updated_at'>
   ): Promise<Recado> {
-    // Validar e converter alunoId - FIX para recados geral
     const alunoIdFinal = sanitizeAlunoId(recado.aluno_id ?? recado.alunoId);
 
     const payload: any = {
@@ -1476,7 +1448,6 @@ class SupabaseService {
     if (updates.turma_nome !== undefined) payload.turma_nome = updates.turma_nome;
     if (updates.turmaNome !== undefined) payload.turma_nome = updates.turmaNome;
 
-    // Validar e converter alunoId - FIX para recados geral
     if (updates.aluno_id !== undefined || updates.alunoId !== undefined) {
       const alunoIdFinal = sanitizeAlunoId(updates.aluno_id ?? updates.alunoId);
       payload.aluno_id = alunoIdFinal;
