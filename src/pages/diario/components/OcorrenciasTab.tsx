@@ -11,7 +11,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../..
 import { supabaseService } from '../../../services/supabaseService';
 import type { Ocorrencia, Aluno } from '../../../services/supabaseService';
 
-// Ícone de Calendário em SVG customizado (Conforme solicitado pelo cliente)
+// Ícone de Calendário em SVG customizado
 const CalendarIcon = ({ className }: { className?: string }) => (
   <svg 
     xmlns="http://www.w3.org/2000/svg" 
@@ -38,9 +38,9 @@ interface OcorrenciasTabProps {
 export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabProps) {
   const [ocorrencias, setOcorrencias] = useState<Ocorrencia[]>([]);
   const [alunos, setAlunos] = useState<Aluno[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingOcorrencia, setEditingOcorrencia] = useState<Ocorrencia | null>(null);
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     alunoId: '',
     tipo: '',
@@ -70,6 +70,7 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      setLoading(true);
       const data = {
         aluno_id: parseInt(formData.alunoId),
         diario_id: diarioId,
@@ -86,10 +87,12 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
       }
 
       await loadData();
-      setIsDialogOpen(false);
-      resetForm();
+      handleClose();
     } catch (error) {
       console.error('Erro ao salvar ocorrência:', error);
+      alert('Erro ao salvar ocorrência. Tente novamente.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -110,6 +113,7 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
         await loadData();
       } catch (error) {
         console.error('Erro ao excluir ocorrência:', error);
+        alert('Erro ao excluir ocorrência. Tente novamente.');
       }
     }
   };
@@ -126,6 +130,11 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
     setIsDialogOpen(true);
   };
 
+  const handleOpenDialog = () => {
+    resetForm();
+    setIsDialogOpen(true);
+  };
+
   return (
     <>
       <Card>
@@ -136,7 +145,7 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
               <CardDescription>Registre ocorrências disciplinares e pedagógicas</CardDescription>
             </div>
             {!readOnly && (
-              <Button onClick={() => { resetForm(); setIsDialogOpen(true); }} className="flex items-center gap-2 bg-[#0e4a5e] hover:bg-[#0a3645]">
+              <Button onClick={handleOpenDialog} className="flex items-center gap-2 bg-[#0e4a5e] hover:bg-[#0a3645]">
                 <Plus className="h-4 w-4" />
                 <span>Nova Ocorrência</span>
               </Button>
@@ -239,7 +248,9 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
               </div>
               <div className="flex justify-end gap-3 pt-4">
                 <Button type="button" variant="outline" onClick={handleClose}>Cancelar</Button>
-                <Button type="submit" className="bg-[#0e4a5e] hover:bg-[#0a3645]">{editingOcorrencia ? 'Salvar' : 'Criar'}</Button>
+                <Button type="submit" disabled={loading} className="bg-[#0e4a5e] hover:bg-[#0a3645]">
+                  {loading ? 'Salvando...' : editingOcorrencia ? 'Salvar' : 'Criar'}
+                </Button>
               </div>
             </form>
           </div>
