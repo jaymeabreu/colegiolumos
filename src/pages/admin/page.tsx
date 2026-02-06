@@ -207,14 +207,23 @@ export function AdminPage() {
   const getTipoColor = (tipo: string) => {
     switch(tipo?.toLowerCase()) {
       case 'comportamento':
-        return 'bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-300';
+        return 'bg-red-500 text-white';
       case 'falta':
-        return 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-300';
+        return 'bg-yellow-500 text-white';
       case 'positivo':
-        return 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-300';
+        return 'bg-green-500 text-white';
+      case 'elogio':
+        return 'bg-blue-500 text-white';
+      case 'disciplinar':
+        return 'bg-orange-500 text-white';
       default:
-        return 'bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300';
+        return 'bg-gray-500 text-white';
     }
+  };
+
+  const capitalize = (text: string) => {
+    if (!text) return '';
+    return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
   };
 
   const getTurmaNome = (turmaId?: number) => {
@@ -412,7 +421,7 @@ export function AdminPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <span className={`px-2 py-1 rounded text-xs font-semibold ${getTipoColor(ocorrencia.tipo)}`}>
-                            {ocorrencia.tipo}
+                            {capitalize(ocorrencia.tipo)}
                           </span>
                         </div>
                         <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
