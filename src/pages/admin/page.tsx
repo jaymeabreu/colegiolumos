@@ -420,7 +420,7 @@ export function AdminPage() {
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className={`px-2 py-1 rounded text-xs font-semibold ${getTipoColor(ocorrencia.tipo)}`}>
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getTipoColor(ocorrencia.tipo)}`}>
                             {capitalize(ocorrencia.tipo)}
                           </span>
                         </div>
