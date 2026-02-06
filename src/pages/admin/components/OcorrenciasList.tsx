@@ -412,9 +412,9 @@ export function OcorrenciasList() {
                 <div key={ocorrencia.id} className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 p-4 border rounded-lg">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                      <Badge className={`${getTipoColor(ocorrencia.tipo)} rounded-full px-3 py-1`}>
+                      <span className={`${getTipoColor(ocorrencia.tipo)} rounded-full px-3 py-1 text-xs font-semibold`}>
                         {capitalize(ocorrencia.tipo)}
-                      </Badge>
+                      </span>
                       <span className="text-sm font-medium text-gray-600">
                         {ocorrencia.aluno_nome}
                       </span>
