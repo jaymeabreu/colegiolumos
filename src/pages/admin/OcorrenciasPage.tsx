@@ -223,18 +223,28 @@ export function OcorrenciasPage() {
     });
   };
 
-  const getTipoBadgeVariant = (tipo: string) => {
-    const tipoLower = (tipo || '').toLowerCase();
-    switch (tipoLower) {
-      case 'disciplinar':
-        return 'destructive';
-      case 'pedagogica':
-        return 'secondary';
+  const getTipoColor = (tipo: string) => {
+    switch(tipo?.toLowerCase()) {
+      case 'comportamento':
+        return 'bg-red-500 text-white';
+      case 'falta':
+        return 'bg-yellow-500 text-white';
+      case 'positivo':
+        return 'bg-green-500 text-white';
       case 'elogio':
-        return 'default';
+        return 'bg-blue-500 text-white';
+      case 'disciplinar':
+        return 'bg-orange-500 text-white';
+      case 'pedagogica':
+        return 'bg-purple-500 text-white';
       default:
-        return 'default';
+        return 'bg-gray-500 text-white';
     }
+  };
+
+  const capitalize = (text: string) => {
+    if (!text) return '';
+    return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
   };
 
   const getAlunoNome = (alunoId: number) => {
@@ -490,9 +500,9 @@ export function OcorrenciasPage() {
                           <h3 className="font-semibold text-gray-900 dark:text-white">
                             {getAlunoNome(ocorrencia.alunoId || ocorrencia.aluno_id)}
                           </h3>
-                          <Badge variant={getTipoBadgeVariant(ocorrencia.tipo)}>
-                            {ocorrencia.tipo.charAt(0).toUpperCase() + ocorrencia.tipo.slice(1)}
-                          </Badge>
+                          <span className={`${getTipoColor(ocorrencia.tipo)} rounded-full px-3 py-1 text-xs font-semibold`}>
+                            {capitalize(ocorrencia.tipo)}
+                          </span>
                         </div>
                         <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
                           {ocorrencia.descricao}
