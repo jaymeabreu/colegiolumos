@@ -241,8 +241,8 @@ export function DiarioViewModal({
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4 backdrop-blur-sm">
-        <div className="bg-background rounded-xl !w-[95vw] !max-w-none flex flex-col shadow-2xl overflow-hidden border h-[95vh]" style={{ width: '95vw', maxWidth: '95vw' }}>
+      <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] backdrop-blur-sm">
+        <div className="bg-background rounded-xl w-full max-w-[1400px] mx-4 flex flex-col shadow-2xl overflow-hidden border h-[95vh]">
           
           {/* HEADER */}
           <div className="flex items-center justify-between p-6 border-b bg-gradient-to-r from-blue-50 to-indigo-50 flex-shrink-0">
@@ -261,7 +261,7 @@ export function DiarioViewModal({
 
           {/* CONTEÚDO COM SCROLL */}
           <ScrollArea className="flex-1 overflow-auto">
-            <div className="">
+            <div className="p-8 flex flex-col gap-6">
               
               {/* BLOCO 1: INFORMAÇÕES DA TURMA */}
               {identificacao && (
@@ -544,8 +544,8 @@ export function DiarioViewModal({
 
       {/* Modal de Devolver Diário - INLINE (sem componente separado) */}
       {isDevolverOpen && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[70] backdrop-blur-sm p-4">
-          <div className="bg-white rounded-lg shadow-2xl w-full max-w-md overflow-hidden border border-gray-200">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[70] backdrop-blur-sm">
+          <div className="bg-white rounded-lg shadow-2xl w-full max-w-md mx-4 overflow-hidden border border-gray-200">
             
             <div className="bg-white p-6 border-b flex items-start justify-between">
               <div className="flex-1">
