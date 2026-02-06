@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Plus } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { Plus, X } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../../../components/ui/dialog';
 import { Input } from '../../../components/ui/input';
 import { Label } from '../../../components/ui/label';
 import { Textarea } from '../../../components/ui/textarea';
@@ -66,31 +66,6 @@ export function CriarAulaModal({
     }
   }, [aulaEditando, open]);
 
-  // Controlar visibilidade do sidebar
-  useEffect(() => {
-    if (open) {
-      // Ocultar sidebar quando modal abrir
-      const sidebarElement = document.querySelector('[data-sidebar="sidebar"]');
-      if (sidebarElement) {
-        (sidebarElement as HTMLElement).style.display = 'none';
-      }
-    } else {
-      // Mostrar sidebar quando modal fechar
-      const sidebarElement = document.querySelector('[data-sidebar="sidebar"]');
-      if (sidebarElement) {
-        (sidebarElement as HTMLElement).style.display = '';
-      }
-    }
-
-    return () => {
-      // Garantir que sidebar volte ao normal ao desmontar
-      const sidebarElement = document.querySelector('[data-sidebar="sidebar"]');
-      if (sidebarElement) {
-        (sidebarElement as HTMLElement).style.display = '';
-      }
-    };
-  }, [open]);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -103,7 +78,6 @@ export function CriarAulaModal({
       setLoading(true);
 
       if (aulaEditando) {
-        // Editar aula existente
         const aulaAtualizada = await supabaseService.updateAula(aulaEditando.id, {
           data: formData.data,
           conteudo: formData.conteudo,
@@ -117,7 +91,6 @@ export function CriarAulaModal({
         setAulaCriada(aulaAtualizada);
         alert('✅ Aula atualizada com sucesso!');
       } else {
-        // Criar nova aula
         const novaAula = await supabaseService.createAula({
           diario_id: diarioId,
           data: formData.data,
@@ -156,6 +129,21 @@ export function CriarAulaModal({
     }
   };
 
+  const handleClose = () => {
+    onOpenChange(false);
+  };
+
+  // PORTAL - TELETRANSPORTE PARA O BODY
+  if (!open) return (
+    <Button 
+      onClick={() => onOpenChange(true)}
+      className="bg-blue-600 hover:bg-blue-700"
+    >
+      <Plus className="h-4 w-4 mr-2" />
+      Nova Aula
+    </Button>
+  );
+
   return (
     <>
       <Button 
@@ -166,115 +154,153 @@ export function CriarAulaModal({
         Nova Aula
       </Button>
 
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{aulaEditando ? 'Editar Aula' : 'Nova Aula'}</DialogTitle>
-            <DialogDescription>
-              {aulaEditando ? 'Atualize os dados da aula' : 'Conteúdo Ministrado da Aula'}
-            </DialogDescription>
-          </DialogHeader>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+      {createPortal(
+        // OVERLAY PRETO - COBRE TUDO INCLUINDO SIDEBAR
+        <div 
+          className="fixed inset-0 bg-black/50 z-[9998]"
+          onClick={handleClose}
+        >
+          {/* MODAL FULLSCREEN - TELETRANSPORTADO PARA O BODY */}
+          <div 
+            className="fixed inset-0 w-screen h-screen bg-white z-[9999] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* HEADER STICKY */}
+            <div className="flex items-center justify-between p-6 border-b bg-white sticky top-0 z-50 flex-shrink-0">
               <div>
-                <Label htmlFor="data">Data da aula</Label>
-                <Input
-                  id="data"
-                  type="date"
-                  value={formData.data}
-                  onChange={(e) => setFormData({ ...formData, data: e.target.value })}
-                  required
-                />
+                <h2 className="text-2xl font-bold">
+                  {aulaEditando ? 'Editar Aula' : 'Nova Aula'}
+                </h2>
+                <p className="text-sm text-gray-500 mt-2">
+                  {aulaEditando ? 'Atualize os dados da aula' : 'Conteúdo Ministrado da Aula'}
+                </p>
               </div>
-              <div>
-                <Label htmlFor="conteudo">Título do conteúdo</Label>
-                <Input
-                  id="conteudo"
-                  placeholder="Ex: As Grandes Navegações"
-                  value={formData.conteudo}
-                  onChange={(e) => setFormData({ ...formData, conteudo: e.target.value })}
-                  required
-                />
-              </div>
+              <button
+                onClick={handleClose}
+                className="p-2 rounded-lg hover:bg-gray-100 transition-colors flex-shrink-0"
+              >
+                <X className="h-6 w-6 text-gray-500" />
+              </button>
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <Label>Quantidade de aulas</Label>
-                <Select 
-                  value={formData.quantidade_aulas}
-                  onValueChange={(value) => setFormData({ ...formData, quantidade_aulas: value })}
-                >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1">1 aula</SelectItem>
-                    <SelectItem value="2">2 aulas</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            {/* CONTEÚDO SCROLLÁVEL */}
+            <div className="flex-1 overflow-y-auto p-6">
+              <form onSubmit={handleSubmit} className="space-y-6 max-w-3xl mx-auto">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="data">Data da aula</Label>
+                    <Input
+                      id="data"
+                      type="date"
+                      value={formData.data}
+                      onChange={(e) => setFormData({ ...formData, data: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="conteudo">Título do conteúdo</Label>
+                    <Input
+                      id="conteudo"
+                      placeholder="Ex: As Grandes Navegações"
+                      value={formData.conteudo}
+                      onChange={(e) => setFormData({ ...formData, conteudo: e.target.value })}
+                      required
+                    />
+                  </div>
+                </div>
 
-              <div>
-                <Label>Tipo de aula</Label>
-                <Select 
-                  value={formData.tipo_aula}
-                  onValueChange={(value) => setFormData({ ...formData, tipo_aula: value })}
-                >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Teórica">Teórica</SelectItem>
-                    <SelectItem value="Prática">Prática</SelectItem>
-                    <SelectItem value="Teórica e Prática">Teórica e Prática</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <Label>Quantidade de aulas</Label>
+                    <Select 
+                      value={formData.quantidade_aulas}
+                      onValueChange={(value) => setFormData({ ...formData, quantidade_aulas: value })}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">1 aula</SelectItem>
+                        <SelectItem value="2">2 aulas</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-              <div>
-                <Label>Aula assíncrona</Label>
-                <Select 
-                  value={formData.aula_assincrona ? 'Sim' : 'Não'}
-                  onValueChange={(value) => setFormData({ ...formData, aula_assincrona: value === 'Sim' })}
-                >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Não">Não</SelectItem>
-                    <SelectItem value="Sim">Sim</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                  <div>
+                    <Label>Tipo de aula</Label>
+                    <Select 
+                      value={formData.tipo_aula}
+                      onValueChange={(value) => setFormData({ ...formData, tipo_aula: value })}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Teórica">Teórica</SelectItem>
+                        <SelectItem value="Prática">Prática</SelectItem>
+                        <SelectItem value="Teórica e Prática">Teórica e Prática</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label>Aula assíncrona</Label>
+                    <Select 
+                      value={formData.aula_assincrona ? 'Sim' : 'Não'}
+                      onValueChange={(value) => setFormData({ ...formData, aula_assincrona: value === 'Sim' })}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Não">Não</SelectItem>
+                        <SelectItem value="Sim">Sim</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div>
+                  <Label>Conteúdo detalhado da aula</Label>
+                  <Textarea
+                    placeholder="Descrição detalhada..."
+                    value={formData.conteudo_detalhado}
+                    onChange={(e) => setFormData({ ...formData, conteudo_detalhado: e.target.value })}
+                    rows={5}
+                  />
+                </div>
+
+                <div>
+                  <Label>Observações</Label>
+                  <Textarea
+                    placeholder="Observações..."
+                    value={formData.observacoes}
+                    onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
+                    rows={4}
+                  />
+                </div>
+
+                <div className="h-4" />
+              </form>
             </div>
 
-            <div>
-              <Label>Conteúdo detalhado da aula</Label>
-              <Textarea
-                placeholder="Descrição detalhada..."
-                value={formData.conteudo_detalhado}
-                onChange={(e) => setFormData({ ...formData, conteudo_detalhado: e.target.value })}
-                rows={5}
-              />
-            </div>
-
-            <div>
-              <Label>Observações</Label>
-              <Textarea
-                placeholder="Observações..."
-                value={formData.observacoes}
-                onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
-                rows={4}
-              />
-            </div>
-
-            <DialogFooter className="gap-3 sm:gap-0">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            {/* FOOTER STICKY */}
+            <div className="flex gap-3 justify-end p-6 border-t bg-white sticky bottom-0 z-50 flex-shrink-0">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={handleClose}
+                className="min-w-24"
+              >
                 Cancelar
               </Button>
-              <Button type="submit" disabled={loading} className="bg-blue-600 hover:bg-blue-700">
+              <Button 
+                type="submit" 
+                disabled={loading} 
+                className="bg-blue-600 hover:bg-blue-700 min-w-24"
+                onClick={handleSubmit}
+              >
                 {loading ? 'Salvando...' : aulaEditando ? 'Atualizar Aula' : 'Salvar Aula'}
               </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+            </div>
+          </div>
+        </div>,
+        document.body // TELETRANSPORTE PARA O BODY!
+      )}
 
       {aulaCriada && !aulaEditando && (
         <MarcarPresencaModal
