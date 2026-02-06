@@ -58,33 +58,26 @@ export function RecadosTab({ diarioId }: RecadosTabProps) {
     try {
       setLoading(true);
 
-      // 1. Carregar dados do diário e alunos da turma
-      let currentTurmaId: number | null = null;
       if (diarioId) {
         const diarios = await supabaseService.getDiarios();
         const diarioAtual = diarios.find(d => d.id === diarioId);
         if (diarioAtual) {
           setDiario(diarioAtual);
-          currentTurmaId = diarioAtual.turma_id || diarioAtual.turmaId || null;
-          if (currentTurmaId) {
-            const alunosData = await supabaseService.getAlunosByTurma(currentTurmaId);
+          if (diarioAtual.turma_id) {
+            const alunosData = await supabaseService.getAlunosByTurma(diarioAtual.turma_id);
             setAlunos(alunosData || []);
           }
         }
       }
 
-      // 2. Carregar recados
       if (user?.professorId) {
         const recadosData = await supabaseService.getRecadosByProfessor(user.professorId);
         let recadosFiltrados = recadosData || [];
-        
-        // Se estivermos em um diário específico, filtrar apenas os recados daquela turma
-        if (currentTurmaId) {
+        if (diarioId && diario?.turma_id) {
           recadosFiltrados = recadosFiltrados.filter(r => 
-            (r.turmaId || r.turma_id) === currentTurmaId
+            (r.turmaId || r.turma_id) === diario.turma_id
           );
         }
-        
         setRecados(recadosFiltrados.sort(
           (a, b) =>
             new Date(b.dataEnvio || b.data_envio || '').getTime() -
@@ -92,7 +85,6 @@ export function RecadosTab({ diarioId }: RecadosTabProps) {
         ));
       }
 
-      // 3. Carregar turmas para referência
       const turmasData = await supabaseService.getTurmas();
       setTurmas(turmasData || []);
     } catch (error) {
@@ -102,10 +94,25 @@ export function RecadosTab({ diarioId }: RecadosTabProps) {
     }
   };
 
+  useEffect(() => {
+    if (diario?.turma_id) {
+      loadAlunosByTurma(diario.turma_id);
+    }
+  }, [diario?.turma_id]);
+
+  const loadAlunosByTurma = async (turmaId: number) => {
+    try {
+      const alunosData = await supabaseService.getAlunosByTurma(turmaId);
+      setAlunos(alunosData || []);
+    } catch (error) {
+      console.error('Erro ao carregar alunos:', error);
+      setAlunos([]);
+    }
+  };
+
   const getTurmaNome = () => {
-    const turmaId = diario?.turma_id || diario?.turmaId;
-    if (turmaId) {
-      const turma = turmas.find(t => t.id === turmaId);
+    if (diario?.turma_id) {
+      const turma = turmas.find(t => t.id === diario.turma_id);
       return turma?.nome || 'Turma';
     }
     return 'Turma';
@@ -119,14 +126,13 @@ export function RecadosTab({ diarioId }: RecadosTabProps) {
       return;
     }
 
-    const turmaId = diario?.turma_id || diario?.turmaId;
-    if (!turmaId) {
+    if (!diario?.turma_id) {
       alert('Erro: Turma do diário não encontrada.');
       return;
     }
 
     try {
-      const turma = turmas.find(t => t.id === turmaId);
+      const turma = turmas.find(t => t.id === diario.turma_id);
       const aluno = formData.alunoId && formData.alunoId.trim()
         ? alunos.find(a => a.id === parseInt(formData.alunoId))
         : null;
@@ -135,7 +141,7 @@ export function RecadosTab({ diarioId }: RecadosTabProps) {
         const updatedRecado = await supabaseService.updateRecado(editingRecado.id, {
           titulo: formData.titulo.trim(),
           mensagem: formData.mensagem.trim(),
-          turmaId: turmaId,
+          turmaId: diario.turma_id,
           turmaNome: turma?.nome || '',
           alunoId: formData.alunoId && formData.alunoId.trim() ? parseInt(formData.alunoId) : null,
           alunoNome: aluno?.nome || null
@@ -150,7 +156,7 @@ export function RecadosTab({ diarioId }: RecadosTabProps) {
           mensagem: formData.mensagem.trim(),
           professorId: user?.professorId || 1,
           professorNome: user?.nome || 'Professor',
-          turmaId: turmaId,
+          turmaId: diario.turma_id,
           turmaNome: turma?.nome || '',
           alunoId: formData.alunoId && formData.alunoId.trim() ? parseInt(formData.alunoId) : null,
           alunoNome: aluno?.nome || null,
@@ -321,7 +327,6 @@ export function RecadosTab({ diarioId }: RecadosTabProps) {
                         </span>
                       )}
                     </div>
-                    <p className="mt-2 text-sm text-gray-700 whitespace-pre-wrap">{recado.mensagem}</p>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <Button variant="outline" size="sm" onClick={() => handleEdit(recado)}>
