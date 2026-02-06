@@ -408,12 +408,13 @@ export function AdminPage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <h3 className="card-title">Ocorrências Recentes</h3>
-                <button 
+                <Button
+                  size="sm"
                   onClick={() => setActiveTab('ocorrencias')}
-                  className="text-blue-600 dark:text-blue-400 text-sm hover:underline"
+                  className="bg-teal-600 hover:bg-teal-700 text-white"
                 >
                   Ver tudo
-                </button>
+                </Button>
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -455,12 +456,13 @@ export function AdminPage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <h3 className="card-title">Comunicados Recentes</h3>
-                <button 
+                <Button
+                  size="sm"
                   onClick={() => setActiveTab('comunicados')}
-                  className="text-blue-600 dark:text-blue-400 text-sm hover:underline"
+                  className="bg-teal-600 hover:bg-teal-700 text-white"
                 >
                   Ver tudo
-                </button>
+                </Button>
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
