@@ -909,33 +909,33 @@ export function ProfessoresList() {
               </DialogHeader>
               <div className="space-y-4">
                 <div>
-                  <Label>Situação</Label>
-                  <Select value={filters.situacao} onValueChange={(value) => setFilters({ ...filters, situacao: value })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Todas as situações" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todas as situações</SelectItem>
-                      <SelectItem value="ATIVO">Ativo</SelectItem>
-                      <SelectItem value="INATIVO">Inativo</SelectItem>
-                      <SelectItem value="AFASTADO">Afastado</SelectItem>
-                      <SelectItem value="LICENCA">Licença</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="filter-situacao">Situação</Label>
+                  <select 
+                    id="filter-situacao"
+                    value={filters.situacao} 
+                    onChange={(e) => setFilters({ ...filters, situacao: e.target.value })}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="">Todas as situações</option>
+                    <option value="ATIVO">Ativo</option>
+                    <option value="INATIVO">Inativo</option>
+                    <option value="AFASTADO">Afastado</option>
+                    <option value="LICENCA">Licença</option>
+                  </select>
                 </div>
 
                 <div>
-                  <Label>Acesso ao Sistema</Label>
-                  <Select value={filters.temUsuario} onValueChange={(value) => setFilters({ ...filters, temUsuario: value })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Todos" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos</SelectItem>
-                      <SelectItem value="sim">Com usuário</SelectItem>
-                      <SelectItem value="nao">Sem usuário</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="filter-usuario">Acesso ao Sistema</Label>
+                  <select 
+                    id="filter-usuario"
+                    value={filters.temUsuario} 
+                    onChange={(e) => setFilters({ ...filters, temUsuario: e.target.value })}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="">Todos</option>
+                    <option value="sim">Com usuário</option>
+                    <option value="nao">Sem usuário</option>
+                  </select>
                 </div>
               </div>
               <DialogFooter>
