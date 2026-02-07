@@ -35,7 +35,6 @@ export function OcorrenciasList() {
   const [editingOcorrencia, setEditingOcorrencia] = useState<Ocorrencia | null>(null);
   const [loading, setLoading] = useState(false);
   
-  // Estados para busca de usuário (IGUAL AO COMUNICADO)
   const [usuarioBusca, setUsuarioBusca] = useState('');
   const [showUsuariosList, setShowUsuariosList] = useState(false);
 
@@ -53,18 +52,15 @@ export function OcorrenciasList() {
     acao_tomada: ''
   });
 
-  // Combina alunos e professores para busca (IGUAL AO COMUNICADO)
   const todosUsuarios = [
     ...alunos.map(a => ({ id: a.id, nome: a.nome, tipo: 'Aluno', turma_id: a.turma_id })),
     ...professores.map(p => ({ id: p.id, nome: p.nome, tipo: 'Professor' }))
   ].sort((a, b) => a.nome.localeCompare(b.nome));
 
-  // Filtra usuários baseado na busca (IGUAL AO COMUNICADO)
   const usuariosFiltrados = todosUsuarios.filter(usuario =>
     usuario.nome.toLowerCase().includes(usuarioBusca.toLowerCase())
-  ).slice(0, 50); // Limita a 50 resultados
+  ).slice(0, 50);
 
-  // Fecha a lista de usuários quando clicar fora (IGUAL AO COMUNICADO)
   useEffect(() => {
     const handleClickOutside = () => setShowUsuariosList(false);
     if (showUsuariosList) {
@@ -104,6 +100,11 @@ export function OcorrenciasList() {
         .from('ocorrencias')
         .select('*')
         .order('data', { ascending: false });
+
+      if (error) {
+        console.error('Erro ao carregar ocorrências:', error);
+        return;
+      }
 
       if (data) {
         const alunosList = alunosData || alunos;
@@ -174,7 +175,6 @@ export function OcorrenciasList() {
     try {
       setLoading(true);
 
-      // Descobre o tipo do usuário
       const aluno = alunos.find(a => a.id.toString() === formData.usuarioId);
       const tipoUsuario = aluno ? 'aluno' : 'professor';
 
@@ -184,7 +184,7 @@ export function OcorrenciasList() {
         tipo: formData.tipo,
         data: formData.data,
         descricao: formData.descricao,
-        acao_tomada: formData.acao_tomada
+        acao_tomada: formData.acao_tomada || null
       };
 
       if (editingOcorrencia) {
@@ -193,22 +193,28 @@ export function OcorrenciasList() {
           .update(dataToSave)
           .eq('id', editingOcorrencia.id);
 
-        if (error) throw error;
-        alert('Ocorrência atualizada!');
+        if (error) {
+          console.error('Erro do Supabase:', error);
+          throw error;
+        }
+        alert('Ocorrência atualizada com sucesso!');
       } else {
         const { error } = await supabase
           .from('ocorrencias')
           .insert([dataToSave]);
 
-        if (error) throw error;
-        alert('Ocorrência criada!');
+        if (error) {
+          console.error('Erro do Supabase:', error);
+          throw error;
+        }
+        alert('Ocorrência criada com sucesso!');
       }
 
       await loadOcorrencias();
       handleCloseDialog();
-    } catch (error) {
-      console.error('Erro ao salvar ocorrência:', error);
-      alert('Erro ao salvar ocorrência');
+    } catch (error: any) {
+      console.error('Erro completo ao salvar ocorrência:', error);
+      alert(`Erro ao salvar ocorrência: ${error.message || 'Tente novamente'}`);
     } finally {
       setLoading(false);
     }
@@ -217,7 +223,6 @@ export function OcorrenciasList() {
   const handleEdit = (ocorrencia: Ocorrencia) => {
     setEditingOcorrencia(ocorrencia);
     
-    // Busca o nome do usuário
     const aluno = alunos.find(a => a.id.toString() === ocorrencia.usuario_id);
     const professor = professores.find(p => p.id.toString() === ocorrencia.usuario_id);
     const usuarioNome = aluno ? `${aluno.nome} (Aluno)` : professor ? `${professor.nome} (Professor)` : '';
@@ -235,7 +240,7 @@ export function OcorrenciasList() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Tem certeza que deseja excluir esta ocorrência?')) return;
+    if (!window.confirm('Tem certeza que deseja excluir esta ocorrência?')) return;
 
     try {
       setLoading(true);
@@ -246,7 +251,7 @@ export function OcorrenciasList() {
 
       if (error) throw error;
       await loadOcorrencias();
-      alert('Ocorrência excluída!');
+      alert('Ocorrência excluída com sucesso!');
     } catch (error) {
       console.error('Erro ao excluir ocorrência:', error);
       alert('Erro ao excluir ocorrência');
@@ -316,7 +321,6 @@ export function OcorrenciasList() {
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
-                {/* CAMPO DE BUSCA DE USUÁRIO (IGUAL AO COMUNICADO) */}
                 <div className="space-y-2">
                   <Label htmlFor="usuarioSearch">Buscar usuário *</Label>
                   <div className="relative" onClick={e => e.stopPropagation()}>
@@ -331,7 +335,6 @@ export function OcorrenciasList() {
                       autoComplete="off"
                     />
                     
-                    {/* Lista de resultados filtrados */}
                     {showUsuariosList && usuariosFiltrados.length > 0 && (
                       <div className="absolute z-50 w-full mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-y-auto">
                         {usuariosFiltrados.map(usuario => (
@@ -355,7 +358,6 @@ export function OcorrenciasList() {
                       </div>
                     )}
 
-                    {/* Mostra mensagem se não encontrar nada */}
                     {showUsuariosList && usuarioBusca && usuariosFiltrados.length === 0 && (
                       <div className="absolute z-50 w-full mt-1 bg-white border rounded-md shadow-lg p-4 text-center text-gray-500">
                         Nenhum usuário encontrado
@@ -363,7 +365,6 @@ export function OcorrenciasList() {
                     )}
                   </div>
 
-                  {/* Mostra usuário selecionado */}
                   {formData.usuarioId && (
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <User className="h-4 w-4" />
@@ -475,6 +476,9 @@ export function OcorrenciasList() {
               <DialogContent className="max-w-md">
                 <DialogHeader>
                   <DialogTitle>Filtrar Ocorrências</DialogTitle>
+                  <DialogDescription>
+                    Filtre as ocorrências por tipo e período
+                  </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
                   <div>
