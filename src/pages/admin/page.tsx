@@ -42,8 +42,9 @@ interface UserProfile {
 
 interface Ocorrencia {
   id: string;
-  aluno_id: string;
-  aluno_nome?: string;
+  usuario_id: string;
+  usuario_nome?: string;
+  tipo_usuario?: 'aluno' | 'professor';
   turma_id?: number;
   tipo: string;
   data: string;
@@ -120,19 +121,40 @@ export function AdminPage() {
     try {
       const { data, error } = await supabase
         .from('ocorrencias')
-        .select(`
-          *,
-          alunos:aluno_id (nome, turma_id)
-        `)
+        .select('*')
         .order('data', { ascending: false })
         .limit(5);
 
+      if (error) {
+        console.error('Erro ao carregar ocorrências:', error);
+        return;
+      }
+
       if (data) {
-        const ocorrenciasComNome = data.map((occ: any) => ({
-          ...occ,
-          aluno_nome: occ.alunos?.nome || 'Desconhecido',
-          turma_id: occ.alunos?.turma_id
-        }));
+        const ocorrenciasComNome = await Promise.all(
+          data.map(async (occ: any) => {
+            const { data: alunoData } = await supabase
+              .from('alunos')
+              .select('nome, turma_id')
+              .eq('id', occ.usuario_id)
+              .maybeSingle();
+            
+            const { data: professorData } = await supabase
+              .from('professores')
+              .select('nome')
+              .eq('id', occ.usuario_id)
+              .maybeSingle();
+            
+            const usuario = alunoData || professorData;
+            
+            return {
+              ...occ,
+              usuario_nome: usuario?.nome || 'Desconhecido',
+              turma_id: alunoData?.turma_id,
+              tipo_usuario: occ.tipo_usuario
+            };
+          })
+        );
         setOcorrencias(ocorrenciasComNome);
       }
     } catch (error) {
@@ -459,17 +481,28 @@ export function AdminPage() {
                   <div key={ocorrencia.id} className="pb-3 border-b border-gray-200 dark:border-gray-700 last:border-0">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getTipoColor(ocorrencia.tipo)}`}>
                             {capitalize(ocorrencia.tipo)}
                           </span>
+                          {ocorrencia.tipo_usuario === 'professor' ? (
+                            <span className="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full bg-purple-500 text-white">
+                              Professor
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full bg-blue-500 text-white">
+                              Aluno
+                            </span>
+                          )}
+                          <span className="text-sm font-medium text-gray-900 dark:text-white">
+                            {ocorrencia.usuario_nome || 'Desconhecido'}
+                          </span>
                         </div>
-                        <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                          {ocorrencia.aluno_nome || `Aluno #${ocorrencia.aluno_id}`}
-                        </p>
-                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                          Turma: <strong>{getTurmaNome(ocorrencia.turma_id)}</strong>
-                        </p>
+                        {ocorrencia.tipo_usuario === 'aluno' && (
+                          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                            Turma: <strong>{getTurmaNome(ocorrencia.turma_id)}</strong>
+                          </p>
+                        )}
                         <p className="text-xs text-gray-600 dark:text-gray-300 mt-1 line-clamp-2">
                           {ocorrencia.descricao}
                         </p>
