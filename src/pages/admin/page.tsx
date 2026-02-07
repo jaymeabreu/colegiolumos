@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Users, BookOpen, School, GraduationCap, FileText, Download, UserCheck, MessageSquare, BarChart3, LogOut, Menu, Calendar as CalendarIconLucide } from 'lucide-react';
+import { Users, BookOpen, School, GraduationCap, FileText, Download, UserCheck, MessageSquare, BarChart3, LogOut, Menu } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { Button } from '../../components/ui/button'; 
@@ -20,14 +20,15 @@ import { supabaseService } from '../../services/supabaseService';
 import { supabase } from '../../lib/supabaseClient';
 import { CoordinadorSidebar } from '../../components/admin/CoordinadorSidebar';
 
-// Componente de ícone de calendário SVG (não colorido)
-const CalendarIcon = ({ className }: { className?: string }) => (
+// Ícone de calendário SVG idêntico ao do print (traços finos e arredondados)
+const CustomCalendarIcon = ({ className }: { className?: string }) => (
   <svg 
-    xmlns="http://www.w3.org/2000/svg" 
+    width="14" 
+    height="14" 
     viewBox="0 0 24 24" 
     fill="none" 
     stroke="currentColor" 
-    strokeWidth="2" 
+    strokeWidth="1.5" 
     strokeLinecap="round" 
     strokeLinejoin="round" 
     className={className}
@@ -73,8 +74,8 @@ interface Ocorrencia {
 interface Comunicado {
   id: string;
   titulo: string;
-  mensagem: string; // Corrigido de 'conteudo' para 'mensagem' conforme o código original
-  data_publicacao: string; // Corrigido de 'data_criacao' conforme o código original
+  mensagem: string;
+  data_publicacao: string;
   autor: string;
 }
 
@@ -508,11 +509,11 @@ export function AdminPage() {
                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                           Por: {comunicado.autor}
                         </p>
-                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 flex items-center gap-1">
-                          {/* SUBSTITUIÇÃO DO EMOJI PELO ÍCONE SVG NÃO COLORIDO */}
-                          <CalendarIcon className="h-3 w-3 text-gray-400" />
-                          {formatDate(comunicado.data_publicacao)}
-                        </p>
+                        {/* AQUI ESTÁ A CORREÇÃO EXATA DO ÍCONE CONFORME O PRINT */}
+                        <div className="text-xs text-gray-400 dark:text-gray-500 mt-2 flex items-center gap-1.5">
+                          <CustomCalendarIcon className="text-gray-400/80" />
+                          <span>{formatDate(comunicado.data_publicacao)}</span>
+                        </div>
                       </div>
                     </div>
                   </div>
