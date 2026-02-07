@@ -847,11 +847,15 @@ body {
   z-index: 10000 !important;
 }
 
-/* Fix z-index do Dialog para cobrir sidebar */
+/* ========================================
+   FIX SIDEBAR COBERTA PELO DIALOG
+   ======================================== */
+
+/* Aumenta z-index do Dialog overlay e content */
 [data-radix-dialog-overlay] {
-  z-index: 9998 !important;
+  z-index: 99998 !important;
 }
 
 [data-radix-dialog-content] {
-  z-index: 9999 !important;
+  z-index: 99999 !important;
 }
