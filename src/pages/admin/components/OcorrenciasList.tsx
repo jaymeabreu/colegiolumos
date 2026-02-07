@@ -1,285 +1,208 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Plus, Edit, Trash2, Filter, AlertCircle, Calendar, Search, X } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
-import { Button } from '../../../components/ui/button';
-import { Input } from '../../../components/ui/input';
-import { Badge } from '../../../components/ui/badge';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../../../components/ui/dialog';
-import { Label } from '../../../components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
-import { Textarea } from '../../../components/ui/textarea';
-import { supabase } from '../../../lib/supabaseClient';
-import { supabaseService } from '../../../services/supabaseService';
+import { useState, useEffect } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { Users, BookOpen, School, GraduationCap, FileText, Download, UserCheck, MessageSquare, BarChart3, LogOut, Menu } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
+import { Button } from '../../components/ui/button'; 
+import { AuthHeader } from '../../components/auth/AuthHeader';
+import { DiariosList } from './components/DiariosList';
+import { AlunosList } from './components/AlunosList';
+import { ProfessoresList } from './components/ProfessoresList';
+import { DisciplinasList } from './components/DisciplinasList';
+import { TurmasList } from './components/TurmasList';
+import { UsuariosList } from './components/UsuariosList';
+import { ComunicadosList } from './components/ComunicadosList';
+import { OcorrenciasList } from './components/OcorrenciasList';
+import { ExportacaoTab } from './components/ExportacaoTab';
+import { ScrollArea } from '../../components/ui/scroll-area';
+import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import { supabaseService } from '../../services/supabaseService';
+import { supabase } from '../../lib/supabaseClient';
+import { CoordinadorSidebar } from '../../components/admin/CoordinadorSidebar';
 
-interface Usuario {
-  id: string;
+const getFormattedDate = () => {
+  const today = new Date();
+  const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
+  return today.toLocaleDateString('pt-BR', options);
+};
+
+interface DashboardStats {
+  totalAlunos: number;
+  alunosAtivos: number;
+  alunosInativos: number;
+  totalProfessores: number;
+  professoresAtivos: number;
+  professoresInativos: number;
+}
+
+interface UserProfile {
   nome: string;
-  tipo: 'aluno' | 'professor';
-  turma_id?: number;
+  email: string;
 }
 
 interface Ocorrencia {
   id: string;
-  usuario_id: string;
-  usuario_nome?: string;
-  tipo_usuario?: 'aluno' | 'professor';
+  aluno_id: string;
+  aluno_nome?: string;
   turma_id?: number;
   tipo: string;
   data: string;
   descricao: string;
   acao_tomada?: string;
-  created_at?: string;
 }
 
-export function OcorrenciasList() {
+interface Comunicado {
+  id: string;
+  titulo: string;
+  conteudo: string;
+  data_criacao: string;
+  autor: string;
+}
+
+const COLORS_CHART = ['#1e40af', '#fbbf24'];
+
+export function AdminPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'visao-geral');
+  const [loading, setLoading] = useState(true);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [ocorrencias, setOcorrencias] = useState<Ocorrencia[]>([]);
+  const [comunicados, setComunicados] = useState<Comunicado[]>([]);
   const [turmas, setTurmas] = useState<any[]>([]);
-  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false);
-  const [editingOcorrencia, setEditingOcorrencia] = useState<Ocorrencia | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  // Estados para busca de usuário
-  const [userSearchTerm, setUserSearchTerm] = useState('');
-  const [selectedUser, setSelectedUser] = useState<Usuario | null>(null);
-  const [showUserDropdown, setShowUserDropdown] = useState(false);
-
-  const [filters, setFilters] = useState({
-    tipo: '',
-    dataInicio: '',
-    dataFim: ''
+  const [stats, setStats] = useState<DashboardStats>({
+    totalAlunos: 0,
+    alunosAtivos: 0,
+    alunosInativos: 0,
+    totalProfessores: 0,
+    professoresAtivos: 0,
+    professoresInativos: 0,
   });
 
-  const [formData, setFormData] = useState({
-    usuario_id: '',
-    tipo_usuario: '' as 'aluno' | 'professor' | '',
-    tipo: '',
-    data: '',
-    descricao: '',
-    acao_tomada: ''
-  });
+  useEffect(() => {
+    loadStats();
+    loadUserProfile();
+    loadOcorrencias();
+    loadComunicados();
+    loadTurmas();
+  }, []);
 
-  const loadTurmas = useCallback(async () => {
+  useEffect(() => {
+    setSearchParams({ tab: activeTab });
+  }, [activeTab, setSearchParams]);
+
+  useEffect(() => {
+    const tabFromUrl = searchParams.get('tab');
+    if (tabFromUrl) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [searchParams]);
+
+  const loadUserProfile = async () => {
+    try {
+      const { data } = await supabase
+        .from('configuracoes_escola')
+        .select('nome_escola')
+        .maybeSingle();
+      
+      if (data?.nome_escola) {
+        setUserProfile({ nome: data.nome_escola, email: '' });
+      } else {
+        setUserProfile({ nome: 'Coordenador', email: '' });
+      }
+    } catch (error) {
+      console.error('Erro ao carregar perfil:', error);
+      setUserProfile({ nome: 'Coordenador', email: '' });
+    }
+  };
+
+  const loadOcorrencias = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('ocorrencias')
+        .select(`
+          *,
+          alunos:aluno_id (nome, turma_id)
+        `)
+        .order('data', { ascending: false })
+        .limit(5);
+
+      if (data) {
+        const ocorrenciasComNome = data.map((occ: any) => ({
+          ...occ,
+          aluno_nome: occ.alunos?.nome || 'Desconhecido',
+          turma_id: occ.alunos?.turma_id
+        }));
+        setOcorrencias(ocorrenciasComNome);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar ocorrências:', error);
+    }
+  };
+
+  const loadComunicados = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('comunicados')
+        .select('*')
+        .order('data_publicacao', { ascending: false })
+        .limit(5);
+
+      if (error) {
+        console.error('Erro ao carregar comunicados:', error);
+        setComunicados([]);
+        return;
+      }
+
+      if (data) {
+        setComunicados(data);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar comunicados:', error);
+      setComunicados([]);
+    }
+  };
+
+  const loadTurmas = async () => {
     try {
       const turmasData = await supabaseService.getTurmas();
       setTurmas(turmasData);
     } catch (error) {
       console.error('Erro ao carregar turmas:', error);
     }
-  }, []);
+  };
 
-  const loadUsuarios = useCallback(async () => {
+  const loadStats = async () => {
     try {
-      // Carregar alunos
+      setLoading(true);
+      
       const alunos = await supabaseService.getAlunos();
-      const alunosFormatados: Usuario[] = alunos.map((aluno: any) => ({
-        id: aluno.id,
-        nome: aluno.nome,
-        tipo: 'aluno' as const,
-        turma_id: aluno.turma_id
-      }));
+      const alunosAtivos = alunos.filter(a => a.situacao === 'Ativo').length;
+      const alunosInativos = alunos.length - alunosAtivos;
 
-      // Carregar professores
       const professores = await supabaseService.getProfessores();
-      const professoresFormatados: Usuario[] = professores.map((prof: any) => ({
-        id: prof.id,
-        nome: prof.nome,
-        tipo: 'professor' as const
-      }));
+      const professoresAtivos = professores.filter(p => p.situacao === 'ATIVO').length;
+      const professoresInativos = professores.length - professoresAtivos;
 
-      setUsuarios([...alunosFormatados, ...professoresFormatados]);
+      setStats({
+        totalAlunos: alunos.length,
+        alunosAtivos,
+        alunosInativos,
+        totalProfessores: professores.length,
+        professoresAtivos,
+        professoresInativos,
+      });
     } catch (error) {
-      console.error('Erro ao carregar usuários:', error);
-    }
-  }, []);
-
-  const loadOcorrencias = useCallback(async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('ocorrencias')
-        .select('*')
-        .order('data', { ascending: false });
-
-      if (data) {
-        const ocorrenciasComNome = data.map((occ: any) => {
-          const usuario = usuarios.find(u => u.id === occ.usuario_id);
-          return {
-            ...occ,
-            usuario_nome: usuario?.nome || 'Desconhecido',
-            turma_id: usuario?.turma_id,
-            tipo_usuario: occ.tipo_usuario || usuario?.tipo
-          };
-        });
-        setOcorrencias(ocorrenciasComNome);
-      }
-    } catch (error) {
-      console.error('Erro ao carregar ocorrências:', error);
-      alert('Erro ao carregar ocorrências');
+      console.error('Erro ao carregar estatísticas:', error);
     } finally {
       setLoading(false);
     }
-  }, [usuarios]);
+  };
 
-  useEffect(() => {
-    loadTurmas();
-    loadUsuarios();
-  }, [loadTurmas, loadUsuarios]);
-
-  useEffect(() => {
-    if (usuarios.length > 0) {
-      loadOcorrencias();
-    }
-  }, [usuarios, loadOcorrencias]);
-
-  // Filtrar usuários pela busca
-  const filteredUsers = useMemo(() => {
-    if (!userSearchTerm.trim()) return usuarios;
-    
-    const searchLower = userSearchTerm.toLowerCase();
-    return usuarios.filter(user => 
-      user.nome.toLowerCase().includes(searchLower)
-    );
-  }, [usuarios, userSearchTerm]);
-
-  const filteredOcorrencias = useMemo(() => {
-    return ocorrencias.filter(ocorrencia => {
-      if (searchTerm && !ocorrencia.usuario_nome?.toLowerCase().includes(searchTerm.toLowerCase()) && 
-          !ocorrencia.descricao.toLowerCase().includes(searchTerm.toLowerCase())) {
-        return false;
-      }
-
-      if (filters.tipo && ocorrencia.tipo !== filters.tipo) {
-        return false;
-      }
-
-      if (filters.dataInicio && new Date(ocorrencia.data) < new Date(filters.dataInicio)) {
-        return false;
-      }
-
-      if (filters.dataFim && new Date(ocorrencia.data) > new Date(filters.dataFim)) {
-        return false;
-      }
-
-      return true;
-    });
-  }, [ocorrencias, searchTerm, filters]);
-
-  const resetForm = useCallback(() => {
-    setFormData({
-      usuario_id: '',
-      tipo_usuario: '',
-      tipo: '',
-      data: '',
-      descricao: '',
-      acao_tomada: ''
-    });
-    setSelectedUser(null);
-    setUserSearchTerm('');
-    setEditingOcorrencia(null);
-    setIsDialogOpen(false);
-  }, []);
-
-  const handleUserSelect = useCallback((user: Usuario) => {
-    setSelectedUser(user);
-    setUserSearchTerm(user.nome);
-    setShowUserDropdown(false);
-    setFormData(prev => ({
-      ...prev,
-      usuario_id: user.id,
-      tipo_usuario: user.tipo
-    }));
-  }, []);
-
-  const handleSubmit = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!formData.usuario_id || !formData.tipo || !formData.data || !formData.descricao) {
-      alert('Preencha todos os campos obrigatórios');
-      return;
-    }
-
-    try {
-      setLoading(true);
-
-      const dataToSave = {
-        usuario_id: formData.usuario_id,
-        tipo_usuario: formData.tipo_usuario,
-        tipo: formData.tipo,
-        data: formData.data,
-        descricao: formData.descricao,
-        acao_tomada: formData.acao_tomada
-      };
-
-      if (editingOcorrencia) {
-        const { error } = await supabase
-          .from('ocorrencias')
-          .update(dataToSave)
-          .eq('id', editingOcorrencia.id);
-
-        if (error) throw error;
-        alert('Ocorrência atualizada!');
-      } else {
-        const { error } = await supabase
-          .from('ocorrencias')
-          .insert([dataToSave]);
-
-        if (error) throw error;
-        alert('Ocorrência criada!');
-      }
-
-      await loadOcorrencias();
-      resetForm();
-    } catch (error) {
-      console.error('Erro ao salvar ocorrência:', error);
-      alert('Erro ao salvar ocorrência');
-    } finally {
-      setLoading(false);
-    }
-  }, [formData, editingOcorrencia, loadOcorrencias, resetForm]);
-
-  const handleEdit = useCallback((ocorrencia: Ocorrencia) => {
-    setEditingOcorrencia(ocorrencia);
-    
-    const usuario = usuarios.find(u => u.id === ocorrencia.usuario_id);
-    if (usuario) {
-      setSelectedUser(usuario);
-      setUserSearchTerm(usuario.nome);
-    }
-
-    setFormData({
-      usuario_id: ocorrencia.usuario_id,
-      tipo_usuario: ocorrencia.tipo_usuario || '',
-      tipo: ocorrencia.tipo,
-      data: ocorrencia.data,
-      descricao: ocorrencia.descricao,
-      acao_tomada: ocorrencia.acao_tomada || ''
-    });
-    setIsDialogOpen(true);
-  }, [usuarios]);
-
-  const handleDelete = useCallback(async (id: string) => {
-    if (!confirm('Tem certeza que deseja excluir esta ocorrência?')) return;
-
-    try {
-      setLoading(true);
-      const { error } = await supabase
-        .from('ocorrencias')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-      await loadOcorrencias();
-      alert('Ocorrência excluída!');
-    } catch (error) {
-      console.error('Erro ao excluir ocorrência:', error);
-      alert('Erro ao excluir ocorrência');
-    } finally {
-      setLoading(false);
-    }
-  }, [loadOcorrencias]);
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('pt-BR');
+  };
 
   const getTipoColor = (tipo: string) => {
     switch(tipo?.toLowerCase()) {
@@ -308,329 +231,424 @@ export function OcorrenciasList() {
     return turmas.find(t => t.id === turmaId)?.nome || 'N/A';
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('pt-BR');
+  const getComunicadoBadge = (comunicado: any) => {
+    if (comunicado.turma_id) {
+      const turmaNome = turmas.find(t => t.id === comunicado.turma_id)?.nome || 'N/A';
+      return (
+        <span className="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full bg-blue-500 text-white">
+          Turma: {turmaNome}
+        </span>
+      );
+    } else if (comunicado.usuario_id) {
+      return (
+        <span className="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full bg-purple-500 text-white">
+          Individual
+        </span>
+      );
+    } else {
+      return (
+        <span className="inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full bg-green-500 text-white">
+          Geral
+        </span>
+      );
+    }
   };
 
-  const getTipoUsuarioBadge = (tipo?: 'aluno' | 'professor') => {
-    if (tipo === 'professor') {
-      return <Badge className="bg-purple-500 text-white">Professor</Badge>;
+  const handleLogout = async () => {
+    try {
+      localStorage.clear();
+      sessionStorage.clear();
+      await supabase.auth.signOut().catch(() => {});
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Erro ao fazer logout:', error);
+      window.location.href = '/';
     }
-    return <Badge className="bg-blue-500 text-white">Aluno</Badge>;
+  };
+
+  const renderVisaoGeral = () => {
+    const dataAlunos = [
+      { name: 'Ativos', value: stats.alunosAtivos },
+      { name: 'Inativos', value: stats.alunosInativos }
+    ].filter(item => item.value > 0);
+
+    const dataProfessores = [
+      { name: 'Ativos', value: stats.professoresAtivos },
+      { name: 'Inativos', value: stats.professoresInativos }
+    ].filter(item => item.value > 0);
+
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+              Visão Geral
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400 mt-1">
+              Resumo das informações principais da instituição
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {/* SVG do calendário que você enviou */}
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              width="24" 
+              height="24" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="2" 
+              strokeLinecap="round" 
+              strokeLinejoin="round" 
+              className="lucide lucide-calendar h-6 w-6 text-teal-600 dark:text-teal-400"
+              aria-hidden="true"
+            >
+              <path d="M8 2v4"></path>
+              <path d="M16 2v4"></path>
+              <rect width="18" height="18" x="3" y="4" rx="2"></rect>
+              <path d="M3 10h18"></path>
+            </svg>
+            <div className="text-right">
+              <p className="text-sm font-medium text-gray-900 dark:text-white">
+                {getFormattedDate()}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Data atual
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+            <CardHeader className="text-left">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg text-gray-900 dark:text-white">
+                  Total de alunos
+                </CardTitle>
+                <Button 
+                  size="sm"
+                  onClick={() => setActiveTab('alunos')}
+                  className="bg-teal-600 hover:bg-teal-700 text-white"
+                >
+                  Ver tudo
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={150}>
+                <PieChart>
+                  <Pie
+                    data={dataAlunos}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={40}
+                    outerRadius={60}
+                    paddingAngle={2}
+                    dataKey="value"
+                  >
+                    {dataAlunos.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS_CHART[index % COLORS_CHART.length]} />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="mt-6 space-y-2 text-sm">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#1e40af' }}></div>
+                    <span className="text-gray-600 dark:text-gray-400">Ativos:</span>
+                  </div>
+                  <span className="font-semibold text-gray-900 dark:text-white">{stats.alunosAtivos}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#fbbf24' }}></div>
+                    <span className="text-gray-600 dark:text-gray-400">Inativos:</span>
+                  </div>
+                  <span className="font-semibold text-gray-900 dark:text-white">{stats.alunosInativos}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+            <CardHeader className="text-left">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg text-gray-900 dark:text-white">
+                  Total de professores
+                </CardTitle>
+                <Button 
+                  size="sm"
+                  onClick={() => setActiveTab('professores')}
+                  className="bg-teal-600 hover:bg-teal-700 text-white"
+                >
+                  Ver tudo
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={150}>
+                <PieChart>
+                  <Pie
+                    data={dataProfessores}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={40}
+                    outerRadius={60}
+                    paddingAngle={2}
+                    dataKey="value"
+                  >
+                    {dataProfessores.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS_CHART[index % COLORS_CHART.length]} />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="mt-6 space-y-2 text-sm">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#1e40af' }}></div>
+                    <span className="text-gray-600 dark:text-gray-400">Ativos:</span>
+                  </div>
+                  <span className="font-semibold text-gray-900 dark:text-white">{stats.professoresAtivos}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#fbbf24' }}></div>
+                    <span className="text-gray-600 dark:text-gray-400">Inativos:</span>
+                  </div>
+                  <span className="font-semibold text-gray-900 dark:text-white">{stats.professoresInativos}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+            <CardHeader className="text-left">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg text-gray-900 dark:text-white">
+                  Total de funcionários
+                </CardTitle>
+                <Button 
+                  size="sm"
+                  onClick={() => alert('Página de funcionários ainda não implementada')}
+                  className="bg-teal-600 hover:bg-teal-700 text-white"
+                >
+                  Ver tudo
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[150px] flex items-center justify-center text-gray-400">
+                Sem dados
+              </div>
+              <div className="mt-6 space-y-2 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600 dark:text-gray-400">Ativos:</span>
+                  <span className="font-semibold text-gray-900 dark:text-white">0</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600 dark:text-gray-400">Inativos:</span>
+                  <span className="font-semibold text-gray-900 dark:text-white">0</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <h3 className="card-title">Ocorrências Recentes</h3>
+                <Button
+                  size="sm"
+                  onClick={() => setActiveTab('ocorrencias')}
+                  className="bg-teal-600 hover:bg-teal-700 text-white"
+                >
+                  Ver tudo
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {ocorrencias.length > 0 ? (
+                ocorrencias.map((ocorrencia) => (
+                  <div key={ocorrencia.id} className="pb-3 border-b border-gray-200 dark:border-gray-700 last:border-0">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getTipoColor(ocorrencia.tipo)}`}>
+                            {capitalize(ocorrencia.tipo)}
+                          </span>
+                        </div>
+                        <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                          {ocorrencia.aluno_nome || `Aluno #${ocorrencia.aluno_id}`}
+                        </p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                          Turma: <strong>{getTurmaNome(ocorrencia.turma_id)}</strong>
+                        </p>
+                        <p className="text-xs text-gray-600 dark:text-gray-300 mt-1 line-clamp-2">
+                          {ocorrencia.descricao}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                          📅 {formatDate(ocorrencia.data)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                  <p>Nenhuma ocorrência registrada</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <h3 className="card-title">Comunicados Recentes</h3>
+                <Button
+                  size="sm"
+                  onClick={() => setActiveTab('comunicados')}
+                  className="bg-teal-600 hover:bg-teal-700 text-white"
+                >
+                  Ver tudo
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {comunicados.length > 0 ? (
+                comunicados.map((comunicado) => (
+                  <div key={comunicado.id} className="pb-3 border-b border-gray-200 dark:border-gray-700 last:border-0">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                            {comunicado.titulo}
+                          </p>
+                          {getComunicadoBadge(comunicado)}
+                        </div>
+                        <p className="text-xs text-gray-600 dark:text-gray-300 mt-1 line-clamp-2">
+                          {comunicado.mensagem}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                          Por: {comunicado.autor}
+                        </p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                          📅 {formatDate(comunicado.data_publicacao)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                  <p>Nenhum comunicado registrado</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
   };
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '1rem' }}>
-          <div>
-            <h3 className="card-title">Ocorrências</h3>
-            <CardDescription>Registre e gerencie ocorrências de alunos e professores</CardDescription>
-          </div>
-          <Dialog open={isDialogOpen} onOpenChange={(open) => {
-            setIsDialogOpen(open);
-            if (!open) resetForm();
-          }}>
-            <DialogTrigger asChild>
-              <Button onClick={() => { resetForm(); setIsDialogOpen(true); }}>
-                <Plus className="h-4 w-4 mr-2" />
-                Nova Ocorrência
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>{editingOcorrencia ? 'Editar Ocorrência' : 'Nova Ocorrência'}</DialogTitle>
-                <DialogDescription>
-                  {editingOcorrencia ? 'Atualize a ocorrência' : 'Registre uma nova ocorrência de aluno ou professor'}
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleSubmit}>
-                <div className="grid gap-4 py-4">
-                  {/* Campo de busca de usuário */}
-                  <div className="grid gap-2 relative">
-                    <Label htmlFor="usuario">Buscar usuário *</Label>
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                      <Input
-                        id="usuario"
-                        value={userSearchTerm}
-                        onChange={(e) => {
-                          setUserSearchTerm(e.target.value);
-                          setShowUserDropdown(true);
-                        }}
-                        onFocus={() => setShowUserDropdown(true)}
-                        placeholder="Digite o nome do aluno ou professor..."
-                        className="pl-9 pr-9"
-                        required
-                      />
-                      {userSearchTerm && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setUserSearchTerm('');
-                            setSelectedUser(null);
-                            setFormData(prev => ({ ...prev, usuario_id: '', tipo_usuario: '' }));
-                          }}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
-                      )}
-                    </div>
+    <div className="min-h-screen flex bg-background">
+      <CoordinadorSidebar onTabChange={setActiveTab} />
 
-                    {/* Dropdown de resultados */}
-                    {showUserDropdown && filteredUsers.length > 0 && (
-                      <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto z-50">
-                        {filteredUsers.map((user) => (
-                          <button
-                            key={user.id}
-                            type="button"
-                            onClick={() => handleUserSelect(user)}
-                            className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center justify-between border-b last:border-b-0"
-                          >
-                            <div>
-                              <p className="font-medium text-gray-900">{user.nome}</p>
-                              <p className="text-xs text-gray-500 mt-0.5">
-                                {user.tipo === 'aluno' ? 'Aluno' : 'Professor'}
-                                {user.turma_id && ` • Turma: ${getTurmaNome(user.turma_id)}`}
-                              </p>
-                            </div>
-                            {user.tipo === 'aluno' ? (
-                              <Badge className="bg-blue-500 text-white text-xs">Aluno</Badge>
-                            ) : (
-                              <Badge className="bg-purple-500 text-white text-xs">Professor</Badge>
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                    )}
+      <div className="flex-1 flex flex-col ml-0 min-[881px]:ml-64">
+        <header className="sticky top-0 z-50 border-b px-4 sm:px-6 py-4 flex-shrink-0 flex items-center" style={{ backgroundColor: 'var(--primary)' }}>
+          <div className="flex items-center justify-between w-full gap-3">
+            <button
+              onClick={() => {
+                const event = new CustomEvent('toggleSidebar');
+                window.dispatchEvent(event);
+              }}
+              className="p-2 bg-white/10 hover:bg-white/20 rounded-lg min-[881px]:hidden flex-shrink-0"
+              aria-label="Menu"
+            >
+              <Menu className="h-5 w-5 text-white" />
+            </button>
 
-                    {/* Usuário selecionado */}
-                    {selectedUser && (
-                      <div className="mt-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-medium text-sm">{selectedUser.nome}</p>
-                            <p className="text-xs text-gray-500">
-                              {selectedUser.tipo === 'aluno' ? 'Aluno' : 'Professor'}
-                              {selectedUser.turma_id && ` • Turma: ${getTurmaNome(selectedUser.turma_id)}`}
-                            </p>
-                          </div>
-                          {getTipoUsuarioBadge(selectedUser.tipo)}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="tipo">Tipo de Ocorrência *</Label>
-                      <Select 
-                        value={formData.tipo}
-                        onValueChange={(value) => setFormData({ ...formData, tipo: value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione o tipo" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Comportamento">Comportamento</SelectItem>
-                          <SelectItem value="Falta">Falta</SelectItem>
-                          <SelectItem value="Positivo">Positivo</SelectItem>
-                          <SelectItem value="Elogio">Elogio</SelectItem>
-                          <SelectItem value="Disciplinar">Disciplinar</SelectItem>
-                          <SelectItem value="Outro">Outro</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="grid gap-2">
-                      <Label htmlFor="data">Data *</Label>
-                      <Input
-                        id="data"
-                        type="date"
-                        value={formData.data}
-                        onChange={(e) => setFormData({ ...formData, data: e.target.value })}
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid gap-2">
-                    <Label htmlFor="descricao">Descrição *</Label>
-                    <Textarea
-                      id="descricao"
-                      value={formData.descricao}
-                      onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
-                      placeholder="Descreva a ocorrência..."
-                      rows={3}
-                      required
-                    />
-                  </div>
-
-                  <div className="grid gap-2">
-                    <Label htmlFor="acao">Ação Tomada (opcional)</Label>
-                    <Textarea
-                      id="acao"
-                      value={formData.acao_tomada}
-                      onChange={(e) => setFormData({ ...formData, acao_tomada: e.target.value })}
-                      placeholder="Qual ação foi tomada?"
-                      rows={2}
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button type="button" variant="outline" onClick={resetForm}>
-                    Cancelar
-                  </Button>
-                  <Button type="submit" disabled={loading || !selectedUser}>
-                    {loading ? 'Salvando...' : (editingOcorrencia ? 'Atualizar' : 'Criar')}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </CardHeader>
-
-        <CardContent>
-          <div className="flex gap-4 mb-4">
-            <div className="flex-1">
-              <Input
-                placeholder="Buscar por usuário ou descrição..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+            <div className="flex-1 min-w-0">
+              <h1 className="text-base sm:text-lg font-semibold text-white truncate">
+                Bem-vindo, {userProfile?.nome || 'Coordenador'} ✏️
+              </h1>
+              <p className="text-xs sm:text-sm text-white/80 mt-1 hidden min-[881px]:block">
+                Tenha um bom dia de trabalho.
+              </p>
             </div>
-            <Dialog open={isFilterDialogOpen} onOpenChange={setIsFilterDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="outline" className="flex items-center gap-2">
-                  <Filter className="h-4 w-4" />
-                  Filtros
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Filtrar Ocorrências</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="filterTipo">Tipo</Label>
-                    <Select 
-                      value={filters.tipo}
-                      onValueChange={(value) => setFilters({ ...filters, tipo: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Todos" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="">Todos</SelectItem>
-                        <SelectItem value="Comportamento">Comportamento</SelectItem>
-                        <SelectItem value="Falta">Falta</SelectItem>
-                        <SelectItem value="Positivo">Positivo</SelectItem>
-                        <SelectItem value="Elogio">Elogio</SelectItem>
-                        <SelectItem value="Disciplinar">Disciplinar</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="dataInicio">Data Início</Label>
-                    <Input
-                      id="dataInicio"
-                      type="date"
-                      value={filters.dataInicio}
-                      onChange={(e) => setFilters({ ...filters, dataInicio: e.target.value })}
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="dataFim">Data Fim</Label>
-                    <Input
-                      id="dataFim"
-                      type="date"
-                      value={filters.dataFim}
-                      onChange={(e) => setFilters({ ...filters, dataFim: e.target.value })}
-                    />
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setFilters({ tipo: '', dataInicio: '', dataFim: '' })}
-                  >
-                    Limpar
-                  </Button>
-                  <Button type="button" onClick={() => setIsFilterDialogOpen(false)}>
-                    Aplicar
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+            
+            <Button
+              onClick={handleLogout}
+              className="bg-red-600 hover:bg-red-700 text-white font-medium px-3 sm:px-4 py-2 rounded-lg flex items-center gap-2 transition-all duration-200 flex-shrink-0"
+            >
+              <LogOut className="h-4 w-4" />
+              <span className="hidden sm:inline">Sair</span>
+            </Button>
           </div>
+        </header>
 
-          {loading && <div className="text-center py-8 text-gray-500">Carregando...</div>}
-
-          {!loading && (
-            <div className="space-y-4">
-              {filteredOcorrencias.map((ocorrencia) => (
-                <div key={ocorrencia.id} className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 p-4 border rounded-lg">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2 flex-wrap">
-                      <span className={`${getTipoColor(ocorrencia.tipo)} rounded-full px-3 py-1 text-xs font-semibold`}>
-                        {capitalize(ocorrencia.tipo)}
-                      </span>
-                      {getTipoUsuarioBadge(ocorrencia.tipo_usuario)}
-                      <span className="text-sm font-medium text-gray-600">
-                        {ocorrencia.usuario_nome}
-                      </span>
+        <main className="flex-1 overflow-hidden">
+          <ScrollArea className="h-full scrollbar-thin">
+            <div className="p-4 sm:p-6">
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+                <TabsContent value="visao-geral">
+                  {loading ? (
+                    <div className="flex items-center justify-center h-96">
+                      <div className="text-muted-foreground">Carregando...</div>
                     </div>
-                    {ocorrencia.tipo_usuario === 'aluno' && (
-                      <p className="text-xs text-gray-600 mb-2">
-                        Turma: <strong>{getTurmaNome(ocorrencia.turma_id)}</strong>
-                      </p>
-                    )}
-                    <p className="text-sm text-gray-700 mb-2">{ocorrencia.descricao}</p>
-                    {ocorrencia.acao_tomada && (
-                      <p className="text-xs text-gray-600 mb-2">
-                        <strong>Ação:</strong> {ocorrencia.acao_tomada}
-                      </p>
-                    )}
-                    <div className="flex items-center gap-1 text-xs text-gray-500">
-                      <Calendar className="h-3 w-3" />
-                      {formatDate(ocorrencia.data)}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleEdit(ocorrencia)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleDelete(ocorrencia.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
+                  ) : (
+                    renderVisaoGeral()
+                  )}
+                </TabsContent>
 
-              {filteredOcorrencias.length === 0 && (
-                <div className="text-center py-8 text-gray-500">
-                  <AlertCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>Nenhuma ocorrência encontrada</p>
-                </div>
-              )}
+                <TabsContent value="diarios">
+                  <DiariosList />
+                </TabsContent>
+
+                <TabsContent value="comunicados">
+                  <ComunicadosList />
+                </TabsContent>
+
+                <TabsContent value="ocorrencias">
+                  <OcorrenciasList />
+                </TabsContent>
+
+                <TabsContent value="alunos">
+                  <AlunosList />
+                </TabsContent>
+
+                <TabsContent value="professores">
+                  <ProfessoresList />
+                </TabsContent>
+
+                <TabsContent value="disciplinas">
+                  <DisciplinasList />
+                </TabsContent>
+
+                <TabsContent value="turmas">
+                  <TurmasList />
+                </TabsContent>
+
+                <TabsContent value="usuarios">
+                  <UsuariosList />
+                </TabsContent>
+
+                <TabsContent value="exportacao">
+                  <ExportacaoTab />
+                </TabsContent>
+              </Tabs>
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </ScrollArea>
+        </main>
+      </div>
     </div>
   );
 }
 
-export default OcorrenciasList;
+export default AdminPage;
