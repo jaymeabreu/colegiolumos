@@ -94,6 +94,8 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
         acao_tomada: formData.acaoTomada || null
       };
 
+      console.log('Enviando dados:', data);
+
       if (editingOcorrencia) {
         await supabaseService.updateOcorrencia(editingOcorrencia.id, data);
       } else {
@@ -111,7 +113,13 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
   };
 
   const resetForm = () => {
-    setFormData({ alunoId: '', tipo: '', data: '', descricao: '', acaoTomada: '' });
+    setFormData({ 
+      alunoId: '', 
+      tipo: '', 
+      data: new Date().toISOString().split('T')[0], 
+      descricao: '', 
+      acaoTomada: '' 
+    });
     setEditingOcorrencia(null);
   };
 
@@ -169,7 +177,9 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
 
         <CardContent>
           <div className="space-y-4">
-            {ocorrencias.length === 0 ? (
+            {loading ? (
+              <div className="text-center py-8 text-muted-foreground">Carregando...</div>
+            ) : ocorrencias.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 Nenhuma ocorrência registrada.
               </div>
@@ -228,7 +238,7 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
                 <Label htmlFor="aluno">Aluno *</Label>
                 <Select value={formData.alunoId} onValueChange={(val) => setFormData({ ...formData, alunoId: val })}>
                   <SelectTrigger id="aluno"><SelectValue placeholder="Selecione o aluno" /></SelectTrigger>
-                  <SelectContent className="z-[10001]">
+                  <SelectContent className="z-[10001]" position="popper" sideOffset={5}>
                     {alunos.map(aluno => (
                       <SelectItem key={aluno.id} value={aluno.id.toString()}>{aluno.nome}</SelectItem>
                     ))}
@@ -241,7 +251,7 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
                   <Label htmlFor="tipo">Tipo *</Label>
                   <Select value={formData.tipo} onValueChange={(val) => setFormData({ ...formData, tipo: val })}>
                     <SelectTrigger id="tipo"><SelectValue placeholder="Selecione" /></SelectTrigger>
-                    <SelectContent className="z-[10001]">
+                    <SelectContent className="z-[10001]" position="popper" sideOffset={5}>
                       <SelectItem value="Disciplinar">Disciplinar</SelectItem>
                       <SelectItem value="Pedagogica">Pedagógica</SelectItem>
                       <SelectItem value="Elogio">Elogio</SelectItem>
