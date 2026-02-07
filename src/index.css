@@ -834,3 +834,24 @@ body {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
 }
+/* ========================================
+   FIX Z-INDEX DO SELECT DENTRO DO DIALOG
+   ======================================== */
+
+/* Fix z-index do Select dentro do Dialog */
+[data-radix-select-content] {
+  z-index: 10000 !important;
+}
+
+[data-radix-select-viewport] {
+  z-index: 10000 !important;
+}
+
+/* Fix z-index do Dialog para cobrir sidebar */
+[data-radix-dialog-overlay] {
+  z-index: 9998 !important;
+}
+
+[data-radix-dialog-content] {
+  z-index: 9999 !important;
+}
