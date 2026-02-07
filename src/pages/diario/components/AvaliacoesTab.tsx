@@ -143,7 +143,7 @@ export function AvaliacoesTab({ diarioId, readOnly = false }: AvaliacoesTabProps
                   <span>Nova Avaliação</span>
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-lg">
+              <DialogContent className="max-w-lg z-[9999]">
                 <DialogHeader>
                   <DialogTitle>{editingAvaliacao ? 'Editar Avaliação' : 'Nova Avaliação'}</DialogTitle>
                   <DialogDescription>
