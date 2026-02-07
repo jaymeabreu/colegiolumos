@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Users, BookOpen, School, GraduationCap, FileText, Download, UserCheck, MessageSquare, BarChart3, LogOut, Menu } from 'lucide-react';
+import { Users, BookOpen, School, GraduationCap, FileText, Download, UserCheck, MessageSquare, BarChart3, LogOut, Menu, Calendar } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { Button } from '../../components/ui/button'; 
@@ -289,7 +289,88 @@ export function AdminPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Card de Calendário */}
           <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+            <CardHeader>
+              <CardTitle className="text-lg text-gray-900 dark:text-white">
+                Próximos Eventos
+              </CardTitle>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-teal-600 dark:text-teal-400" />
+                  <span className="text-sm text-gray-600 dark:text-gray-400">{getFormattedDate()}</span>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {/* Evento 1 */}
+                <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-100 dark:border-blue-800">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="font-medium text-gray-900 dark:text-white">Teste 2 Aulas Seguidas</h4>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-800 text-blue-600 dark:text-blue-300 rounded">
+                          20/01/2026
+                        </span>
+                        <span className="text-xs px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded">
+                          2 aulas
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">Teórica</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Evento 2 */}
+                <div className="p-3 bg-teal-50 dark:bg-teal-900/20 rounded-lg border border-teal-100 dark:border-teal-800">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="font-medium text-gray-900 dark:text-white">Reunião Pedagógica</h4>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs px-2 py-0.5 bg-teal-100 dark:bg-teal-800 text-teal-600 dark:text-teal-300 rounded">
+                          22/01/2026
+                        </span>
+                        <span className="text-xs px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded">
+                          Integral
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">Com todos os professores</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Evento 3 */}
+                <div className="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-100 dark:border-purple-800">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="font-medium text-gray-900 dark:text-white">Conselho de Classe</h4>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs px-2 py-0.5 bg-purple-100 dark:bg-purple-800 text-purple-600 dark:text-purple-300 rounded">
+                          25/01/2026
+                        </span>
+                        <span className="text-xs px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded">
+                          3º Ano
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">Avaliação do bimestre</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <Button
+                variant="outline"
+                className="w-full mt-4 border-teal-600 text-teal-600 hover:bg-teal-50 dark:border-teal-400 dark:text-teal-400 dark:hover:bg-teal-900/30"
+                onClick={() => alert('Calendário completo em desenvolvimento')}
+              >
+                <Calendar className="h-4 w-4 mr-2" />
+                Ver calendário completo
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 lg:col-span-2">
             <CardHeader className="text-left">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg text-gray-900 dark:text-white">
@@ -305,121 +386,62 @@ export function AdminPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={150}>
-                <PieChart>
-                  <Pie
-                    data={dataAlunos}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={40}
-                    outerRadius={60}
-                    paddingAngle={2}
-                    dataKey="value"
-                  >
-                    {dataAlunos.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS_CHART[index % COLORS_CHART.length]} />
-                    ))}
-                  </Pie>
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="mt-6 space-y-2 text-sm">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#1e40af' }}></div>
-                    <span className="text-gray-600 dark:text-gray-400">Ativos:</span>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <ResponsiveContainer width="100%" height={150}>
+                    <PieChart>
+                      <Pie
+                        data={dataAlunos}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={40}
+                        outerRadius={60}
+                        paddingAngle={2}
+                        dataKey="value"
+                      >
+                        {dataAlunos.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS_CHART[index % COLORS_CHART.length]} />
+                        ))}
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="mt-6 space-y-2 text-sm">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#1e40af' }}></div>
+                        <span className="text-gray-600 dark:text-gray-400">Ativos:</span>
+                      </div>
+                      <span className="font-semibold text-gray-900 dark:text-white">{stats.alunosAtivos}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#fbbf24' }}></div>
+                        <span className="text-gray-600 dark:text-gray-400">Inativos:</span>
+                      </div>
+                      <span className="font-semibold text-gray-900 dark:text-white">{stats.alunosInativos}</span>
+                    </div>
                   </div>
-                  <span className="font-semibold text-gray-900 dark:text-white">{stats.alunosAtivos}</span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#fbbf24' }}></div>
-                    <span className="text-gray-600 dark:text-gray-400">Inativos:</span>
+                <div>
+                  <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3">Distribuição por Turma</h4>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">3º Ano</span>
+                      <span className="text-sm font-semibold text-gray-900 dark:text-white">15 alunos</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">4º Ano</span>
+                      <span className="text-sm font-semibold text-gray-900 dark:text-white">18 alunos</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">7ª Série</span>
+                      <span className="text-sm font-semibold text-gray-900 dark:text-white">22 alunos</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">2º Ano</span>
+                      <span className="text-sm font-semibold text-gray-900 dark:text-white">12 alunos</span>
+                    </div>
                   </div>
-                  <span className="font-semibold text-gray-900 dark:text-white">{stats.alunosInativos}</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-            <CardHeader className="text-left">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg text-gray-900 dark:text-white">
-                  Total de professores
-                </CardTitle>
-                <Button 
-                  size="sm"
-                  onClick={() => setActiveTab('professores')}
-                  className="bg-teal-600 hover:bg-teal-700 text-white"
-                >
-                  Ver tudo
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={150}>
-                <PieChart>
-                  <Pie
-                    data={dataProfessores}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={40}
-                    outerRadius={60}
-                    paddingAngle={2}
-                    dataKey="value"
-                  >
-                    {dataProfessores.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS_CHART[index % COLORS_CHART.length]} />
-                    ))}
-                  </Pie>
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="mt-6 space-y-2 text-sm">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#1e40af' }}></div>
-                    <span className="text-gray-600 dark:text-gray-400">Ativos:</span>
-                  </div>
-                  <span className="font-semibold text-gray-900 dark:text-white">{stats.professoresAtivos}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: '#fbbf24' }}></div>
-                    <span className="text-gray-600 dark:text-gray-400">Inativos:</span>
-                  </div>
-                  <span className="font-semibold text-gray-900 dark:text-white">{stats.professoresInativos}</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-            <CardHeader className="text-left">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg text-gray-900 dark:text-white">
-                  Total de funcionários
-                </CardTitle>
-                <Button 
-                  size="sm"
-                  onClick={() => alert('Página de funcionários ainda não implementada')}
-                  className="bg-teal-600 hover:bg-teal-700 text-white"
-                >
-                  Ver tudo
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[150px] flex items-center justify-center text-gray-400">
-                Sem dados
-              </div>
-              <div className="mt-6 space-y-2 text-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">Ativos:</span>
-                  <span className="font-semibold text-gray-900 dark:text-white">0</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">Inativos:</span>
-                  <span className="font-semibold text-gray-900 dark:text-white">0</span>
                 </div>
               </div>
             </CardContent>
