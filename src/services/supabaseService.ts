@@ -251,7 +251,6 @@ function withCamel<T extends Record<string, any>>(row: T): T {
   return r;
 }
 
-// Helper para validar e converter alunoId
 function sanitizeAlunoId(value: any): number | null {
   if (value === null || value === undefined) return null;
   if (typeof value === 'string') {
@@ -271,49 +270,36 @@ class SupabaseService {
     );
   }
 
-  // ========== NOVO MÉTODO: OBTER MATRÍCULA SUGERIDA ==========
-  /**
-   * Encontra a próxima matrícula disponível começando de 01
-   * Se 01 existe, tenta 02, se 02 existe tenta 03, e assim por diante
-   * Retorna string com 2 dígitos: "01", "02", "03", etc
-   * @returns Promise<string> - matrícula sugerida (ex: "01", "02", "03")
-   */
   async getSuggestedMatricula(): Promise<string> {
     try {
       console.log('🔍 Buscando próxima matrícula disponível...');
 
-      // 1. Busca TODOS os alunos e seus IDs
       const { data: alunos, error } = await supabase
         .from('alunos')
         .select('matricula');
 
       if (error) {
         console.error('❌ Erro ao buscar matrículas:', error);
-        return '01'; // Retorna padrão em caso de erro
+        return '01';
       }
 
-      // 2. Cria um Set com as matrículas existentes
-      // Normaliza para formato "01", "02", etc (2 dígitos)
       const existingMatriculas = new Set<string>(
         (alunos ?? [])
           .map(a => a.matricula)
           .filter(m => m && typeof m === 'string')
           .map(m => {
-            // Se for numérica, formata para 2 dígitos
             const num = parseInt(m, 10);
             if (!isNaN(num)) {
               return num.toString().padStart(2, '0');
             }
-            // Se não for numérica, deixa como está
             return m;
           })
       );
 
       console.log('📊 Matrículas existentes:', Array.from(existingMatriculas));
 
-      // 3. Procura a primeira matrícula disponível começando de 01
       for (let i = 1; i <= 9999; i++) {
-        const suggested = i.toString().padStart(2, '0'); // Formata: "01", "02", etc
+        const suggested = i.toString().padStart(2, '0');
         
         if (!existingMatriculas.has(suggested)) {
           console.log(`✅ Matrícula sugerida: ${suggested}`);
@@ -321,15 +307,13 @@ class SupabaseService {
         }
       }
 
-      // Se por algum motivo chegou aqui (todas as 9999 existem), retorna erro
       console.warn('⚠️ Não há matrículas disponíveis!');
       return '9999';
     } catch (error) {
       console.error('❌ Erro ao gerar matrícula sugerida:', error);
-      return '01'; // Retorna padrão em caso de erro
+      return '01';
     }
   }
-  // =========================================================
 
   async getUsuarios(): Promise<Usuario[]> {
     const { data, error } = await supabase
@@ -1184,6 +1168,50 @@ class SupabaseService {
     this.dispatchDataUpdated('notas');
   }
 
+  async saveNota(params: { 
+    avaliacaoId: number; 
+    alunoId: number; 
+    nota: number 
+  }): Promise<void> {
+    try {
+      const { data: existing, error: searchError } = await supabase
+        .from('notas')
+        .select('id')
+        .eq('avaliacao_id', params.avaliacaoId)
+        .eq('aluno_id', params.alunoId)
+        .maybeSingle();
+
+      if (searchError) throw searchError;
+
+      if (existing) {
+        const { error: updateError } = await supabase
+          .from('notas')
+          .update({ 
+            valor: params.nota,
+            updated_at: nowIso()
+          })
+          .eq('id', existing.id);
+
+        if (updateError) throw updateError;
+      } else {
+        const { error: insertError } = await supabase
+          .from('notas')
+          .insert({
+            avaliacao_id: params.avaliacaoId,
+            aluno_id: params.alunoId,
+            valor: params.nota
+          });
+
+        if (insertError) throw insertError;
+      }
+
+      this.dispatchDataUpdated('notas');
+    } catch (error) {
+      console.error('Erro ao salvar nota:', error);
+      throw error;
+    }
+  }
+
   async getOcorrencias(): Promise<Ocorrencia[]> {
     const { data, error } = await supabase
       .from('ocorrencias')
@@ -1761,50 +1789,6 @@ class SupabaseService {
         faltas: 0,
         notas: []
       };
-    }
-  }
-}
-async saveNota(params: { 
-    avaliacaoId: number; 
-    alunoId: number; 
-    nota: number 
-  }): Promise<void> {
-    try {
-      const { data: existing, error: searchError } = await supabase
-        .from('notas')
-        .select('id')
-        .eq('avaliacao_id', params.avaliacaoId)
-        .eq('aluno_id', params.alunoId)
-        .maybeSingle();
-
-      if (searchError) throw searchError;
-
-      if (existing) {
-        const { error: updateError } = await supabase
-          .from('notas')
-          .update({ 
-            valor: params.nota,
-            updated_at: nowIso()
-          })
-          .eq('id', existing.id);
-
-        if (updateError) throw updateError;
-      } else {
-        const { error: insertError } = await supabase
-          .from('notas')
-          .insert({
-            avaliacao_id: params.avaliacaoId,
-            aluno_id: params.alunoId,
-            valor: params.nota
-          });
-
-        if (insertError) throw insertError;
-      }
-
-      this.dispatchDataUpdated('notas');
-    } catch (error) {
-      console.error('Erro ao salvar nota:', error);
-      throw error;
     }
   }
 }
