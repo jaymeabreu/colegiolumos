@@ -1770,7 +1770,6 @@ async saveNota(params: {
     nota: number 
   }): Promise<void> {
     try {
-      // Verifica se já existe uma nota para essa avaliação e aluno
       const { data: existing, error: searchError } = await supabase
         .from('notas')
         .select('id')
@@ -1781,7 +1780,6 @@ async saveNota(params: {
       if (searchError) throw searchError;
 
       if (existing) {
-        // Atualiza a nota existente
         const { error: updateError } = await supabase
           .from('notas')
           .update({ 
@@ -1792,7 +1790,6 @@ async saveNota(params: {
 
         if (updateError) throw updateError;
       } else {
-        // Cria nova nota
         const { error: insertError } = await supabase
           .from('notas')
           .insert({
@@ -1812,5 +1809,4 @@ async saveNota(params: {
   }
 }
 
-export const supabaseService = new SupabaseService();
 export const supabaseService = new SupabaseService();
