@@ -38,8 +38,12 @@ export function OcorrenciasList() {
   const [usuarioBusca, setUsuarioBusca] = useState('');
   const [showUsuariosList, setShowUsuariosList] = useState(false);
 
-  const [filters, setFilters] = useState({
-    tipo: '',
+  const [filters, setFilters] = useState<{
+    tipo: string | undefined;
+    dataInicio: string;
+    dataFim: string;
+  }>({
+    tipo: undefined,
     dataInicio: '',
     dataFim: ''
   });
@@ -135,7 +139,7 @@ export function OcorrenciasList() {
       return false;
     }
 
-    if (filters.tipo && ocorrencia.tipo !== filters.tipo) {
+    if (filters.tipo && filters.tipo !== 'todos' && ocorrencia.tipo !== filters.tipo) {
       return false;
     }
 
@@ -485,13 +489,13 @@ export function OcorrenciasList() {
                     <Label htmlFor="filterTipo">Tipo</Label>
                     <Select 
                       value={filters.tipo}
-                      onValueChange={(value) => setFilters({ ...filters, tipo: value })}
+                      onValueChange={(value) => setFilters({ ...filters, tipo: value === 'todos' ? undefined : value })}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Todos" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Todos</SelectItem>
+                        <SelectItem value="todos">Todos</SelectItem>
                         <SelectItem value="Comportamento">Comportamento</SelectItem>
                         <SelectItem value="Falta">Falta</SelectItem>
                         <SelectItem value="Positivo">Positivo</SelectItem>
@@ -525,7 +529,7 @@ export function OcorrenciasList() {
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => setFilters({ tipo: '', dataInicio: '', dataFim: '' })}
+                    onClick={() => setFilters({ tipo: undefined, dataInicio: '', dataFim: '' })}
                   >
                     Limpar
                   </Button>
