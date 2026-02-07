@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Users, BookOpen, School, GraduationCap, FileText, Download, UserCheck, MessageSquare, BarChart3, LogOut, Menu } from 'lucide-react';
+import { Users, BookOpen, School, GraduationCap, FileText, Download, UserCheck, MessageSquare, BarChart3, LogOut, Menu, Calendar } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { Button } from '../../components/ui/button'; 
@@ -289,25 +289,7 @@ export function AdminPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            {/* SVG do calendário que você enviou */}
-            <svg 
-              xmlns="http://www.w3.org/2000/svg" 
-              width="24" 
-              height="24" 
-              viewBox="0 0 24 24" 
-              fill="none" 
-              stroke="currentColor" 
-              strokeWidth="2" 
-              strokeLinecap="round" 
-              strokeLinejoin="round" 
-              className="lucide lucide-calendar h-6 w-6 text-teal-600 dark:text-teal-400"
-              aria-hidden="true"
-            >
-              <path d="M8 2v4"></path>
-              <path d="M16 2v4"></path>
-              <rect width="18" height="18" x="3" y="4" rx="2"></rect>
-              <path d="M3 10h18"></path>
-            </svg>
+            <Calendar className="h-6 w-6 text-teal-600 dark:text-teal-400" />
             <div className="text-right">
               <p className="text-sm font-medium text-gray-900 dark:text-white">
                 {getFormattedDate()}
@@ -491,9 +473,12 @@ export function AdminPage() {
                         <p className="text-xs text-gray-600 dark:text-gray-300 mt-1 line-clamp-2">
                           {ocorrencia.descricao}
                         </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                          📅 {formatDate(ocorrencia.data)}
-                        </p>
+                        <div className="flex items-center gap-1 mt-2">
+                          <Calendar className="h-3 w-3 text-gray-400" />
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {formatDate(ocorrencia.data)}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -537,9 +522,12 @@ export function AdminPage() {
                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                           Por: {comunicado.autor}
                         </p>
-                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                          📅 {formatDate(comunicado.data_publicacao)}
-                        </p>
+                        <div className="flex items-center gap-1 mt-1">
+                          <Calendar className="h-3 w-3 text-gray-400" />
+                          <p className="text-xs text-gray-400 dark:text-gray-500">
+                            {formatDate(comunicado.data_publicacao)}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </div>
