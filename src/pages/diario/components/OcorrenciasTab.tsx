@@ -54,17 +54,6 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
     loadData();
   }, [diarioId]);
 
-  useEffect(() => {
-    if (isDialogOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [isDialogOpen]);
-
   const loadData = async () => {
     try {
       setLoading(true);
@@ -215,30 +204,9 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
         </CardContent>
       </Card>
 
-      {/* DIALOG COM Z-INDEX GIGANTE PARA COBRIR SIDEBAR */}
+      {/* DIALOG NORMAL - SEM O OVERLAY FURADO */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent 
-          className="max-w-xl max-h-[90vh] overflow-y-auto"
-          style={{
-            zIndex: 9999,
-            backgroundColor: '#ffffff',
-            position: 'fixed'
-          }}
-        >
-          {/* OVERLAY COM Z-INDEX GIGANTE */}
-          {isDialogOpen && (
-            <div 
-              style={{
-                position: 'fixed',
-                inset: 0,
-                backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                zIndex: 9998,
-                pointerEvents: 'auto'
-              }}
-              onClick={() => setIsDialogOpen(false)}
-            />
-          )}
-          
+        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingOcorrencia ? 'Editar Ocorrência' : 'Nova Ocorrência'}</DialogTitle>
             <DialogDescription>
@@ -249,8 +217,8 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
             <div className="space-y-2">
               <Label>Aluno *</Label>
               <Select value={formData.alunoId} onValueChange={(val) => setFormData({ ...formData, alunoId: val })}>
-                <SelectTrigger className="relative z-50"><SelectValue placeholder="Selecione o aluno" /></SelectTrigger>
-                <SelectContent className="z-[10001]">
+                <SelectTrigger><SelectValue placeholder="Selecione o aluno" /></SelectTrigger>
+                <SelectContent>
                   {alunos.map(aluno => (
                     <SelectItem key={aluno.id} value={aluno.id.toString()}>{aluno.nome}</SelectItem>
                   ))}
@@ -261,8 +229,8 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
               <div className="space-y-2">
                 <Label>Tipo *</Label>
                 <Select value={formData.tipo} onValueChange={(val) => setFormData({ ...formData, tipo: val })}>
-                  <SelectTrigger className="relative z-50"><SelectValue placeholder="Selecione" /></SelectTrigger>
-                  <SelectContent className="z-[10001]">
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
                     <SelectItem value="Disciplinar">Disciplinar</SelectItem>
                     <SelectItem value="Pedagogica">Pedagógica</SelectItem>
                     <SelectItem value="Elogio">Elogio</SelectItem>
