@@ -11,7 +11,6 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../..
 import { supabaseService } from '../../../services/supabaseService';
 import type { Ocorrencia, Aluno } from '../../../services/supabaseService';
 
-// Ícone de Calendário em SVG customizado
 const CalendarIcon = ({ className }: { className?: string }) => (
   <svg 
     xmlns="http://www.w3.org/2000/svg" 
@@ -73,6 +72,17 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!formData.alunoId) {
+      alert('Por favor, selecione um aluno');
+      return;
+    }
+    
+    if (!formData.tipo) {
+      alert('Por favor, selecione um tipo');
+      return;
+    }
+
     try {
       setSubmitting(true);
       const data = {
@@ -204,23 +214,20 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
         </CardContent>
       </Card>
 
-      {/* PORTAL - OVERLAY COBRINDO SIDEBAR + MODAL */}
       {isDialogOpen && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden p-4">
-          {/* OVERLAY CINZENTO COBRINDO TUDO */}
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={handleClose} />
-          
-          {/* MODAL BRANCO CENTRADO */}
           <div className="relative bg-white w-full max-w-xl rounded-xl shadow-2xl flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-200 z-[10000]">
-            <div className="flex items-center justify-between p-6 border-b">
+            <div className="flex items-center justify-between p-6 border-b sticky top-0 bg-white">
               <h2 className="text-xl font-semibold">{editingOcorrencia ? 'Editar Ocorrência' : 'Nova Ocorrência'}</h2>
               <button onClick={handleClose} className="p-2 rounded-full hover:bg-gray-100"><X className="h-5 w-5 text-gray-400" /></button>
             </div>
-            <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto">
+            
+            <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto flex-1">
               <div className="space-y-2">
-                <Label>Aluno *</Label>
+                <Label htmlFor="aluno">Aluno *</Label>
                 <Select value={formData.alunoId} onValueChange={(val) => setFormData({ ...formData, alunoId: val })}>
-                  <SelectTrigger><SelectValue placeholder="Selecione o aluno" /></SelectTrigger>
+                  <SelectTrigger id="aluno"><SelectValue placeholder="Selecione o aluno" /></SelectTrigger>
                   <SelectContent className="z-[10001]">
                     {alunos.map(aluno => (
                       <SelectItem key={aluno.id} value={aluno.id.toString()}>{aluno.nome}</SelectItem>
@@ -228,11 +235,12 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
                   </SelectContent>
                 </Select>
               </div>
+              
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Tipo *</Label>
+                  <Label htmlFor="tipo">Tipo *</Label>
                   <Select value={formData.tipo} onValueChange={(val) => setFormData({ ...formData, tipo: val })}>
-                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectTrigger id="tipo"><SelectValue placeholder="Selecione" /></SelectTrigger>
                     <SelectContent className="z-[10001]">
                       <SelectItem value="Disciplinar">Disciplinar</SelectItem>
                       <SelectItem value="Pedagogica">Pedagógica</SelectItem>
@@ -241,19 +249,22 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Data *</Label>
-                  <Input type="date" value={formData.data} onChange={(e) => setFormData({ ...formData, data: e.target.value })} required />
+                  <Label htmlFor="data">Data *</Label>
+                  <Input id="data" type="date" value={formData.data} onChange={(e) => setFormData({ ...formData, data: e.target.value })} required />
                 </div>
               </div>
+              
               <div className="space-y-2">
-                <Label>Descrição *</Label>
-                <Textarea value={formData.descricao} onChange={(e) => setFormData({ ...formData, descricao: e.target.value })} placeholder="Descreva a ocorrência..." required className="min-h-[100px]" />
+                <Label htmlFor="descricao">Descrição *</Label>
+                <Textarea id="descricao" value={formData.descricao} onChange={(e) => setFormData({ ...formData, descricao: e.target.value })} placeholder="Descreva a ocorrência..." required className="min-h-[100px]" />
               </div>
+              
               <div className="space-y-2">
-                <Label>Ação Tomada (Opcional)</Label>
-                <Textarea value={formData.acaoTomada} onChange={(e) => setFormData({ ...formData, acaoTomada: e.target.value })} placeholder="Ação tomada..." className="min-h-[80px]" />
+                <Label htmlFor="acao">Ação Tomada (Opcional)</Label>
+                <Textarea id="acao" value={formData.acaoTomada} onChange={(e) => setFormData({ ...formData, acaoTomada: e.target.value })} placeholder="Ação tomada..." className="min-h-[80px]" />
               </div>
-              <div className="flex justify-end gap-3 pt-4">
+
+              <div className="flex justify-end gap-3 pt-4 border-t sticky bottom-0 bg-white">
                 <Button type="button" variant="outline" onClick={handleClose}>Cancelar</Button>
                 <Button type="submit" disabled={submitting} className="bg-[#0e4a5e] hover:bg-[#0a3645]">
                   {submitting ? 'Salvando...' : editingOcorrencia ? 'Salvar' : 'Criar'}
