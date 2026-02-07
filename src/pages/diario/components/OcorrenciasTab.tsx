@@ -5,7 +5,6 @@ import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
 import { Label } from '../../../components/ui/label';
 import { Textarea } from '../../../components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
 import { Badge } from '../../../components/ui/badge';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../../components/ui/card';
 import { supabaseService } from '../../../services/supabaseService';
@@ -85,7 +84,8 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
 
     try {
       setSubmitting(true);
-      const data = {
+      // Mapeamento exato para as colunas do banco de dados Supabase
+      const dataToSave = {
         aluno_id: parseInt(formData.alunoId),
         diario_id: diarioId,
         tipo: formData.tipo.toLowerCase(),
@@ -95,16 +95,16 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
       };
 
       if (editingOcorrencia) {
-        await supabaseService.updateOcorrencia(editingOcorrencia.id, data);
+        await supabaseService.updateOcorrencia(editingOcorrencia.id, dataToSave);
       } else {
-        await supabaseService.createOcorrencia(data);
+        await supabaseService.createOcorrencia(dataToSave);
       }
 
       await loadData();
       handleClose();
     } catch (error) {
       console.error('Erro ao salvar ocorrência:', error);
-      alert('Erro ao salvar ocorrência. Tente novamente.');
+      alert('Erro ao salvar ocorrência. Verifique os dados e tente novamente.');
     } finally {
       setSubmitting(false);
     }
@@ -133,7 +133,6 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
         await loadData();
       } catch (error) {
         console.error('Erro ao excluir ocorrência:', error);
-        alert('Erro ao excluir ocorrência. Tente novamente.');
       }
     }
   };
@@ -225,22 +224,13 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
       {isDialogOpen && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
           {/* Backdrop */}
-          <div 
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm" 
-            onClick={(e) => {
-              // Só fecha se clicar diretamente no fundo, não nos filhos
-              if (e.target === e.currentTarget) handleClose();
-            }} 
-          />
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={handleClose} />
           
-          {/* Modal Container */}
-          <div 
-            className="relative bg-white w-full max-w-xl rounded-xl shadow-2xl flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-200"
-            onClick={(e) => e.stopPropagation()} // Evita que cliques no modal fechem ele
-          >
-            <div className="flex items-center justify-between p-6 border-b sticky top-0 bg-white rounded-t-xl">
+          {/* Modal Content */}
+          <div className="relative bg-white w-full max-w-xl rounded-xl shadow-2xl flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center justify-between p-6 border-b">
               <h2 className="text-xl font-semibold">{editingOcorrencia ? 'Editar Ocorrência' : 'Nova Ocorrência'}</h2>
-              <button onClick={handleClose} className="p-2 rounded-full hover:bg-gray-100">
+              <button onClick={handleClose} className="p-2 rounded-full hover:bg-gray-100 transition-colors">
                 <X className="h-5 w-5 text-gray-400" />
               </button>
             </div>
@@ -248,40 +238,36 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
             <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto flex-1">
               <div className="space-y-2">
                 <Label htmlFor="aluno">Aluno *</Label>
-                <Select 
-                  value={formData.alunoId} 
-                  onValueChange={(val) => setFormData({ ...formData, alunoId: val })}
+                {/* SOLUÇÃO DEFINITIVA: Select nativo estilizado para evitar conflitos de foco do Radix UI */}
+                <select
+                  id="aluno"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  value={formData.alunoId}
+                  onChange={(e) => setFormData({ ...formData, alunoId: e.target.value })}
+                  required
                 >
-                  <SelectTrigger id="aluno" className="w-full">
-                    <SelectValue placeholder="Selecione o aluno" />
-                  </SelectTrigger>
-                  {/* Removido o createPortal interno do SelectContent para evitar conflitos com o Portal do Modal */}
-                  <SelectContent position="popper" className="z-[10001]">
-                    {alunos.map(aluno => (
-                      <SelectItem key={aluno.id} value={aluno.id.toString()}>
-                        {aluno.nome}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  <option value="">Selecione o aluno</option>
+                  {alunos.map(aluno => (
+                    <option key={aluno.id} value={aluno.id.toString()}>{aluno.nome}</option>
+                  ))}
+                </select>
               </div>
               
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="tipo">Tipo *</Label>
-                  <Select 
-                    value={formData.tipo} 
-                    onValueChange={(val) => setFormData({ ...formData, tipo: val })}
+                  <select
+                    id="tipo"
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    value={formData.tipo}
+                    onChange={(e) => setFormData({ ...formData, tipo: e.target.value })}
+                    required
                   >
-                    <SelectTrigger id="tipo" className="w-full">
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent position="popper" className="z-[10001]">
-                      <SelectItem value="Disciplinar">Disciplinar</SelectItem>
-                      <SelectItem value="Pedagogica">Pedagógica</SelectItem>
-                      <SelectItem value="Elogio">Elogio</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    <option value="">Selecione</option>
+                    <option value="Disciplinar">Disciplinar</option>
+                    <option value="Pedagogica">Pedagógica</option>
+                    <option value="Elogio">Elogio</option>
+                  </select>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="data">Data *</Label>
@@ -318,7 +304,7 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
                 />
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t sticky bottom-0 bg-white rounded-b-xl">
+              <div className="flex justify-end gap-3 pt-4 border-t mt-4">
                 <Button type="button" variant="outline" onClick={handleClose}>Cancelar</Button>
                 <Button type="submit" disabled={submitting} className="bg-[#0e4a5e] hover:bg-[#0a3645]">
                   {submitting ? 'Salvando...' : editingOcorrencia ? 'Salvar' : 'Criar'}
