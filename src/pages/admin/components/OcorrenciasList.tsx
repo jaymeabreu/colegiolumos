@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Plus, Edit, Trash2, Filter, AlertCircle, Calendar, X } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Plus, Edit, Trash2, Filter, AlertCircle, Calendar, User } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
@@ -10,13 +10,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Textarea } from '../../../components/ui/textarea';
 import { supabase } from '../../../lib/supabaseClient';
 import { supabaseService } from '../../../services/supabaseService';
-
-interface Usuario {
-  id: string;
-  nome: string;
-  tipo: 'aluno' | 'professor';
-  turma_id?: number;
-}
 
 interface Ocorrencia {
   id: string;
@@ -41,7 +34,7 @@ export function OcorrenciasList() {
   const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false);
   const [editingOcorrencia, setEditingOcorrencia] = useState<Ocorrencia | null>(null);
   const [loading, setLoading] = useState(false);
-
+  
   // Estados para busca de usuário (IGUAL AO COMUNICADO)
   const [usuarioBusca, setUsuarioBusca] = useState('');
   const [showUsuariosList, setShowUsuariosList] = useState(false);
@@ -53,8 +46,7 @@ export function OcorrenciasList() {
   });
 
   const [formData, setFormData] = useState({
-    usuario_id: '',
-    tipo_usuario: '' as 'aluno' | 'professor' | '',
+    usuarioId: '',
     tipo: '',
     data: '',
     descricao: '',
@@ -62,19 +54,15 @@ export function OcorrenciasList() {
   });
 
   // Combina alunos e professores para busca (IGUAL AO COMUNICADO)
-  const todosUsuarios = useMemo(() => {
-    return [
-      ...alunos.map(a => ({ id: a.id, nome: a.nome, tipo: 'Aluno' as const, turma_id: a.turma_id })),
-      ...professores.map(p => ({ id: p.id, nome: p.nome, tipo: 'Professor' as const }))
-    ].sort((a, b) => a.nome.localeCompare(b.nome));
-  }, [alunos, professores]);
+  const todosUsuarios = [
+    ...alunos.map(a => ({ id: a.id, nome: a.nome, tipo: 'Aluno', turma_id: a.turma_id })),
+    ...professores.map(p => ({ id: p.id, nome: p.nome, tipo: 'Professor' }))
+  ].sort((a, b) => a.nome.localeCompare(b.nome));
 
   // Filtra usuários baseado na busca (IGUAL AO COMUNICADO)
-  const usuariosFiltrados = useMemo(() => {
-    return todosUsuarios.filter(usuario =>
-      usuario.nome.toLowerCase().includes(usuarioBusca.toLowerCase())
-    ).slice(0, 50); // Limita a 50 resultados
-  }, [todosUsuarios, usuarioBusca]);
+  const usuariosFiltrados = todosUsuarios.filter(usuario =>
+    usuario.nome.toLowerCase().includes(usuarioBusca.toLowerCase())
+  ).slice(0, 50); // Limita a 50 resultados
 
   // Fecha a lista de usuários quando clicar fora (IGUAL AO COMUNICADO)
   useEffect(() => {
@@ -85,40 +73,45 @@ export function OcorrenciasList() {
     }
   }, [showUsuariosList]);
 
-  const loadTurmas = useCallback(async () => {
-    try {
-      const turmasData = await supabaseService.getTurmas();
-      setTurmas(turmasData);
-    } catch (error) {
-      console.error('Erro ao carregar turmas:', error);
-    }
+  useEffect(() => {
+    loadData();
   }, []);
 
-  const loadUsuarios = useCallback(async () => {
+  const loadData = async () => {
     try {
-      const [alunosData, professoresData] = await Promise.all([
+      setLoading(true);
+      const [turmasData, alunosData, professoresData] = await Promise.all([
+        supabaseService.getTurmas(),
         supabaseService.getAlunos(),
         supabaseService.getProfessores()
       ]);
+      
+      setTurmas(turmasData);
       setAlunos(alunosData);
       setProfessores(professoresData);
+      
+      await loadOcorrencias(alunosData, professoresData);
     } catch (error) {
-      console.error('Erro ao carregar usuários:', error);
+      console.error('Erro ao carregar dados:', error);
+    } finally {
+      setLoading(false);
     }
-  }, []);
+  };
 
-  const loadOcorrencias = useCallback(async () => {
+  const loadOcorrencias = async (alunosData?: any[], professoresData?: any[]) => {
     try {
-      setLoading(true);
       const { data, error } = await supabase
         .from('ocorrencias')
         .select('*')
         .order('data', { ascending: false });
 
       if (data) {
+        const alunosList = alunosData || alunos;
+        const professoresList = professoresData || professores;
+        
         const ocorrenciasComNome = data.map((occ: any) => {
-          const aluno = alunos.find(a => a.id.toString() === occ.usuario_id);
-          const professor = professores.find(p => p.id.toString() === occ.usuario_id);
+          const aluno = alunosList.find(a => a.id.toString() === occ.usuario_id);
+          const professor = professoresList.find(p => p.id.toString() === occ.usuario_id);
           const usuario = aluno || professor;
           
           return {
@@ -132,50 +125,35 @@ export function OcorrenciasList() {
       }
     } catch (error) {
       console.error('Erro ao carregar ocorrências:', error);
-      alert('Erro ao carregar ocorrências');
-    } finally {
-      setLoading(false);
     }
-  }, [alunos, professores]);
+  };
 
-  useEffect(() => {
-    loadTurmas();
-    loadUsuarios();
-  }, [loadTurmas, loadUsuarios]);
-
-  useEffect(() => {
-    if (alunos.length > 0 || professores.length > 0) {
-      loadOcorrencias();
+  const filteredOcorrencias = ocorrencias.filter(ocorrencia => {
+    if (searchTerm && !ocorrencia.usuario_nome?.toLowerCase().includes(searchTerm.toLowerCase()) && 
+        !ocorrencia.descricao.toLowerCase().includes(searchTerm.toLowerCase())) {
+      return false;
     }
-  }, [alunos, professores, loadOcorrencias]);
 
-  const filteredOcorrencias = useMemo(() => {
-    return ocorrencias.filter(ocorrencia => {
-      if (searchTerm && !ocorrencia.usuario_nome?.toLowerCase().includes(searchTerm.toLowerCase()) && 
-          !ocorrencia.descricao.toLowerCase().includes(searchTerm.toLowerCase())) {
-        return false;
-      }
+    if (filters.tipo && ocorrencia.tipo !== filters.tipo) {
+      return false;
+    }
 
-      if (filters.tipo && ocorrencia.tipo !== filters.tipo) {
-        return false;
-      }
+    if (filters.dataInicio && new Date(ocorrencia.data) < new Date(filters.dataInicio)) {
+      return false;
+    }
 
-      if (filters.dataInicio && new Date(ocorrencia.data) < new Date(filters.dataInicio)) {
-        return false;
-      }
+    if (filters.dataFim && new Date(ocorrencia.data) > new Date(filters.dataFim)) {
+      return false;
+    }
 
-      if (filters.dataFim && new Date(ocorrencia.data) > new Date(filters.dataFim)) {
-        return false;
-      }
+    return true;
+  });
 
-      return true;
-    });
-  }, [ocorrencias, searchTerm, filters]);
-
-  const resetForm = useCallback(() => {
+  const handleCloseDialog = () => {
+    setIsDialogOpen(false);
+    setEditingOcorrencia(null);
     setFormData({
-      usuario_id: '',
-      tipo_usuario: '',
+      usuarioId: '',
       tipo: '',
       data: '',
       descricao: '',
@@ -183,14 +161,12 @@ export function OcorrenciasList() {
     });
     setUsuarioBusca('');
     setShowUsuariosList(false);
-    setEditingOcorrencia(null);
-    setIsDialogOpen(false);
-  }, []);
+  };
 
-  const handleSubmit = useCallback(async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.usuario_id || !formData.tipo || !formData.data || !formData.descricao) {
+    if (!formData.usuarioId || !formData.tipo || !formData.data || !formData.descricao) {
       alert('Preencha todos os campos obrigatórios');
       return;
     }
@@ -198,9 +174,13 @@ export function OcorrenciasList() {
     try {
       setLoading(true);
 
+      // Descobre o tipo do usuário
+      const aluno = alunos.find(a => a.id.toString() === formData.usuarioId);
+      const tipoUsuario = aluno ? 'aluno' : 'professor';
+
       const dataToSave = {
-        usuario_id: formData.usuario_id,
-        tipo_usuario: formData.tipo_usuario,
+        usuario_id: formData.usuarioId,
+        tipo_usuario: tipoUsuario,
         tipo: formData.tipo,
         data: formData.data,
         descricao: formData.descricao,
@@ -225,16 +205,16 @@ export function OcorrenciasList() {
       }
 
       await loadOcorrencias();
-      resetForm();
+      handleCloseDialog();
     } catch (error) {
       console.error('Erro ao salvar ocorrência:', error);
       alert('Erro ao salvar ocorrência');
     } finally {
       setLoading(false);
     }
-  }, [formData, editingOcorrencia, loadOcorrencias, resetForm]);
+  };
 
-  const handleEdit = useCallback((ocorrencia: Ocorrencia) => {
+  const handleEdit = (ocorrencia: Ocorrencia) => {
     setEditingOcorrencia(ocorrencia);
     
     // Busca o nome do usuário
@@ -243,8 +223,7 @@ export function OcorrenciasList() {
     const usuarioNome = aluno ? `${aluno.nome} (Aluno)` : professor ? `${professor.nome} (Professor)` : '';
 
     setFormData({
-      usuario_id: ocorrencia.usuario_id,
-      tipo_usuario: ocorrencia.tipo_usuario || '',
+      usuarioId: ocorrencia.usuario_id,
       tipo: ocorrencia.tipo,
       data: ocorrencia.data,
       descricao: ocorrencia.descricao,
@@ -253,9 +232,9 @@ export function OcorrenciasList() {
     
     setUsuarioBusca(usuarioNome);
     setIsDialogOpen(true);
-  }, [alunos, professores]);
+  };
 
-  const handleDelete = useCallback(async (id: string) => {
+  const handleDelete = async (id: string) => {
     if (!confirm('Tem certeza que deseja excluir esta ocorrência?')) return;
 
     try {
@@ -274,7 +253,7 @@ export function OcorrenciasList() {
     } finally {
       setLoading(false);
     }
-  }, [loadOcorrencias]);
+  };
 
   const getTipoColor = (tipo: string) => {
     switch(tipo?.toLowerCase()) {
@@ -322,161 +301,156 @@ export function OcorrenciasList() {
             <h3 className="card-title">Ocorrências</h3>
             <CardDescription>Registre e gerencie ocorrências de alunos e professores</CardDescription>
           </div>
-          <Dialog open={isDialogOpen} onOpenChange={(open) => {
-            setIsDialogOpen(open);
-            if (!open) resetForm();
-          }}>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button onClick={() => { resetForm(); setIsDialogOpen(true); }}>
+              <Button onClick={() => { handleCloseDialog(); setIsDialogOpen(true); }}>
                 <Plus className="h-4 w-4 mr-2" />
                 Nova Ocorrência
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[95vh] overflow-y-auto">
+            <DialogContent className="max-w-[95vw] lg:max-w-[800px] max-h-[95vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>{editingOcorrencia ? 'Editar Ocorrência' : 'Nova Ocorrência'}</DialogTitle>
                 <DialogDescription>
                   {editingOcorrencia ? 'Atualize a ocorrência' : 'Registre uma nova ocorrência de aluno ou professor'}
                 </DialogDescription>
               </DialogHeader>
-              <form onSubmit={handleSubmit}>
-                <div className="grid gap-4 py-4">
-                  {/* Campo de busca de usuário (IGUAL AO COMUNICADO) */}
-                  <div className="space-y-2">
-                    <Label htmlFor="usuarioSearch">Buscar usuário *</Label>
-                    <div className="relative" onClick={e => e.stopPropagation()}>
-                      <Input
-                        id="usuarioSearch"
-                        type="text"
-                        placeholder="Digite o nome do aluno ou professor..."
-                        value={usuarioBusca}
-                        onChange={e => setUsuarioBusca(e.target.value)}
-                        onFocus={() => setShowUsuariosList(true)}
-                        disabled={loading}
-                        autoComplete="off"
-                        required
-                      />
-                      
-                      {/* Lista de resultados filtrados */}
-                      {showUsuariosList && usuariosFiltrados.length > 0 && (
-                        <div className="absolute z-50 w-full mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-y-auto">
-                          {usuariosFiltrados.map(usuario => (
-                            <button
-                              key={`${usuario.tipo}-${usuario.id}`}
-                              type="button"
-                              onClick={() => {
-                                setFormData(prev => ({ 
-                                  ...prev, 
-                                  usuario_id: usuario.id.toString(),
-                                  tipo_usuario: usuario.tipo === 'Aluno' ? 'aluno' : 'professor'
-                                }));
-                                setUsuarioBusca(`${usuario.nome} (${usuario.tipo})`);
-                                setShowUsuariosList(false);
-                              }}
-                              className="w-full px-4 py-2 text-left hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
-                            >
-                              <div className="font-medium">{usuario.nome}</div>
-                              <div className="text-xs text-gray-500">
-                                {usuario.tipo}
-                                {usuario.turma_id && ` • Turma: ${getTurmaNome(usuario.turma_id)}`}
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      )}
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {/* CAMPO DE BUSCA DE USUÁRIO (IGUAL AO COMUNICADO) */}
+                <div className="space-y-2">
+                  <Label htmlFor="usuarioSearch">Buscar usuário *</Label>
+                  <div className="relative" onClick={e => e.stopPropagation()}>
+                    <Input
+                      id="usuarioSearch"
+                      type="text"
+                      placeholder="Digite o nome do aluno ou professor..."
+                      value={usuarioBusca}
+                      onChange={e => setUsuarioBusca(e.target.value)}
+                      onFocus={() => setShowUsuariosList(true)}
+                      disabled={loading}
+                      autoComplete="off"
+                    />
+                    
+                    {/* Lista de resultados filtrados */}
+                    {showUsuariosList && usuariosFiltrados.length > 0 && (
+                      <div className="absolute z-50 w-full mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-y-auto">
+                        {usuariosFiltrados.map(usuario => (
+                          <button
+                            key={`${usuario.tipo}-${usuario.id}`}
+                            type="button"
+                            onClick={() => {
+                              setFormData(prev => ({ ...prev, usuarioId: usuario.id.toString() }));
+                              setUsuarioBusca(`${usuario.nome} (${usuario.tipo})`);
+                              setShowUsuariosList(false);
+                            }}
+                            className="w-full px-4 py-2 text-left hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
+                          >
+                            <div className="font-medium">{usuario.nome}</div>
+                            <div className="text-xs text-gray-500">
+                              {usuario.tipo}
+                              {usuario.turma_id && ` • Turma: ${getTurmaNome(usuario.turma_id)}`}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
 
-                      {/* Mostra mensagem se não encontrar nada */}
-                      {showUsuariosList && usuarioBusca && usuariosFiltrados.length === 0 && (
-                        <div className="absolute z-50 w-full mt-1 bg-white border rounded-md shadow-lg p-4 text-center text-gray-500">
-                          Nenhum usuário encontrado
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Mostra usuário selecionado */}
-                    {formData.usuario_id && (
-                      <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                        <span className="text-sm text-gray-600 flex-1">
-                          Selecionado: <strong>{usuarioBusca}</strong>
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setFormData(prev => ({ ...prev, usuario_id: '', tipo_usuario: '' }));
-                            setUsuarioBusca('');
-                          }}
-                          className="text-red-600 hover:text-red-800"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
+                    {/* Mostra mensagem se não encontrar nada */}
+                    {showUsuariosList && usuarioBusca && usuariosFiltrados.length === 0 && (
+                      <div className="absolute z-50 w-full mt-1 bg-white border rounded-md shadow-lg p-4 text-center text-gray-500">
+                        Nenhum usuário encontrado
                       </div>
                     )}
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="tipo">Tipo de Ocorrência *</Label>
-                      <Select 
-                        value={formData.tipo}
-                        onValueChange={(value) => setFormData({ ...formData, tipo: value })}
+                  {/* Mostra usuário selecionado */}
+                  {formData.usuarioId && (
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <User className="h-4 w-4" />
+                      <span>Selecionado: {usuarioBusca}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormData(prev => ({ ...prev, usuarioId: '' }));
+                          setUsuarioBusca('');
+                        }}
+                        className="text-red-600 hover:text-red-800"
                       >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione o tipo" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Comportamento">Comportamento</SelectItem>
-                          <SelectItem value="Falta">Falta</SelectItem>
-                          <SelectItem value="Positivo">Positivo</SelectItem>
-                          <SelectItem value="Elogio">Elogio</SelectItem>
-                          <SelectItem value="Disciplinar">Disciplinar</SelectItem>
-                          <SelectItem value="Outro">Outro</SelectItem>
-                        </SelectContent>
-                      </Select>
+                        ✕
+                      </button>
                     </div>
+                  )}
+                </div>
 
-                    <div className="grid gap-2">
-                      <Label htmlFor="data">Data *</Label>
-                      <Input
-                        id="data"
-                        type="date"
-                        value={formData.data}
-                        onChange={(e) => setFormData({ ...formData, data: e.target.value })}
-                        required
-                      />
-                    </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="tipo">Tipo de Ocorrência *</Label>
+                    <Select 
+                      value={formData.tipo}
+                      onValueChange={(value) => setFormData(prev => ({ ...prev, tipo: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o tipo" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Comportamento">Comportamento</SelectItem>
+                        <SelectItem value="Falta">Falta</SelectItem>
+                        <SelectItem value="Positivo">Positivo</SelectItem>
+                        <SelectItem value="Elogio">Elogio</SelectItem>
+                        <SelectItem value="Disciplinar">Disciplinar</SelectItem>
+                        <SelectItem value="Outro">Outro</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
 
-                  <div className="grid gap-2">
-                    <Label htmlFor="descricao">Descrição *</Label>
-                    <Textarea
-                      id="descricao"
-                      value={formData.descricao}
-                      onChange={(e) => setFormData({ ...formData, descricao: e.target.value })}
-                      placeholder="Descreva a ocorrência..."
-                      rows={3}
+                  <div className="space-y-2">
+                    <Label htmlFor="data">Data *</Label>
+                    <Input
+                      id="data"
+                      type="date"
+                      value={formData.data}
+                      onChange={(e) => setFormData(prev => ({ ...prev, data: e.target.value }))}
                       required
                     />
                   </div>
-
-                  <div className="grid gap-2">
-                    <Label htmlFor="acao">Ação Tomada (opcional)</Label>
-                    <Textarea
-                      id="acao"
-                      value={formData.acao_tomada}
-                      onChange={(e) => setFormData({ ...formData, acao_tomada: e.target.value })}
-                      placeholder="Qual ação foi tomada?"
-                      rows={2}
-                    />
-                  </div>
                 </div>
-                <DialogFooter>
-                  <Button type="button" variant="outline" onClick={resetForm}>
+
+                <div className="space-y-2">
+                  <Label htmlFor="descricao">Descrição *</Label>
+                  <Textarea
+                    id="descricao"
+                    value={formData.descricao}
+                    onChange={(e) => setFormData(prev => ({ ...prev, descricao: e.target.value }))}
+                    placeholder="Descreva a ocorrência..."
+                    rows={3}
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="acao">Ação Tomada (opcional)</Label>
+                  <Textarea
+                    id="acao"
+                    value={formData.acao_tomada}
+                    onChange={(e) => setFormData(prev => ({ ...prev, acao_tomada: e.target.value }))}
+                    placeholder="Qual ação foi tomada?"
+                    rows={2}
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2 pt-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleCloseDialog}
+                    disabled={loading}
+                  >
                     Cancelar
                   </Button>
-                  <Button type="submit" disabled={loading || !formData.usuario_id}>
-                    {loading ? 'Salvando...' : (editingOcorrencia ? 'Atualizar' : 'Criar')}
+                  <Button type="submit" disabled={loading}>
+                    {loading ? 'Salvando...' : (editingOcorrencia ? 'Salvar Alterações' : 'Criar Ocorrência')}
                   </Button>
-                </DialogFooter>
+                </div>
               </form>
             </DialogContent>
           </Dialog>
