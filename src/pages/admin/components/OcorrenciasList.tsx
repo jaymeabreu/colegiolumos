@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Plus, Edit, Trash2, Filter, AlertCircle, Calendar } from 'lucide-react';
+import { Plus, Edit, Trash2, Filter, AlertCircle, Calendar, Search, X } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
@@ -11,10 +11,18 @@ import { Textarea } from '../../../components/ui/textarea';
 import { supabase } from '../../../lib/supabaseClient';
 import { supabaseService } from '../../../services/supabaseService';
 
+interface Usuario {
+  id: string;
+  nome: string;
+  tipo: 'aluno' | 'professor';
+  turma_id?: number;
+}
+
 interface Ocorrencia {
   id: string;
-  aluno_id: string;
-  aluno_nome?: string;
+  usuario_id: string;
+  usuario_nome?: string;
+  tipo_usuario?: 'aluno' | 'professor';
   turma_id?: number;
   tipo: string;
   data: string;
@@ -26,11 +34,17 @@ interface Ocorrencia {
 export function OcorrenciasList() {
   const [ocorrencias, setOcorrencias] = useState<Ocorrencia[]>([]);
   const [turmas, setTurmas] = useState<any[]>([]);
+  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false);
   const [editingOcorrencia, setEditingOcorrencia] = useState<Ocorrencia | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Estados para busca de usuário
+  const [userSearchTerm, setUserSearchTerm] = useState('');
+  const [selectedUser, setSelectedUser] = useState<Usuario | null>(null);
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
 
   const [filters, setFilters] = useState({
     tipo: '',
@@ -39,7 +53,8 @@ export function OcorrenciasList() {
   });
 
   const [formData, setFormData] = useState({
-    aluno_id: '',
+    usuario_id: '',
+    tipo_usuario: '' as 'aluno' | 'professor' | '',
     tipo: '',
     data: '',
     descricao: '',
@@ -55,23 +70,49 @@ export function OcorrenciasList() {
     }
   }, []);
 
+  const loadUsuarios = useCallback(async () => {
+    try {
+      // Carregar alunos
+      const alunos = await supabaseService.getAlunos();
+      const alunosFormatados: Usuario[] = alunos.map((aluno: any) => ({
+        id: aluno.id,
+        nome: aluno.nome,
+        tipo: 'aluno' as const,
+        turma_id: aluno.turma_id
+      }));
+
+      // Carregar professores
+      const professores = await supabaseService.getProfessores();
+      const professoresFormatados: Usuario[] = professores.map((prof: any) => ({
+        id: prof.id,
+        nome: prof.nome,
+        tipo: 'professor' as const
+      }));
+
+      setUsuarios([...alunosFormatados, ...professoresFormatados]);
+    } catch (error) {
+      console.error('Erro ao carregar usuários:', error);
+    }
+  }, []);
+
   const loadOcorrencias = useCallback(async () => {
     try {
       setLoading(true);
       const { data, error } = await supabase
         .from('ocorrencias')
-        .select(`
-          *,
-          alunos:aluno_id (nome, turma_id)
-        `)
+        .select('*')
         .order('data', { ascending: false });
 
       if (data) {
-        const ocorrenciasComNome = data.map((occ: any) => ({
-          ...occ,
-          aluno_nome: occ.alunos?.nome || 'Desconhecido',
-          turma_id: occ.alunos?.turma_id
-        }));
+        const ocorrenciasComNome = data.map((occ: any) => {
+          const usuario = usuarios.find(u => u.id === occ.usuario_id);
+          return {
+            ...occ,
+            usuario_nome: usuario?.nome || 'Desconhecido',
+            turma_id: usuario?.turma_id,
+            tipo_usuario: occ.tipo_usuario || usuario?.tipo
+          };
+        });
         setOcorrencias(ocorrenciasComNome);
       }
     } catch (error) {
@@ -80,16 +121,32 @@ export function OcorrenciasList() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [usuarios]);
 
   useEffect(() => {
-    loadOcorrencias();
     loadTurmas();
-  }, [loadOcorrencias, loadTurmas]);
+    loadUsuarios();
+  }, [loadTurmas, loadUsuarios]);
+
+  useEffect(() => {
+    if (usuarios.length > 0) {
+      loadOcorrencias();
+    }
+  }, [usuarios, loadOcorrencias]);
+
+  // Filtrar usuários pela busca
+  const filteredUsers = useMemo(() => {
+    if (!userSearchTerm.trim()) return usuarios;
+    
+    const searchLower = userSearchTerm.toLowerCase();
+    return usuarios.filter(user => 
+      user.nome.toLowerCase().includes(searchLower)
+    );
+  }, [usuarios, userSearchTerm]);
 
   const filteredOcorrencias = useMemo(() => {
     return ocorrencias.filter(ocorrencia => {
-      if (searchTerm && !ocorrencia.aluno_id.toLowerCase().includes(searchTerm.toLowerCase()) && 
+      if (searchTerm && !ocorrencia.usuario_nome?.toLowerCase().includes(searchTerm.toLowerCase()) && 
           !ocorrencia.descricao.toLowerCase().includes(searchTerm.toLowerCase())) {
         return false;
       }
@@ -112,20 +169,34 @@ export function OcorrenciasList() {
 
   const resetForm = useCallback(() => {
     setFormData({
-      aluno_id: '',
+      usuario_id: '',
+      tipo_usuario: '',
       tipo: '',
       data: '',
       descricao: '',
       acao_tomada: ''
     });
+    setSelectedUser(null);
+    setUserSearchTerm('');
     setEditingOcorrencia(null);
     setIsDialogOpen(false);
+  }, []);
+
+  const handleUserSelect = useCallback((user: Usuario) => {
+    setSelectedUser(user);
+    setUserSearchTerm(user.nome);
+    setShowUserDropdown(false);
+    setFormData(prev => ({
+      ...prev,
+      usuario_id: user.id,
+      tipo_usuario: user.tipo
+    }));
   }, []);
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.aluno_id || !formData.tipo || !formData.data || !formData.descricao) {
+    if (!formData.usuario_id || !formData.tipo || !formData.data || !formData.descricao) {
       alert('Preencha todos os campos obrigatórios');
       return;
     }
@@ -133,10 +204,19 @@ export function OcorrenciasList() {
     try {
       setLoading(true);
 
+      const dataToSave = {
+        usuario_id: formData.usuario_id,
+        tipo_usuario: formData.tipo_usuario,
+        tipo: formData.tipo,
+        data: formData.data,
+        descricao: formData.descricao,
+        acao_tomada: formData.acao_tomada
+      };
+
       if (editingOcorrencia) {
         const { error } = await supabase
           .from('ocorrencias')
-          .update(formData)
+          .update(dataToSave)
           .eq('id', editingOcorrencia.id);
 
         if (error) throw error;
@@ -144,7 +224,7 @@ export function OcorrenciasList() {
       } else {
         const { error } = await supabase
           .from('ocorrencias')
-          .insert([formData]);
+          .insert([dataToSave]);
 
         if (error) throw error;
         alert('Ocorrência criada!');
@@ -162,15 +242,23 @@ export function OcorrenciasList() {
 
   const handleEdit = useCallback((ocorrencia: Ocorrencia) => {
     setEditingOcorrencia(ocorrencia);
+    
+    const usuario = usuarios.find(u => u.id === ocorrencia.usuario_id);
+    if (usuario) {
+      setSelectedUser(usuario);
+      setUserSearchTerm(usuario.nome);
+    }
+
     setFormData({
-      aluno_id: ocorrencia.aluno_id,
+      usuario_id: ocorrencia.usuario_id,
+      tipo_usuario: ocorrencia.tipo_usuario || '',
       tipo: ocorrencia.tipo,
       data: ocorrencia.data,
       descricao: ocorrencia.descricao,
       acao_tomada: ocorrencia.acao_tomada || ''
     });
     setIsDialogOpen(true);
-  }, []);
+  }, [usuarios]);
 
   const handleDelete = useCallback(async (id: string) => {
     if (!confirm('Tem certeza que deseja excluir esta ocorrência?')) return;
@@ -224,15 +312,25 @@ export function OcorrenciasList() {
     return new Date(dateString).toLocaleDateString('pt-BR');
   };
 
+  const getTipoUsuarioBadge = (tipo?: 'aluno' | 'professor') => {
+    if (tipo === 'professor') {
+      return <Badge className="bg-purple-500 text-white">Professor</Badge>;
+    }
+    return <Badge className="bg-blue-500 text-white">Aluno</Badge>;
+  };
+
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '1rem' }}>
           <div>
             <h3 className="card-title">Ocorrências</h3>
-            <CardDescription>Registre e gerencie ocorrências dos alunos</CardDescription>
+            <CardDescription>Registre e gerencie ocorrências de alunos e professores</CardDescription>
           </div>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <Dialog open={isDialogOpen} onOpenChange={(open) => {
+            setIsDialogOpen(open);
+            if (!open) resetForm();
+          }}>
             <DialogTrigger asChild>
               <Button onClick={() => { resetForm(); setIsDialogOpen(true); }}>
                 <Plus className="h-4 w-4 mr-2" />
@@ -243,24 +341,90 @@ export function OcorrenciasList() {
               <DialogHeader>
                 <DialogTitle>{editingOcorrencia ? 'Editar Ocorrência' : 'Nova Ocorrência'}</DialogTitle>
                 <DialogDescription>
-                  {editingOcorrencia ? 'Atualize a ocorrência' : 'Registre uma nova ocorrência de aluno'}
+                  {editingOcorrencia ? 'Atualize a ocorrência' : 'Registre uma nova ocorrência de aluno ou professor'}
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleSubmit}>
                 <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="aluno">ID do Aluno *</Label>
+                  {/* Campo de busca de usuário */}
+                  <div className="grid gap-2 relative">
+                    <Label htmlFor="usuario">Buscar usuário *</Label>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                       <Input
-                        id="aluno"
-                        value={formData.aluno_id}
-                        onChange={(e) => setFormData({ ...formData, aluno_id: e.target.value })}
-                        placeholder="ID do aluno"
+                        id="usuario"
+                        value={userSearchTerm}
+                        onChange={(e) => {
+                          setUserSearchTerm(e.target.value);
+                          setShowUserDropdown(true);
+                        }}
+                        onFocus={() => setShowUserDropdown(true)}
+                        placeholder="Digite o nome do aluno ou professor..."
+                        className="pl-9 pr-9"
                         required
                       />
+                      {userSearchTerm && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setUserSearchTerm('');
+                            setSelectedUser(null);
+                            setFormData(prev => ({ ...prev, usuario_id: '', tipo_usuario: '' }));
+                          }}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      )}
                     </div>
+
+                    {/* Dropdown de resultados */}
+                    {showUserDropdown && filteredUsers.length > 0 && (
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto z-50">
+                        {filteredUsers.map((user) => (
+                          <button
+                            key={user.id}
+                            type="button"
+                            onClick={() => handleUserSelect(user)}
+                            className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center justify-between border-b last:border-b-0"
+                          >
+                            <div>
+                              <p className="font-medium text-gray-900">{user.nome}</p>
+                              <p className="text-xs text-gray-500 mt-0.5">
+                                {user.tipo === 'aluno' ? 'Aluno' : 'Professor'}
+                                {user.turma_id && ` • Turma: ${getTurmaNome(user.turma_id)}`}
+                              </p>
+                            </div>
+                            {user.tipo === 'aluno' ? (
+                              <Badge className="bg-blue-500 text-white text-xs">Aluno</Badge>
+                            ) : (
+                              <Badge className="bg-purple-500 text-white text-xs">Professor</Badge>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Usuário selecionado */}
+                    {selectedUser && (
+                      <div className="mt-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium text-sm">{selectedUser.nome}</p>
+                            <p className="text-xs text-gray-500">
+                              {selectedUser.tipo === 'aluno' ? 'Aluno' : 'Professor'}
+                              {selectedUser.turma_id && ` • Turma: ${getTurmaNome(selectedUser.turma_id)}`}
+                            </p>
+                          </div>
+                          {getTipoUsuarioBadge(selectedUser.tipo)}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
                     <div className="grid gap-2">
-                      <Label htmlFor="tipo">Tipo *</Label>
+                      <Label htmlFor="tipo">Tipo de Ocorrência *</Label>
                       <Select 
                         value={formData.tipo}
                         onValueChange={(value) => setFormData({ ...formData, tipo: value })}
@@ -278,17 +442,17 @@ export function OcorrenciasList() {
                         </SelectContent>
                       </Select>
                     </div>
-                  </div>
 
-                  <div className="grid gap-2">
-                    <Label htmlFor="data">Data *</Label>
-                    <Input
-                      id="data"
-                      type="date"
-                      value={formData.data}
-                      onChange={(e) => setFormData({ ...formData, data: e.target.value })}
-                      required
-                    />
+                    <div className="grid gap-2">
+                      <Label htmlFor="data">Data *</Label>
+                      <Input
+                        id="data"
+                        type="date"
+                        value={formData.data}
+                        onChange={(e) => setFormData({ ...formData, data: e.target.value })}
+                        required
+                      />
+                    </div>
                   </div>
 
                   <div className="grid gap-2">
@@ -318,7 +482,7 @@ export function OcorrenciasList() {
                   <Button type="button" variant="outline" onClick={resetForm}>
                     Cancelar
                   </Button>
-                  <Button type="submit" disabled={loading}>
+                  <Button type="submit" disabled={loading || !selectedUser}>
                     {loading ? 'Salvando...' : (editingOcorrencia ? 'Atualizar' : 'Criar')}
                   </Button>
                 </DialogFooter>
@@ -331,7 +495,7 @@ export function OcorrenciasList() {
           <div className="flex gap-4 mb-4">
             <div className="flex-1">
               <Input
-                placeholder="Buscar por aluno ou descrição..."
+                placeholder="Buscar por usuário ou descrição..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -411,17 +575,20 @@ export function OcorrenciasList() {
               {filteredOcorrencias.map((ocorrencia) => (
                 <div key={ocorrencia.id} className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 p-4 border rounded-lg">
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
                       <span className={`${getTipoColor(ocorrencia.tipo)} rounded-full px-3 py-1 text-xs font-semibold`}>
                         {capitalize(ocorrencia.tipo)}
                       </span>
+                      {getTipoUsuarioBadge(ocorrencia.tipo_usuario)}
                       <span className="text-sm font-medium text-gray-600">
-                        {ocorrencia.aluno_nome}
+                        {ocorrencia.usuario_nome}
                       </span>
                     </div>
-                    <p className="text-xs text-gray-600 mb-2">
-                      Turma: <strong>{getTurmaNome(ocorrencia.turma_id)}</strong>
-                    </p>
+                    {ocorrencia.tipo_usuario === 'aluno' && (
+                      <p className="text-xs text-gray-600 mb-2">
+                        Turma: <strong>{getTurmaNome(ocorrencia.turma_id)}</strong>
+                      </p>
+                    )}
                     <p className="text-sm text-gray-700 mb-2">{ocorrencia.descricao}</p>
                     {ocorrencia.acao_tomada && (
                       <p className="text-xs text-gray-600 mb-2">
