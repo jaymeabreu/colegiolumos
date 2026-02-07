@@ -1764,5 +1764,53 @@ class SupabaseService {
     }
   }
 }
+async saveNota(params: { 
+    avaliacaoId: number; 
+    alunoId: number; 
+    nota: number 
+  }): Promise<void> {
+    try {
+      // Verifica se já existe uma nota para essa avaliação e aluno
+      const { data: existing, error: searchError } = await supabase
+        .from('notas')
+        .select('id')
+        .eq('avaliacao_id', params.avaliacaoId)
+        .eq('aluno_id', params.alunoId)
+        .maybeSingle();
 
+      if (searchError) throw searchError;
+
+      if (existing) {
+        // Atualiza a nota existente
+        const { error: updateError } = await supabase
+          .from('notas')
+          .update({ 
+            valor: params.nota,
+            updated_at: nowIso()
+          })
+          .eq('id', existing.id);
+
+        if (updateError) throw updateError;
+      } else {
+        // Cria nova nota
+        const { error: insertError } = await supabase
+          .from('notas')
+          .insert({
+            avaliacao_id: params.avaliacaoId,
+            aluno_id: params.alunoId,
+            valor: params.nota
+          });
+
+        if (insertError) throw insertError;
+      }
+
+      this.dispatchDataUpdated('notas');
+    } catch (error) {
+      console.error('Erro ao salvar nota:', error);
+      throw error;
+    }
+  }
+}
+
+export const supabaseService = new SupabaseService();
 export const supabaseService = new SupabaseService();
