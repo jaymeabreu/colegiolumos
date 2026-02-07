@@ -5,7 +5,6 @@ import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
 import { Label } from '../../../components/ui/label';
 import { Textarea } from '../../../components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
 import { supabaseService } from '../../../services/supabaseService';
 import { MarcarPresencaModal } from './MarcarPresencaModal';
 import type { Aula, Aluno } from '../../../services/supabaseService';
@@ -36,7 +35,7 @@ export function CriarAulaModal({
     conteudo: '',
     quantidade_aulas: '1',
     tipo_aula: 'Teórica',
-    aula_assincrona: false,
+    aula_assincrona: 'Não',
     conteudo_detalhado: '',
     observacoes: ''
   });
@@ -49,7 +48,7 @@ export function CriarAulaModal({
         conteudo: aulaEditando.conteudo || '',
         quantidade_aulas: (aulaEditando.quantidade_aulas || 1).toString(),
         tipo_aula: aulaEditando.tipo_aula || 'Teórica',
-        aula_assincrona: aulaEditando.aula_assincrona || false,
+        aula_assincrona: aulaEditando.aula_assincrona ? 'Sim' : 'Não',
         conteudo_detalhado: aulaEditando.conteudo_detalhado || '',
         observacoes: aulaEditando.observacoes || ''
       });
@@ -59,7 +58,7 @@ export function CriarAulaModal({
         conteudo: '',
         quantidade_aulas: '1',
         tipo_aula: 'Teórica',
-        aula_assincrona: false,
+        aula_assincrona: 'Não',
         conteudo_detalhado: '',
         observacoes: ''
       });
@@ -83,7 +82,7 @@ export function CriarAulaModal({
           conteudo: formData.conteudo,
           quantidade_aulas: parseInt(formData.quantidade_aulas),
           tipo_aula: formData.tipo_aula,
-          aula_assincrona: formData.aula_assincrona,
+          aula_assincrona: formData.aula_assincrona === 'Sim',
           conteudo_detalhado: formData.conteudo_detalhado || undefined,
           observacoes: formData.observacoes || null
         });
@@ -97,7 +96,7 @@ export function CriarAulaModal({
           conteudo: formData.conteudo,
           quantidade_aulas: parseInt(formData.quantidade_aulas),
           tipo_aula: formData.tipo_aula,
-          aula_assincrona: formData.aula_assincrona,
+          aula_assincrona: formData.aula_assincrona === 'Sim',
           conteudo_detalhado: formData.conteudo_detalhado || undefined,
           observacoes: formData.observacoes || null
         });
@@ -109,7 +108,7 @@ export function CriarAulaModal({
           conteudo: '',
           quantidade_aulas: '1',
           tipo_aula: 'Teórica',
-          aula_assincrona: false,
+          aula_assincrona: 'Não',
           conteudo_detalhado: '',
           observacoes: ''
         });
@@ -204,52 +203,50 @@ export function CriarAulaModal({
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
-                    <Label>Quantidade de aulas</Label>
-                    <Select 
+                    <Label htmlFor="quantidade_aulas">Quantidade de aulas</Label>
+                    <select
+                      id="quantidade_aulas"
                       value={formData.quantidade_aulas}
-                      onValueChange={(value) => setFormData({ ...formData, quantidade_aulas: value })}
+                      onChange={(e) => setFormData({ ...formData, quantidade_aulas: e.target.value })}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1">1 aula</SelectItem>
-                        <SelectItem value="2">2 aulas</SelectItem>
-                      </SelectContent>
-                    </Select>
+                      <option value="1">1 aula</option>
+                      <option value="2">2 aulas</option>
+                    </select>
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Tipo de aula</Label>
-                    <Select 
+                    <Label htmlFor="tipo_aula">Tipo de aula</Label>
+                    <select
+                      id="tipo_aula"
                       value={formData.tipo_aula}
-                      onValueChange={(value) => setFormData({ ...formData, tipo_aula: value })}
+                      onChange={(e) => setFormData({ ...formData, tipo_aula: e.target.value })}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Teórica">Teórica</SelectItem>
-                        <SelectItem value="Prática">Prática</SelectItem>
-                        <SelectItem value="Teórica e Prática">Teórica e Prática</SelectItem>
-                      </SelectContent>
-                    </Select>
+                      <option value="Teórica">Teórica</option>
+                      <option value="Prática">Prática</option>
+                      <option value="Teórica e Prática">Teórica e Prática</option>
+                    </select>
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Aula assíncrona</Label>
-                    <Select 
-                      value={formData.aula_assincrona ? 'Sim' : 'Não'}
-                      onValueChange={(value) => setFormData({ ...formData, aula_assincrona: value === 'Sim' })}
+                    <Label htmlFor="aula_assincrona">Aula assíncrona</Label>
+                    <select
+                      id="aula_assincrona"
+                      value={formData.aula_assincrona}
+                      onChange={(e) => setFormData({ ...formData, aula_assincrona: e.target.value })}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Não">Não</SelectItem>
-                        <SelectItem value="Sim">Sim</SelectItem>
-                      </SelectContent>
-                    </Select>
+                      <option value="Não">Não</option>
+                      <option value="Sim">Sim</option>
+                    </select>
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Conteúdo detalhado</Label>
+                  <Label htmlFor="conteudo_detalhado">Conteúdo detalhado</Label>
                   <Textarea
+                    id="conteudo_detalhado"
                     placeholder="Descrição detalhada..."
                     value={formData.conteudo_detalhado}
                     onChange={(e) => setFormData({ ...formData, conteudo_detalhado: e.target.value })}
@@ -258,8 +255,9 @@ export function CriarAulaModal({
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Observações</Label>
+                  <Label htmlFor="observacoes">Observações</Label>
                   <Textarea
+                    id="observacoes"
                     placeholder="Observações..."
                     value={formData.observacoes}
                     onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
