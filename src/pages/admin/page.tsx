@@ -20,18 +20,18 @@ import { supabaseService } from '../../services/supabaseService';
 import { supabase } from '../../lib/supabaseClient';
 import { CoordinadorSidebar } from '../../components/admin/CoordinadorSidebar';
 
-// Ícone de calendário SVG idêntico ao do print (traços finos e arredondados)
-const CustomCalendarIcon = ({ className }: { className?: string }) => (
+// ÍCONE DE CALENDÁRIO EXATO DO PRINT (Minimalista, traço fino, cinza)
+const ExactCalendarIcon = () => (
   <svg 
-    width="14" 
-    height="14" 
+    width="12" 
+    height="12" 
     viewBox="0 0 24 24" 
     fill="none" 
-    stroke="currentColor" 
-    strokeWidth="1.5" 
+    stroke="#9ca3af" 
+    strokeWidth="1.8" 
     strokeLinecap="round" 
-    strokeLinejoin="round" 
-    className={className}
+    strokeLinejoin="round"
+    style={{ marginRight: '4px' }}
   >
     <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
     <line x1="16" y1="2" x2="16" y2="6"></line>
@@ -509,11 +509,11 @@ export function AdminPage() {
                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                           Por: {comunicado.autor}
                         </p>
-                        {/* AQUI ESTÁ A CORREÇÃO EXATA DO ÍCONE CONFORME O PRINT */}
-                        <div className="text-xs text-gray-400 dark:text-gray-500 mt-2 flex items-center gap-1.5">
-                          <CustomCalendarIcon className="text-gray-400/80" />
-                          <span>{formatDate(comunicado.data_publicacao)}</span>
-                        </div>
+                        {/* ESTA É A LINHA EXATA DO PRINT: ÍCONE CINZA + DATA */}
+                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-2 flex items-center">
+                          <ExactCalendarIcon />
+                          {formatDate(comunicado.data_publicacao)}
+                        </p>
                       </div>
                     </div>
                   </div>
