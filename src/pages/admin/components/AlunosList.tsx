@@ -149,36 +149,33 @@ export function AlunosList() {
 
   // Filtros otimizados com cache mais eficiente
   const filteredAlunos = useMemo(() => {
-  return alunos.filter(aluno => {
-    // Filtro de busca
-    if (searchTerm) {
-      const searchLower = searchTerm.toLowerCase();
-      const nomeMatch = aluno.nome.toLowerCase().includes(searchLower);
-      const matriculaMatch = aluno.matricula?.toLowerCase().includes(searchLower);
-      if (!nomeMatch && !matriculaMatch) return false;
+    if (!searchTerm && !Object.values(filters).some(v => v && v !== 'all')) {
+      return alunos;
     }
 
-    // Filtro de turma
-    if (filters.turmaId && filters.turmaId !== '' && filters.turmaId !== 'all') {
-      if (aluno.turma_id?.toString() !== filters.turmaId) return false;
-    }
-    
-    // Filtro de turno
-    if (filters.turno && filters.turno !== '' && filters.turno !== 'all') {
-      const turmaAluno = turmas.find(t => t.id === aluno.turma_id);
-      if (!turmaAluno || turmaAluno.turno !== filters.turno) return false;
-    }
+    return alunos.filter(aluno => {
+      if (searchTerm && !aluno.nome.toLowerCase().includes(searchTerm.toLowerCase()) && 
+          !aluno.matricula.toLowerCase().includes(searchTerm.toLowerCase())) {
+        return false;
+      }
 
-    // Filtro de usuário
-    if (filters.temUsuario && filters.temUsuario !== '' && filters.temUsuario !== 'all') {
-      const usuarioVinculado = usuarios.some(u => u.aluno_id === aluno.id);
-      if (filters.temUsuario === 'sim' && !usuarioVinculado) return false;
-      if (filters.temUsuario === 'nao' && usuarioVinculado) return false;
-    }
+      if (filters.turmaId && filters.turmaId !== 'all' && 
+          aluno.turma_id?.toString() !== filters.turmaId) return false;
+      
+      if (filters.turno && filters.turno !== 'all') {
+        const turmaAluno = turmas.find(t => t.id === aluno.turma_id);
+        if (!turmaAluno || turmaAluno.turno !== filters.turno) return false;
+      }
 
-    return true;
-  });
-}, [alunos, searchTerm, filters, turmas, usuarios]);
+      if (filters.temUsuario && filters.temUsuario !== 'all') {
+        const usuarioVinculado = usuarios.some(u => u.aluno_id === aluno.id);
+        if (filters.temUsuario === 'sim' && !usuarioVinculado) return false;
+        if (filters.temUsuario === 'nao' && usuarioVinculado) return false;
+      }
+
+      return true;
+    });
+  }, [alunos, searchTerm, filters, turmas, usuarios]);
 
   const clearFilters = useCallback(() => {
     setFilters({
@@ -957,64 +954,64 @@ export function AlunosList() {
               <div className="space-y-4">
                 <div>
                   <Label htmlFor="filterTurma">Turma</Label>
-                  <Select value={filters.turmaId} onValueChange={(value) => setFilters({ ...filters, turmaId: value })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Todas as turmas" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todas as turmas</SelectItem>
-                      {turmas.map((turma) => (
-                        <SelectItem key={turma.id} value={turma.id.toString()}>
-                          {turma.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <select 
+                    id="filterTurma"
+                    value={filters.turmaId} 
+                    onChange={(e) => setFilters({ ...filters, turmaId: e.target.value })}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="">Todas as turmas</option>
+                    {turmas.map((turma) => (
+                      <option key={turma.id} value={turma.id.toString()}>
+                        {turma.nome}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>
                   <Label htmlFor="filterTurno">Turno</Label>
-                  <Select value={filters.turno} onValueChange={(value) => setFilters({ ...filters, turno: value })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Todos os turnos" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos os turnos</SelectItem>
-                      <SelectItem value="MANHA">Matutino</SelectItem>
-                      <SelectItem value="TARDE">Vespertino</SelectItem>
-                      <SelectItem value="NOITE">Noturno</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <select 
+                    id="filterTurno"
+                    value={filters.turno} 
+                    onChange={(e) => setFilters({ ...filters, turno: e.target.value })}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="">Todos os turnos</option>
+                    <option value="MANHA">Matutino</option>
+                    <option value="TARDE">Vespertino</option>
+                    <option value="NOITE">Noturno</option>
+                  </select>
                 </div>
 
                 <div>
                   <Label htmlFor="filterSituacao">Situação</Label>
-                  <Select value={filters.situacao} onValueChange={(value) => setFilters({ ...filters, situacao: value })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Todas as situações" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todas as situações</SelectItem>
-                      <SelectItem value="Ativo">Ativo</SelectItem>
-                      <SelectItem value="Inativo">Inativo</SelectItem>
-                      <SelectItem value="Transferido">Transferido</SelectItem>
-                      <SelectItem value="Concluído">Concluído</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <select 
+                    id="filterSituacao"
+                    value={filters.situacao} 
+                    onChange={(e) => setFilters({ ...filters, situacao: e.target.value })}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="">Todas as situações</option>
+                    <option value="Ativo">Ativo</option>
+                    <option value="Inativo">Inativo</option>
+                    <option value="Transferido">Transferido</option>
+                    <option value="Concluído">Concluído</option>
+                  </select>
                 </div>
 
                 <div>
                   <Label htmlFor="filterUsuario">Acesso ao Sistema</Label>
-                  <Select value={filters.temUsuario} onValueChange={(value) => setFilters({ ...filters, temUsuario: value })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Todos" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos</SelectItem>
-                      <SelectItem value="sim">Com usuário</SelectItem>
-                      <SelectItem value="nao">Sem usuário</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <select 
+                    id="filterUsuario"
+                    value={filters.temUsuario} 
+                    onChange={(e) => setFilters({ ...filters, temUsuario: e.target.value })}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="">Todos</option>
+                    <option value="sim">Com usuário</option>
+                    <option value="nao">Sem usuário</option>
+                  </select>
                 </div>
               </div>
               <DialogFooter>
