@@ -200,11 +200,11 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
         </CardContent>
       </Card>
 
-      {/* PORTAL DO MODAL DE OCORRÊNCIA */}
+      {/* PORTAL DO MODAL COM SELECTS FUNCIONANDO */}
       {isDialogOpen && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden p-4">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={handleClose} />
-          <div className="relative bg-white w-full max-w-xl rounded-xl shadow-2xl flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-200">
+          <div className="relative bg-white w-full max-w-xl rounded-xl shadow-2xl flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-200" style={{ zIndex: 10000 }}>
             <div className="flex items-center justify-between p-6 border-b">
               <h2 className="text-xl font-semibold">{editingOcorrencia ? 'Editar Ocorrência' : 'Nova Ocorrência'}</h2>
               <button onClick={handleClose} className="p-2 rounded-full hover:bg-gray-100"><X className="h-5 w-5 text-gray-400" /></button>
@@ -213,8 +213,8 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
               <div className="space-y-2">
                 <Label>Aluno *</Label>
                 <Select value={formData.alunoId} onValueChange={(val) => setFormData({ ...formData, alunoId: val })}>
-                  <SelectTrigger><SelectValue placeholder="Selecione o aluno" /></SelectTrigger>
-                  <SelectContent>
+                  <SelectTrigger className="relative z-50"><SelectValue placeholder="Selecione o aluno" /></SelectTrigger>
+                  <SelectContent className="z-[10001]">
                     {alunos.map(aluno => (
                       <SelectItem key={aluno.id} value={aluno.id.toString()}>{aluno.nome}</SelectItem>
                     ))}
@@ -225,8 +225,8 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
                 <div className="space-y-2">
                   <Label>Tipo *</Label>
                   <Select value={formData.tipo} onValueChange={(val) => setFormData({ ...formData, tipo: val })}>
-                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                    <SelectContent>
+                    <SelectTrigger className="relative z-50"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent className="z-[10001]">
                       <SelectItem value="Disciplinar">Disciplinar</SelectItem>
                       <SelectItem value="Pedagogica">Pedagógica</SelectItem>
                       <SelectItem value="Elogio">Elogio</SelectItem>
