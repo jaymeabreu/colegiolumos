@@ -44,7 +44,7 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
   const [formData, setFormData] = useState({
     alunoId: '',
     tipo: '',
-    data: '',
+    data: new Date().toISOString().split('T')[0],
     descricao: '',
     acaoTomada: ''
   });
@@ -93,8 +93,6 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
         descricao: formData.descricao,
         acao_tomada: formData.acaoTomada || null
       };
-
-      console.log('Enviando dados:', data);
 
       if (editingOcorrencia) {
         await supabaseService.updateOcorrencia(editingOcorrencia.id, data);
@@ -225,22 +223,44 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
       </Card>
 
       {isDialogOpen && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden p-4">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={handleClose} />
-          <div className="relative bg-white w-full max-w-xl rounded-xl shadow-2xl flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-200 z-[10000]">
-            <div className="flex items-center justify-between p-6 border-b sticky top-0 bg-white">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm" 
+            onClick={(e) => {
+              // Só fecha se clicar diretamente no fundo, não nos filhos
+              if (e.target === e.currentTarget) handleClose();
+            }} 
+          />
+          
+          {/* Modal Container */}
+          <div 
+            className="relative bg-white w-full max-w-xl rounded-xl shadow-2xl flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-200"
+            onClick={(e) => e.stopPropagation()} // Evita que cliques no modal fechem ele
+          >
+            <div className="flex items-center justify-between p-6 border-b sticky top-0 bg-white rounded-t-xl">
               <h2 className="text-xl font-semibold">{editingOcorrencia ? 'Editar Ocorrência' : 'Nova Ocorrência'}</h2>
-              <button onClick={handleClose} className="p-2 rounded-full hover:bg-gray-100"><X className="h-5 w-5 text-gray-400" /></button>
+              <button onClick={handleClose} className="p-2 rounded-full hover:bg-gray-100">
+                <X className="h-5 w-5 text-gray-400" />
+              </button>
             </div>
             
             <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto flex-1">
               <div className="space-y-2">
                 <Label htmlFor="aluno">Aluno *</Label>
-                <Select value={formData.alunoId} onValueChange={(val) => setFormData({ ...formData, alunoId: val })}>
-                  <SelectTrigger id="aluno"><SelectValue placeholder="Selecione o aluno" /></SelectTrigger>
-                  <SelectContent className="z-[10001]" position="popper" sideOffset={5}>
+                <Select 
+                  value={formData.alunoId} 
+                  onValueChange={(val) => setFormData({ ...formData, alunoId: val })}
+                >
+                  <SelectTrigger id="aluno" className="w-full">
+                    <SelectValue placeholder="Selecione o aluno" />
+                  </SelectTrigger>
+                  {/* Removido o createPortal interno do SelectContent para evitar conflitos com o Portal do Modal */}
+                  <SelectContent position="popper" className="z-[10001]">
                     {alunos.map(aluno => (
-                      <SelectItem key={aluno.id} value={aluno.id.toString()}>{aluno.nome}</SelectItem>
+                      <SelectItem key={aluno.id} value={aluno.id.toString()}>
+                        {aluno.nome}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -249,9 +269,14 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="tipo">Tipo *</Label>
-                  <Select value={formData.tipo} onValueChange={(val) => setFormData({ ...formData, tipo: val })}>
-                    <SelectTrigger id="tipo"><SelectValue placeholder="Selecione" /></SelectTrigger>
-                    <SelectContent className="z-[10001]" position="popper" sideOffset={5}>
+                  <Select 
+                    value={formData.tipo} 
+                    onValueChange={(val) => setFormData({ ...formData, tipo: val })}
+                  >
+                    <SelectTrigger id="tipo" className="w-full">
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent position="popper" className="z-[10001]">
                       <SelectItem value="Disciplinar">Disciplinar</SelectItem>
                       <SelectItem value="Pedagogica">Pedagógica</SelectItem>
                       <SelectItem value="Elogio">Elogio</SelectItem>
@@ -260,21 +285,40 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="data">Data *</Label>
-                  <Input id="data" type="date" value={formData.data} onChange={(e) => setFormData({ ...formData, data: e.target.value })} required />
+                  <Input 
+                    id="data" 
+                    type="date" 
+                    value={formData.data} 
+                    onChange={(e) => setFormData({ ...formData, data: e.target.value })} 
+                    required 
+                  />
                 </div>
               </div>
               
               <div className="space-y-2">
                 <Label htmlFor="descricao">Descrição *</Label>
-                <Textarea id="descricao" value={formData.descricao} onChange={(e) => setFormData({ ...formData, descricao: e.target.value })} placeholder="Descreva a ocorrência..." required className="min-h-[100px]" />
+                <Textarea 
+                  id="descricao" 
+                  value={formData.descricao} 
+                  onChange={(e) => setFormData({ ...formData, descricao: e.target.value })} 
+                  placeholder="Descreva a ocorrência..." 
+                  required 
+                  className="min-h-[100px]" 
+                />
               </div>
               
               <div className="space-y-2">
                 <Label htmlFor="acao">Ação Tomada (Opcional)</Label>
-                <Textarea id="acao" value={formData.acaoTomada} onChange={(e) => setFormData({ ...formData, acaoTomada: e.target.value })} placeholder="Ação tomada..." className="min-h-[80px]" />
+                <Textarea 
+                  id="acao" 
+                  value={formData.acaoTomada} 
+                  onChange={(e) => setFormData({ ...formData, acaoTomada: e.target.value })} 
+                  placeholder="Ação tomada..." 
+                  className="min-h-[80px]" 
+                />
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t sticky bottom-0 bg-white">
+              <div className="flex justify-end gap-3 pt-4 border-t sticky bottom-0 bg-white rounded-b-xl">
                 <Button type="button" variant="outline" onClick={handleClose}>Cancelar</Button>
                 <Button type="submit" disabled={submitting} className="bg-[#0e4a5e] hover:bg-[#0a3645]">
                   {submitting ? 'Salvando...' : editingOcorrencia ? 'Salvar' : 'Criar'}
