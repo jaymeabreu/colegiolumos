@@ -1,15 +1,14 @@
 import { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
-import { Plus, Calendar, Edit, Trash2, GraduationCap, X } from 'lucide-react';
+import { Plus, Calendar, Edit, Trash2, X } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
 import { Label } from '../../../components/ui/label';
-import { Textarea } from '../../../components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
 import { Badge } from '../../../components/ui/badge';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../../components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../../../components/ui/dialog';
 import { supabaseService } from '../../../services/supabaseService';
-import type { Avaliacao, Aluno, Nota } from '../../../services/supabaseService';
+import type { Avaliacao } from '../../../services/supabaseService';
 
 interface AvaliacoesTabProps {
   diarioId: number;
@@ -18,19 +17,15 @@ interface AvaliacoesTabProps {
 
 export function AvaliacoesTab({ diarioId, readOnly = false }: AvaliacoesTabProps) {
   const [avaliacoes, setAvaliacoes] = useState<Avaliacao[]>([]);
-  const [alunos, setAlunos] = useState<Aluno[]>([]);
+  const [alunos, setAlunos] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isNotasDialogOpen, setIsNotasDialogOpen] = useState(false);
   const [editingAvaliacao, setEditingAvaliacao] = useState<Avaliacao | null>(null);
-  const [selectedAvaliacao, setSelectedAvaliacao] = useState<Avaliacao | null>(null);
-  const [notas, setNotas] = useState<{ [alunoId: number]: string }>({});
   const [formData, setFormData] = useState({
     titulo: '',
     tipo: '',
     data: '',
-    peso: '',
-    descricao: ''
+    peso: ''
   });
 
   useEffect(() => {
@@ -112,14 +107,13 @@ export function AvaliacoesTab({ diarioId, readOnly = false }: AvaliacoesTabProps
       titulo: avaliacao.titulo,
       tipo: avaliacao.tipo,
       data: avaliacao.data,
-      peso: avaliacao.peso.toString(),
-      descricao: ''
+      peso: avaliacao.peso.toString()
     });
     setIsDialogOpen(true);
   };
 
   const resetForm = () => {
-    setFormData({ titulo: '', tipo: '', data: '', peso: '', descricao: '' });
+    setFormData({ titulo: '', tipo: '', data: '', peso: '' });
     setEditingAvaliacao(null);
   };
 
@@ -142,10 +136,90 @@ export function AvaliacoesTab({ diarioId, readOnly = false }: AvaliacoesTabProps
             <CardDescription>Gerencie as avaliações e notas dos alunos</CardDescription>
           </div>
           {!readOnly && (
-            <Button onClick={() => { resetForm(); setIsDialogOpen(true); }} className="flex items-center gap-2 bg-[#0e4a5e] hover:bg-[#0a3645]">
-              <Plus className="h-4 w-4" />
-              <span>Nova Avaliação</span>
-            </Button>
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button onClick={() => { resetForm(); setIsDialogOpen(true); }} className="flex items-center gap-2 bg-[#0e4a5e] hover:bg-[#0a3645]">
+                  <Plus className="h-4 w-4" />
+                  <span>Nova Avaliação</span>
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-lg">
+                <DialogHeader>
+                  <DialogTitle>{editingAvaliacao ? 'Editar Avaliação' : 'Nova Avaliação'}</DialogTitle>
+                  <DialogDescription>
+                    {editingAvaliacao ? 'Atualize os dados da avaliação' : 'Preencha os dados para criar uma nova avaliação'}
+                  </DialogDescription>
+                </DialogHeader>
+                
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="titulo">Título *</Label>
+                    <Input 
+                      id="titulo" 
+                      value={formData.titulo} 
+                      onChange={(e) => setFormData({ ...formData, titulo: e.target.value })} 
+                      placeholder="Ex: Prova Bimestral" 
+                      required 
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Tipo *</Label>
+                      <Select 
+                        value={formData.tipo} 
+                        onValueChange={(value) => setFormData({ ...formData, tipo: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Prova">Prova</SelectItem>
+                          <SelectItem value="Trabalho">Trabalho</SelectItem>
+                          <SelectItem value="Seminário">Seminário</SelectItem>
+                          <SelectItem value="Atividade">Atividade</SelectItem>
+                          <SelectItem value="Projeto">Projeto</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="peso">Peso *</Label>
+                      <Input 
+                        id="peso" 
+                        type="number" 
+                        step="0.1" 
+                        min="0"
+                        value={formData.peso} 
+                        onChange={(e) => setFormData({ ...formData, peso: e.target.value })} 
+                        placeholder="1.0" 
+                        required 
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="data">Data *</Label>
+                    <Input 
+                      id="data" 
+                      type="date" 
+                      value={formData.data} 
+                      onChange={(e) => setFormData({ ...formData, data: e.target.value })} 
+                      required 
+                    />
+                  </div>
+
+                  <DialogFooter>
+                    <Button type="button" variant="outline" onClick={handleClose}>
+                      Cancelar
+                    </Button>
+                    <Button type="submit" className="bg-[#0e4a5e] hover:bg-[#0a3645]">
+                      {editingAvaliacao ? 'Salvar Alterações' : 'Criar Avaliação'}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
           )}
         </div>
       </CardHeader>
@@ -194,90 +268,6 @@ export function AvaliacoesTab({ diarioId, readOnly = false }: AvaliacoesTabProps
           )}
         </div>
       </CardContent>
-
-      {/* MODAL DE AVALIAÇÃO */}
-      {isDialogOpen && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden p-4">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={handleClose} />
-          <div className="relative bg-white w-full max-w-lg rounded-xl shadow-2xl flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-200">
-            <div className="flex items-center justify-between p-6 border-b">
-              <h2 className="text-xl font-semibold">{editingAvaliacao ? 'Editar Avaliação' : 'Nova Avaliação'}</h2>
-              <button onClick={handleClose} className="p-2 rounded-full hover:bg-gray-100">
-                <X className="h-5 w-5 text-gray-400" />
-              </button>
-            </div>
-            
-            <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto">
-              <div className="space-y-2">
-                <Label htmlFor="titulo">Título *</Label>
-                <Input 
-                  id="titulo" 
-                  value={formData.titulo} 
-                  onChange={(e) => setFormData({ ...formData, titulo: e.target.value })} 
-                  placeholder="Ex: Prova Bimestral" 
-                  required 
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Tipo *</Label>
-                  <Select 
-                    value={formData.tipo} 
-                    onValueChange={(value) => setFormData({ ...formData, tipo: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Prova">Prova</SelectItem>
-                      <SelectItem value="Trabalho">Trabalho</SelectItem>
-                      <SelectItem value="Seminário">Seminário</SelectItem>
-                      <SelectItem value="Atividade">Atividade</SelectItem>
-                      <SelectItem value="Projeto">Projeto</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="peso">Peso *</Label>
-                  <Input 
-                    id="peso" 
-                    type="number" 
-                    step="0.1" 
-                    min="0"
-                    value={formData.peso} 
-                    onChange={(e) => setFormData({ ...formData, peso: e.target.value })} 
-                    placeholder="1.0" 
-                    required 
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="data">Data *</Label>
-                <Input 
-                  id="data" 
-                  type="date" 
-                  value={formData.data} 
-                  onChange={(e) => setFormData({ ...formData, data: e.target.value })} 
-                  required 
-                />
-              </div>
-
-              <div className="flex justify-end gap-3 pt-4">
-                <Button type="button" variant="outline" onClick={handleClose}>
-                  Cancelar
-                </Button>
-                <Button type="submit" className="bg-[#0e4a5e] hover:bg-[#0a3645]">
-                  {editingAvaliacao ? 'Salvar Alterações' : 'Criar Avaliação'}
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>,
-        document.body
-      )}
     </Card>
   );
 }
