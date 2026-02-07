@@ -3,7 +3,6 @@ import { Plus, Calendar, Edit, Trash2, X } from 'lucide-react';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
 import { Label } from '../../../components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
 import { Badge } from '../../../components/ui/badge';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../../components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../../../components/ui/dialog';
@@ -143,7 +142,7 @@ export function AvaliacoesTab({ diarioId, readOnly = false }: AvaliacoesTabProps
                   <span>Nova Avaliação</span>
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-lg z-[9999]">
+              <DialogContent className="max-w-lg">
                 <DialogHeader>
                   <DialogTitle>{editingAvaliacao ? 'Editar Avaliação' : 'Nova Avaliação'}</DialogTitle>
                   <DialogDescription>
@@ -165,22 +164,21 @@ export function AvaliacoesTab({ diarioId, readOnly = false }: AvaliacoesTabProps
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label>Tipo *</Label>
-                      <Select 
-                        value={formData.tipo} 
-                        onValueChange={(value) => setFormData({ ...formData, tipo: value })}
+                      <Label htmlFor="tipo">Tipo *</Label>
+                      <select
+                        id="tipo"
+                        value={formData.tipo}
+                        onChange={(e) => setFormData({ ...formData, tipo: e.target.value })}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        required
                       >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Prova">Prova</SelectItem>
-                          <SelectItem value="Trabalho">Trabalho</SelectItem>
-                          <SelectItem value="Seminário">Seminário</SelectItem>
-                          <SelectItem value="Atividade">Atividade</SelectItem>
-                          <SelectItem value="Projeto">Projeto</SelectItem>
-                        </SelectContent>
-                      </Select>
+                        <option value="">Selecione</option>
+                        <option value="Prova">Prova</option>
+                        <option value="Trabalho">Trabalho</option>
+                        <option value="Seminário">Seminário</option>
+                        <option value="Atividade">Atividade</option>
+                        <option value="Projeto">Projeto</option>
+                      </select>
                     </div>
 
                     <div className="space-y-2">
