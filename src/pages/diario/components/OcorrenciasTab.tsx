@@ -86,13 +86,13 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
       setSubmitting(true);
       // Mapeamento exato para as colunas do banco de dados Supabase
       const dataToSave = {
-        aluno_id: parseInt(formData.alunoId),
-        diario_id: diarioId,
-        tipo: formData.tipo.toLowerCase(),
-        data: formData.data,
-        descricao: formData.descricao,
-        acao_tomada: formData.acaoTomada || null
-      };
+  aluno_id: parseInt(formData.alunoId),
+  diario_id: diarioId,
+  tipo: formData.tipo,  // ✅ CORRETO - mantém como está (com primeira letra maiúscula)
+  data: formData.data,
+  descricao: formData.descricao,
+  acao_tomada: formData.acaoTomada || null
+};
 
       if (editingOcorrencia) {
         await supabaseService.updateOcorrencia(editingOcorrencia.id, dataToSave);
