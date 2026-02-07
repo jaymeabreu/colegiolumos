@@ -1,52 +1,46 @@
 import { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
-import { Plus, AlertTriangle, Edit, Trash2, X } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
 import { Input } from '../../../components/ui/input';
 import { Label } from '../../../components/ui/label';
 import { Textarea } from '../../../components/ui/textarea';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../../../components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
 import { Badge } from '../../../components/ui/badge';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../../components/ui/card';
+import { TrendingUp, Plus, Edit, Trash2 } from 'lucide-react';
 import { supabaseService } from '../../../services/supabaseService';
-import type { Ocorrencia, Aluno } from '../../../services/supabaseService';
+import type { Aluno } from '../../../services/supabaseService';
 
-// Ícone de Calendário em SVG customizado
-const CalendarIcon = ({ className }: { className?: string }) => (
-  <svg 
-    xmlns="http://www.w3.org/2000/svg" 
-    viewBox="0 0 24 24" 
-    fill="none" 
-    stroke="currentColor" 
-    strokeWidth="2" 
-    strokeLinecap="round" 
-    strokeLinejoin="round" 
-    className={className}
-  >
-    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-    <line x1="16" y1="2" x2="16" y2="6"></line>
-    <line x1="8" y1="2" x2="8" y2="6"></line>
-    <line x1="3" y1="10" x2="21" y2="10"></line>
-  </svg>
-);
+interface RendimentoData {
+  id?: number;
+  aluno_id: number;
+  alunoId?: number;
+  diario_id: number;
+  diarioId?: number;
+  tipo: string;
+  percentual: number;
+  observacoes?: string;
+  data: string;
+}
 
-interface OcorrenciasTabProps {
+interface RendimentoTabProps {
   diarioId: number;
   readOnly?: boolean;
 }
 
-export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabProps) {
-  const [ocorrencias, setOcorrencias] = useState<Ocorrencia[]>([]);
+export function RendimentoTab({ diarioId, readOnly = false }: RendimentoTabProps) {
+  const [rendimentos, setRendimentos] = useState<RendimentoData[]>([]);
   const [alunos, setAlunos] = useState<Aluno[]>([]);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingOcorrencia, setEditingOcorrencia] = useState<Ocorrencia | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingRendimento, setEditingRendimento] = useState<RendimentoData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     alunoId: '',
-    tipo: '',
-    data: '',
-    descricao: '',
-    acaoTomada: ''
+    tipo: 'Excelente',
+    percentual: '100',
+    observacoes: '',
+    data: new Date().toISOString().split('T')[0]
   });
 
   useEffect(() => {
@@ -55,208 +49,292 @@ export function OcorrenciasTab({ diarioId, readOnly = false }: OcorrenciasTabPro
 
   const loadData = async () => {
     try {
-      const [alunosData, ocorrenciasData] = await Promise.all([
-        supabaseService.getAlunosByDiario(diarioId),
-        supabaseService.getOcorrencias()
+      setLoading(true);
+      const [alunosData] = await Promise.all([
+        supabaseService.getAlunosByDiario(diarioId)
       ]);
       setAlunos(alunosData || []);
-      const filtered = (ocorrenciasData || []).filter(o => (o.diario_id ?? o.diarioId) === diarioId);
-      setOcorrencias(filtered);
+      // Inicializar rendimentos vazio (pode ser expandido depois)
+      setRendimentos([]);
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      setLoading(true);
-      const data = {
-        aluno_id: parseInt(formData.alunoId),
-        diario_id: diarioId,
-        tipo: formData.tipo.toLowerCase(),
-        data: formData.data,
-        descricao: formData.descricao,
-        acao_tomada: formData.acaoTomada || null
-      };
-
-      if (editingOcorrencia) {
-        await supabaseService.updateOcorrencia(editingOcorrencia.id, data);
-      } else {
-        await supabaseService.createOcorrencia(data);
-      }
-
-      await loadData();
-      handleClose();
-    } catch (error) {
-      console.error('Erro ao salvar ocorrência:', error);
-      alert('Erro ao salvar ocorrência. Tente novamente.');
     } finally {
       setLoading(false);
     }
   };
 
-  const resetForm = () => {
-    setFormData({ alunoId: '', tipo: '', data: '', descricao: '', acaoTomada: '' });
-    setEditingOcorrencia(null);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!formData.alunoId || !formData.tipo) {
+      alert('Por favor, preencha todos os campos obrigatórios.');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      const data: RendimentoData = {
+        aluno_id: parseInt(formData.alunoId),
+        diario_id: diarioId,
+        tipo: formData.tipo,
+        percentual: parseInt(formData.percentual),
+        observacoes: formData.observacoes || undefined,
+        data: formData.data
+      };
+
+      if (editingRendimento) {
+        // Atualizar rendimento existente
+        const updatedRendimento: RendimentoData = {
+          ...data,
+          id: editingRendimento.id
+        };
+        setRendimentos(prev => 
+          prev.map(r => r.id === editingRendimento.id ? updatedRendimento : r)
+        );
+      } else {
+        // Criar novo rendimento
+        const novoRendimento: RendimentoData = {
+          ...data,
+          id: Date.now() // ID temporário
+        };
+        setRendimentos(prev => [novoRendimento, ...prev]);
+      }
+
+      handleCloseModal();
+    } catch (error) {
+      console.error('Erro ao salvar rendimento:', error);
+      alert('Erro ao salvar rendimento. Tente novamente.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const handleClose = () => {
-    setIsDialogOpen(false);
-    resetForm();
+  const handleEdit = (rendimento: RendimentoData) => {
+    setEditingRendimento(rendimento);
+    setFormData({
+      alunoId: (rendimento.aluno_id ?? rendimento.alunoId)?.toString() || '',
+      tipo: rendimento.tipo,
+      percentual: rendimento.percentual.toString(),
+      observacoes: rendimento.observacoes || '',
+      data: rendimento.data
+    });
+    setIsModalOpen(true);
   };
 
-  const handleDelete = async (id: number) => {
-    if (window.confirm('Tem certeza que deseja excluir esta ocorrência?')) {
-      try {
-        await supabaseService.deleteOcorrencia(id);
-        await loadData();
-      } catch (error) {
-        console.error('Erro ao excluir ocorrência:', error);
-        alert('Erro ao excluir ocorrência. Tente novamente.');
+  const handleDelete = (id: number | undefined) => {
+    if (window.confirm('Tem certeza que deseja excluir este rendimento?')) {
+      if (id) {
+        setRendimentos(prev => prev.filter(r => r.id !== id));
       }
     }
   };
 
-  const handleEdit = (ocorrencia: Ocorrencia) => {
-    setEditingOcorrencia(ocorrencia);
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingRendimento(null);
     setFormData({
-      alunoId: (ocorrencia.aluno_id ?? ocorrencia.alunoId)?.toString() || '',
-      tipo: ocorrencia.tipo.charAt(0).toUpperCase() + ocorrencia.tipo.slice(1),
-      data: ocorrencia.data,
-      descricao: ocorrencia.descricao,
-      acaoTomada: ocorrencia.acao_tomada || ocorrencia.acaoTomada || ''
+      alunoId: '',
+      tipo: 'Excelente',
+      percentual: '100',
+      observacoes: '',
+      data: new Date().toISOString().split('T')[0]
     });
-    setIsDialogOpen(true);
   };
 
-  const handleOpenDialog = () => {
-    resetForm();
-    setIsDialogOpen(true);
+  const getPerformanceColor = (tipo: string) => {
+    switch (tipo.toLowerCase()) {
+      case 'excelente':
+        return 'bg-green-100 text-green-800';
+      case 'bom':
+        return 'bg-blue-100 text-blue-800';
+      case 'satisfatório':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'inadequado':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
   };
 
   return (
     <>
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editingRendimento ? 'Editar Rendimento' : 'Novo Rendimento'}</DialogTitle>
+            <DialogDescription>
+              {editingRendimento
+                ? 'Edite os dados de rendimento do aluno.'
+                : 'Registre o rendimento de um aluno.'}
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="aluno">Aluno *</Label>
+              <Select value={formData.alunoId} onValueChange={value => setFormData(prev => ({ ...prev, alunoId: value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o aluno" />
+                </SelectTrigger>
+                <SelectContent>
+                  {alunos.map(aluno => (
+                    <SelectItem key={aluno.id} value={aluno.id.toString()}>
+                      {aluno.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="tipo">Tipo de Rendimento *</Label>
+                <Select value={formData.tipo} onValueChange={value => setFormData(prev => ({ ...prev, tipo: value }))}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Excelente">Excelente</SelectItem>
+                    <SelectItem value="Bom">Bom</SelectItem>
+                    <SelectItem value="Satisfatório">Satisfatório</SelectItem>
+                    <SelectItem value="Inadequado">Inadequado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="percentual">Percentual *</Label>
+                <Input
+                  id="percentual"
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={formData.percentual}
+                  onChange={e => setFormData(prev => ({ ...prev, percentual: e.target.value }))}
+                  placeholder="0-100"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="data">Data *</Label>
+              <Input
+                id="data"
+                type="date"
+                value={formData.data}
+                onChange={e => setFormData(prev => ({ ...prev, data: e.target.value }))}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="observacoes">Observações</Label>
+              <Textarea
+                id="observacoes"
+                value={formData.observacoes}
+                onChange={e => setFormData(prev => ({ ...prev, observacoes: e.target.value }))}
+                placeholder="Observações sobre o rendimento..."
+                className="min-h-[80px]"
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4">
+              <Button type="button" variant="outline" onClick={handleCloseModal}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={submitting}>
+                {submitting ? 'Salvando...' : editingRendimento ? 'Salvar Alterações' : 'Adicionar Rendimento'}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="space-y-2">
-              <CardTitle>Ocorrências</CardTitle>
-              <CardDescription>Registre ocorrências disciplinares e pedagógicas</CardDescription>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5" />
+                Rendimento
+              </CardTitle>
+              <CardDescription>Acompanhe o rendimento dos alunos</CardDescription>
             </div>
             {!readOnly && (
-              <Button onClick={handleOpenDialog} className="flex items-center gap-2 bg-[#0e4a5e] hover:bg-[#0a3645]">
+              <Button 
+                onClick={() => { handleCloseModal(); setIsModalOpen(true); }}
+                className="flex items-center gap-2"
+              >
                 <Plus className="h-4 w-4" />
-                <span>Nova Ocorrência</span>
+                Novo Rendimento
               </Button>
             )}
           </div>
         </CardHeader>
 
         <CardContent>
-          <div className="space-y-4">
-            {ocorrencias.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                Nenhuma ocorrência registrada.
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                <p className="text-muted-foreground">Carregando rendimentos...</p>
               </div>
-            ) : (
-              ocorrencias.map(ocorrencia => (
-                <div key={ocorrencia.id} className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 p-4 border rounded-lg">
+            </div>
+          ) : rendimentos.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <TrendingUp className="h-12 w-12 mx-auto mb-4 opacity-20" />
+              <p className="font-medium mb-1">Nenhum rendimento registrado</p>
+              <p className="text-sm">Comece registrando o rendimento dos alunos.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {rendimentos.map(rendimento => (
+                <div 
+                  key={rendimento.id} 
+                  className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 p-4 border rounded-lg"
+                >
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Badge variant={ocorrencia.tipo === 'elogio' ? 'outline' : 'destructive'} className="capitalize">
-                        {ocorrencia.tipo}
+                    <div className="flex items-center gap-3 mb-2">
+                      <h3 className="font-medium">
+                        {alunos.find(a => a.id === (rendimento.aluno_id ?? rendimento.alunoId))?.nome || 'Aluno'}
+                      </h3>
+                      <Badge className={getPerformanceColor(rendimento.tipo)}>
+                        {rendimento.tipo}
                       </Badge>
-                      <h3 className="font-medium text-gray-900">{alunos.find(a => a.id === (ocorrencia.aluno_id ?? ocorrencia.alunoId))?.nome || 'Aluno'}</h3>
                     </div>
-                    <p className="text-sm text-gray-600 mb-2">{ocorrencia.descricao}</p>
-                    <div className="flex flex-wrap items-center gap-4 text-xs text-gray-500">
-                      <span className="flex items-center gap-1">
-                        <CalendarIcon className="h-3 w-3" />
-                        {new Date(ocorrencia.data).toLocaleDateString('pt-BR')}
-                      </span>
-                      {(ocorrencia.acao_tomada || ocorrencia.acaoTomada) && (
-                        <span className="flex items-center gap-1">
-                          <AlertTriangle className="h-3 w-3" />
-                          Ação: {ocorrencia.acao_tomada || ocorrencia.acaoTomada}
-                        </span>
-                      )}
+                    <div className="flex items-center gap-4 mb-2 text-sm text-gray-600">
+                      <span>Percentual: <strong>{rendimento.percentual}%</strong></span>
+                      <span>Data: {new Date(rendimento.data).toLocaleDateString('pt-BR')}</span>
                     </div>
+                    {rendimento.observacoes && (
+                      <p className="text-sm text-gray-600">{rendimento.observacoes}</p>
+                    )}
                   </div>
                   {!readOnly && (
-                    <div className="flex items-center gap-2">
-                      <Button variant="outline" size="sm" onClick={() => handleEdit(ocorrencia)}>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => handleEdit(rendimento)}
+                      >
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button variant="destructive" size="sm" onClick={() => handleDelete(ocorrencia.id)}>
+                      <Button 
+                        variant="destructive" 
+                        size="sm" 
+                        onClick={() => handleDelete(rendimento.id)}
+                      >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   )}
                 </div>
-              ))
-            )}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
-
-      {/* PORTAL DO MODAL COM SELECTS FUNCIONANDO */}
-      {isDialogOpen && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden p-4">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={handleClose} />
-          <div className="relative bg-white w-full max-w-xl rounded-xl shadow-2xl flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-200" style={{ zIndex: 10000 }}>
-            <div className="flex items-center justify-between p-6 border-b">
-              <h2 className="text-xl font-semibold">{editingOcorrencia ? 'Editar Ocorrência' : 'Nova Ocorrência'}</h2>
-              <button onClick={handleClose} className="p-2 rounded-full hover:bg-gray-100"><X className="h-5 w-5 text-gray-400" /></button>
-            </div>
-            <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto">
-              <div className="space-y-2">
-                <Label>Aluno *</Label>
-                <Select value={formData.alunoId} onValueChange={(val) => setFormData({ ...formData, alunoId: val })}>
-                  <SelectTrigger className="relative z-50"><SelectValue placeholder="Selecione o aluno" /></SelectTrigger>
-                  <SelectContent className="z-[10001]">
-                    {alunos.map(aluno => (
-                      <SelectItem key={aluno.id} value={aluno.id.toString()}>{aluno.nome}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Tipo *</Label>
-                  <Select value={formData.tipo} onValueChange={(val) => setFormData({ ...formData, tipo: val })}>
-                    <SelectTrigger className="relative z-50"><SelectValue placeholder="Selecione" /></SelectTrigger>
-                    <SelectContent className="z-[10001]">
-                      <SelectItem value="Disciplinar">Disciplinar</SelectItem>
-                      <SelectItem value="Pedagogica">Pedagógica</SelectItem>
-                      <SelectItem value="Elogio">Elogio</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Data *</Label>
-                  <Input type="date" value={formData.data} onChange={(e) => setFormData({ ...formData, data: e.target.value })} required />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Descrição *</Label>
-                <Textarea value={formData.descricao} onChange={(e) => setFormData({ ...formData, descricao: e.target.value })} placeholder="Descreva a ocorrência..." required className="min-h-[100px]" />
-              </div>
-              <div className="space-y-2">
-                <Label>Ação Tomada (Opcional)</Label>
-                <Textarea value={formData.acaoTomada} onChange={(e) => setFormData({ ...formData, acaoTomada: e.target.value })} placeholder="Ação tomada..." className="min-h-[80px]" />
-              </div>
-              <div className="flex justify-end gap-3 pt-4">
-                <Button type="button" variant="outline" onClick={handleClose}>Cancelar</Button>
-                <Button type="submit" disabled={loading} className="bg-[#0e4a5e] hover:bg-[#0a3645]">
-                  {loading ? 'Salvando...' : editingOcorrencia ? 'Salvar' : 'Criar'}
-                </Button>
-              </div>
-            </form>
-          </div>
-        </div>,
-        document.body
-      )}
     </>
   );
 }
