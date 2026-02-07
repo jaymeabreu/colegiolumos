@@ -149,33 +149,36 @@ export function AlunosList() {
 
   // Filtros otimizados com cache mais eficiente
   const filteredAlunos = useMemo(() => {
-    if (!searchTerm && !Object.values(filters).some(v => v && v !== 'all')) {
-      return alunos;
+  return alunos.filter(aluno => {
+    // Filtro de busca
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      const nomeMatch = aluno.nome.toLowerCase().includes(searchLower);
+      const matriculaMatch = aluno.matricula?.toLowerCase().includes(searchLower);
+      if (!nomeMatch && !matriculaMatch) return false;
     }
 
-    return alunos.filter(aluno => {
-      if (searchTerm && !aluno.nome.toLowerCase().includes(searchTerm.toLowerCase()) && 
-          !aluno.matricula.toLowerCase().includes(searchTerm.toLowerCase())) {
-        return false;
-      }
+    // Filtro de turma
+    if (filters.turmaId && filters.turmaId !== '' && filters.turmaId !== 'all') {
+      if (aluno.turma_id?.toString() !== filters.turmaId) return false;
+    }
+    
+    // Filtro de turno
+    if (filters.turno && filters.turno !== '' && filters.turno !== 'all') {
+      const turmaAluno = turmas.find(t => t.id === aluno.turma_id);
+      if (!turmaAluno || turmaAluno.turno !== filters.turno) return false;
+    }
 
-      if (filters.turmaId && filters.turmaId !== 'all' && 
-          aluno.turma_id?.toString() !== filters.turmaId) return false;
-      
-      if (filters.turno && filters.turno !== 'all') {
-        const turmaAluno = turmas.find(t => t.id === aluno.turma_id);
-        if (!turmaAluno || turmaAluno.turno !== filters.turno) return false;
-      }
+    // Filtro de usuário
+    if (filters.temUsuario && filters.temUsuario !== '' && filters.temUsuario !== 'all') {
+      const usuarioVinculado = usuarios.some(u => u.aluno_id === aluno.id);
+      if (filters.temUsuario === 'sim' && !usuarioVinculado) return false;
+      if (filters.temUsuario === 'nao' && usuarioVinculado) return false;
+    }
 
-      if (filters.temUsuario && filters.temUsuario !== 'all') {
-        const usuarioVinculado = usuarios.some(u => u.aluno_id === aluno.id);
-        if (filters.temUsuario === 'sim' && !usuarioVinculado) return false;
-        if (filters.temUsuario === 'nao' && usuarioVinculado) return false;
-      }
-
-      return true;
-    });
-  }, [alunos, searchTerm, filters, turmas, usuarios]);
+    return true;
+  });
+}, [alunos, searchTerm, filters, turmas, usuarios]);
 
   const clearFilters = useCallback(() => {
     setFilters({
