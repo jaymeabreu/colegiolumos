@@ -61,10 +61,17 @@ export function AvaliacoesTab({ diarioId, readOnly = false }: AvaliacoesTabProps
     try {
       setLoadingNotas(true);
       const notasData = await supabaseService.getNotasByAvaliacao(avaliacaoId);
+      
+      console.log('📊 Notas carregadas do banco:', notasData);
+      
       const notasMap: { [alunoId: number]: string } = {};
       notasData.forEach(nota => {
-        notasMap[nota.aluno_id] = nota.nota.toString();
+        // CORRIGIDO: usa 'valor' em vez de 'nota'
+        notasMap[nota.aluno_id] = nota.valor.toString();
       });
+      
+      console.log('✅ Notas mapeadas:', notasMap);
+      
       setNotas(notasMap);
     } catch (error) {
       console.error('Erro ao carregar notas:', error);
@@ -114,9 +121,16 @@ export function AvaliacoesTab({ diarioId, readOnly = false }: AvaliacoesTabProps
     try {
       setLoadingNotas(true);
       
+      console.log('💾 Salvando notas:', notas);
+      
+      // Salva cada nota individualmente
       for (const aluno of alunos) {
         const notaValue = notas[aluno.id];
+        
+        // Se tem valor, salva
         if (notaValue && notaValue.trim() !== '') {
+          console.log(`Salvando nota do aluno ${aluno.id}: ${notaValue}`);
+          
           await supabaseService.saveNota({
             avaliacaoId: selectedAvaliacao.id,
             alunoId: aluno.id,
@@ -163,8 +177,8 @@ export function AvaliacoesTab({ diarioId, readOnly = false }: AvaliacoesTabProps
 
   const handleOpenNotas = async (avaliacao: Avaliacao) => {
     setSelectedAvaliacao(avaliacao);
-    await loadNotas(avaliacao.id);
     setIsNotasDialogOpen(true);
+    await loadNotas(avaliacao.id);
   };
 
   const resetForm = () => {
