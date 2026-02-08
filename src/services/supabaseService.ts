@@ -1,6 +1,9 @@
 // FUNÇÃO CORRIGIDA PARA COLOCAR NO supabaseService.ts
 // Substitua a função createUsuario existente por esta:
 
+// FUNÇÃO CORRIGIDA PARA COLOCAR NO supabaseService.ts
+// Substitua a função createUsuario existente por esta:
+
 async createUsuario(
   usuario: Omit<Usuario, 'id' | 'created_at' | 'updated_at'>,
   senha?: string
@@ -46,6 +49,15 @@ async createUsuario(
       throw error;
     }
 
+    console.log('✅ Usuário criado com sucesso:', data);
+
+    this.dispatchDataUpdated('usuarios');
+    return data as Usuario;
+  } catch (error: any) {
+    console.error('❌ Erro ao criar usuário:', error);
+    throw new Error(`Falha ao criar usuário: ${error.message}`);
+  }
+}
     console.log('✅ Usuário criado com sucesso:', data);
 
     this.dispatchDataUpdated('usuarios');
