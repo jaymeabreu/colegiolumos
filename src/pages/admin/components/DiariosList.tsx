@@ -52,33 +52,66 @@ export function DiariosList() {
     dataTermino: ''
   });
 
+  // Função robusta para obter o usuário logado
+  const getAuthenticatedUser = useCallback(() => {
+    try {
+      // 1. Tenta pegar do estado do componente
+      if (currentUser?.id) return currentUser;
+
+      // 2. Tenta pegar do localStorage 'user'
+      const userData = localStorage.getItem('user');
+      if (userData) {
+        const parsed = JSON.parse(userData);
+        if (parsed.id) return parsed;
+      }
+
+      // 3. Tenta pegar do padrão do Supabase Auth
+      const sbKeys = Object.keys(localStorage).filter(key => key.startsWith('sb-') && key.endsWith('-auth-token'));
+      if (sbKeys.length > 0) {
+        const sbData = JSON.parse(localStorage.getItem(sbKeys[0]) || '{}');
+        if (sbData.user?.id) {
+          return {
+            id: sbData.user.id,
+            nome: sbData.user.user_metadata?.full_name || sbData.user.email,
+            papel: sbData.user.user_metadata?.papel || 'PROFESSOR'
+          };
+        }
+      }
+    } catch (e) {
+      console.error('Erro ao recuperar usuário:', e);
+    }
+    return null;
+  }, [currentUser]);
+
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
+      
+      // Carrega dados básicos primeiro
       const [diariosData, turmasData, disciplinasData, usuariosData] = await Promise.all([
         supabaseService.getDiarios(),
         supabaseService.getTurmas(),
         supabaseService.getDisciplinas(),
         supabaseService.getUsuarios()
       ]);
+      
       setDiarios(diariosData);
       setTurmas(turmasData);
       setDisciplinas(disciplinasData);
       setProfessores(usuariosData.filter(u => u.papel === 'PROFESSOR'));
       
-      const userData = localStorage.getItem('user');
-      if (userData) {
-        const parsedUser = JSON.parse(userData);
-        console.log('Usuário carregado:', parsedUser);
-        setCurrentUser(parsedUser);
+      // Tenta carregar e definir o usuário
+      const user = getAuthenticatedUser();
+      if (user) {
+        setCurrentUser(user);
       }
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
-      alert('Erro ao carregar dados. Verifique sua conexão.');
+      // Evita alert intrusivo se for apenas erro de carregamento inicial
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [getAuthenticatedUser]);
 
   useEffect(() => {
     loadData();
@@ -98,7 +131,6 @@ export function DiariosList() {
           return professoresIds.includes(profId);
         });
         
-        console.log('Professores filtrados:', professoresDaDisciplina);
         setProfessoresFiltrados(professoresDaDisciplina);
       } catch (error) {
         console.error('Erro ao filtrar professores:', error);
@@ -239,25 +271,19 @@ export function DiariosList() {
   }, []);
 
   const handleFinalizarDiario = useCallback(async () => {
-    if (!selectedDiario) {
-      console.error('Nenhum diário selecionado para finalizar');
-      return;
-    }
+    if (!selectedDiario) return;
     
-    // Tenta pegar o ID do usuário de várias fontes possíveis para evitar id=null
-    const userId = currentUser?.id || 
-                   currentUser?.professor_id || 
-                   JSON.parse(localStorage.getItem('user') || '{}').id;
+    const user = getAuthenticatedUser();
+    const userId = user?.id;
 
     if (!userId) {
-      console.error('ID do usuário não encontrado');
-      alert('Erro: Usuário não identificado. Por favor, faça login novamente.');
+      console.error('ID do usuário não encontrado na finalização');
+      alert('Sessão expirada ou usuário não identificado. Por favor, recarregue a página ou faça login novamente.');
       return;
     }
     
     try {
       setLoading(true);
-      console.log('Finalizando diário:', selectedDiario.id, 'por usuário:', userId);
       const sucesso = await supabaseService.finalizarDiario(selectedDiario.id, userId);
       
       if (sucesso) {
@@ -277,7 +303,7 @@ export function DiariosList() {
     } finally {
       setLoading(false);
     }
-  }, [selectedDiario, currentUser, loadData]);
+  }, [selectedDiario, getAuthenticatedUser, loadData]);
 
   const handleDevolucaoSuccess = useCallback(async () => {
     await loadData();
@@ -335,24 +361,12 @@ export function DiariosList() {
     return { label: 'Ativo', variant: 'default' as const };
   };
 
-  const getBadgeStatusDiario = (status?: string) => {
-    switch (status) {
-      case 'DEVOLVIDO':
-        return { label: 'Devolvido', className: 'bg-orange-100 text-orange-700 border-orange-300' };
-      case 'ENTREGUE':
-        return { label: 'Aguardando Revisão', className: 'bg-blue-100 text-blue-700 border-blue-300' };
-      case 'FINALIZADO':
-        return { label: 'Finalizado', className: 'bg-green-100 text-green-700 border-green-300' };
-      default:
-        return null;
-    }
-  };
-
   const canManageDiario = (diario: Diario) => {
-    if (!currentUser) return { canEdit: false, canDelete: false, canView: true };
-    const isCoordenador = currentUser.papel === 'COORDENADOR' || currentUser.papel === 'ADMIN';
+    const user = getAuthenticatedUser();
+    if (!user) return { canEdit: false, canDelete: false, canView: true };
+    const isCoordenador = user.papel === 'COORDENADOR' || user.papel === 'ADMIN';
     return {
-      canEdit: isCoordenador || (currentUser.papel === 'PROFESSOR' && diario.status !== 'FINALIZADO'),
+      canEdit: isCoordenador || (user.papel === 'PROFESSOR' && diario.status !== 'FINALIZADO'),
       canDelete: isCoordenador,
       canView: true
     };
@@ -403,7 +417,6 @@ export function DiariosList() {
                       <Select 
                         value={formData.disciplinaId} 
                         onValueChange={(value) => {
-                          console.log('Disciplina selecionada:', value);
                           setFormData({ ...formData, disciplinaId: value, professorId: '' });
                         }}
                       >
@@ -440,7 +453,6 @@ export function DiariosList() {
                       <Select 
                         value={formData.professorId} 
                         onValueChange={(value) => {
-                          console.log('Professor selecionado:', value);
                           setFormData(prev => ({ ...prev, professorId: value }));
                         }}
                         disabled={!formData.disciplinaId}
@@ -468,11 +480,6 @@ export function DiariosList() {
                           })}
                         </SelectContent>
                       </Select>
-                      {formData.disciplinaId && professoresFiltrados.length === 0 && (
-                        <p className="text-xs text-orange-600">
-                          Nenhum professor vinculado a esta disciplina. Vincule professores em Professores → Disciplinas.
-                        </p>
-                      )}
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="bimestre">Bimestre</Label>
@@ -741,7 +748,7 @@ export function DiariosList() {
                       
                       {permissions.canEdit && (
                         <>
-                          {diario.status === 'ENTREGUE' && (currentUser?.papel === 'COORDENADOR' || currentUser?.papel === 'ADMIN') && (
+                          {diario.status === 'ENTREGUE' && (getAuthenticatedUser()?.papel === 'COORDENADOR' || getAuthenticatedUser()?.papel === 'ADMIN') && (
                             <Button
                               variant="default"
                               size="sm"
@@ -800,7 +807,7 @@ export function DiariosList() {
           setTimeout(() => setIsFinalizarDialogOpen(true), 100);
         }}
         loading={loading}
-        userRole={currentUser?.papel as any}
+        userRole={getAuthenticatedUser()?.papel as any}
       />
 
       <Dialog open={isFinalizarDialogOpen} onOpenChange={setIsFinalizarDialogOpen}>
