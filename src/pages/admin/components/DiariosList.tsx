@@ -53,27 +53,6 @@ export function DiariosList() {
     dataTermino: ''
   });
 
-  // ✅ CORREÇÃO: Carregar currentUser IMEDIATAMENTE ao montar o componente
-  useEffect(() => {
-    const loadCurrentUser = () => {
-      try {
-        const userData = localStorage.getItem('user');
-        if (userData) {
-          const parsedUser = JSON.parse(userData);
-          console.log('✅ currentUser carregado:', parsedUser);
-          setCurrentUser(parsedUser);
-        } else {
-          console.warn('⚠️ Nenhum usuário no localStorage');
-        }
-      } catch (error) {
-        console.error('❌ Erro ao carregar usuário:', error);
-      }
-    };
-
-    // Carregar imediatamente
-    loadCurrentUser();
-  }, []);
-
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
@@ -88,6 +67,15 @@ export function DiariosList() {
       setDisciplinas(disciplinasData);
       setTodosUsuarios(usuariosData);
       setProfessores(usuariosData.filter(u => u.papel === 'PROFESSOR'));
+      
+      const userData = localStorage.getItem('user');
+      if (userData) {
+        const parsedUser = JSON.parse(userData);
+        console.log('👤 currentUser carregado do localStorage:', parsedUser);
+        setCurrentUser(parsedUser);
+      } else {
+        console.warn('⚠️ Nenhum usuário encontrado no localStorage');
+      }
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
     } finally {
@@ -98,6 +86,35 @@ export function DiariosList() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Debug: Log quando os dados forem carregados
+  useEffect(() => {
+    if (diarios.length > 0) {
+      console.log('📊 Diários carregados:', diarios.length);
+      console.log('👥 Total de usuários:', todosUsuarios.length);
+      console.log('👨‍🏫 Total de professores:', professores.length);
+      
+      // Mostrar um exemplo de diário
+      if (diarios[0]) {
+        console.log('📋 Exemplo de diário:', {
+          nome: diarios[0].nome,
+          professor_id: diarios[0].professor_id,
+          disciplina_id: diarios[0].disciplina_id,
+          turma_id: diarios[0].turma_id
+        });
+      }
+      
+      // Mostrar exemplos de usuários
+      if (todosUsuarios.length > 0) {
+        console.log('👤 Exemplos de usuários:', todosUsuarios.slice(0, 3).map(u => ({
+          nome: u.nome,
+          id: u.id,
+          ID: u.ID,
+          papel: u.papel
+        })));
+      }
+    }
+  }, [diarios, todosUsuarios, professores]);
 
   useEffect(() => {
     const filtrarProfessores = async () => {
@@ -270,9 +287,11 @@ export function DiariosList() {
     setIsViewModalOpen(true);
   }, []);
 
-  // ✅ CORREÇÃO COMPLETA: Função simplificada e robusta para finalizar diário
+  // ✅ CORREÇÃO PROBLEMA 3: Função melhorada para finalizar diário com validação completa
   const handleFinalizarDiario = useCallback(async () => {
-    console.log('🔵 Iniciando finalização...');
+    console.log('🔵 Iniciando finalização do diário...');
+    console.log('📋 selectedDiario:', selectedDiario);
+    console.log('👤 currentUser:', currentUser);
     
     if (!selectedDiario) {
       alert('Erro: Nenhum diário selecionado.');
@@ -280,34 +299,95 @@ export function DiariosList() {
     }
 
     if (!currentUser) {
-      console.error('❌ currentUser não encontrado');
-      alert('Erro: Usuário não identificado. Faça login novamente.');
+      console.error('❌ currentUser está null ou undefined');
+      console.log('🔍 Tentando recuperar do localStorage...');
+      
+      // Tentar recuperar do localStorage
+      const userDataStr = localStorage.getItem('user');
+      console.log('📦 localStorage user:', userDataStr);
+      
+      if (userDataStr) {
+        try {
+          const userData = JSON.parse(userDataStr);
+          console.log('✅ Usuário recuperado do localStorage:', userData);
+          setCurrentUser(userData);
+          
+          // Aguardar um pouco e tentar novamente
+          setTimeout(() => {
+            alert('Dados do usuário recuperados. Clique novamente em "Finalizar Diário".');
+          }, 100);
+          return;
+        } catch (e) {
+          console.error('❌ Erro ao parsear dados do localStorage:', e);
+        }
+      }
+      
+      alert('Erro: Usuário não identificado. Tente fazer login novamente.');
+      return;
+    }
+    
+    // Extrair ID do diário de forma mais robusta
+    const diarioId = selectedDiario.id || (selectedDiario as any).ID;
+    console.log('📋 ID do diário extraído:', diarioId);
+    
+    if (!diarioId) {
+      console.error('❌ ID do diário não encontrado. Objeto completo:', selectedDiario);
+      alert('Erro: ID do diário não identificado.');
       return;
     }
 
-    // Extrair IDs de forma robusta
-    const diarioId = Number(selectedDiario.id);
-    const userId = Number(currentUser.id);
-
-    console.log('📊 Dados:', { diarioId, userId, userRole: currentUser.papel });
-
-    if (isNaN(diarioId) || diarioId <= 0) {
-      console.error('❌ ID do diário inválido:', selectedDiario.id);
+    // Converter para número e validar
+    const idNumerico = Number(diarioId);
+    console.log('🔢 ID do diário numérico:', idNumerico);
+    
+    if (isNaN(idNumerico) || idNumerico <= 0) {
+      console.error('❌ ID do diário inválido:', diarioId);
       alert('Erro: ID do diário inválido.');
       return;
     }
 
-    if (isNaN(userId) || userId <= 0) {
-      console.error('❌ ID do usuário inválido:', currentUser.id);
+    // Extrair ID do usuário - tentar TODAS as possíveis variações
+    const possiveisUserIds = [
+      currentUser.id,
+      currentUser.ID,
+      (currentUser as any).usuario_id,
+      (currentUser as any).userId,
+      (currentUser as any).user_id,
+      (currentUser as any).coordenador_id,
+      (currentUser as any).professor_id
+    ];
+    
+    console.log('🔍 Possíveis IDs do usuário:', possiveisUserIds);
+    
+    const userId = possiveisUserIds.find(id => id !== undefined && id !== null);
+    console.log('👤 ID do usuário selecionado:', userId);
+    
+    if (!userId) {
+      console.error('❌ Nenhum ID válido encontrado no currentUser:', currentUser);
+      alert('Erro: ID do usuário não encontrado. Verifique o console.');
+      return;
+    }
+    
+    const userIdNumerico = Number(userId);
+    console.log('🔢 ID do usuário numérico:', userIdNumerico);
+    
+    if (isNaN(userIdNumerico) || userIdNumerico <= 0) {
+      console.error('❌ ID do usuário inválido:', userId);
       alert('Erro: ID do usuário inválido.');
       return;
     }
 
-    console.log('✅ Validação OK! Chamando API...');
-
+    console.log('✅ Validação completa! Enviando para API:', { 
+      diarioId: idNumerico, 
+      userId: userIdNumerico,
+      userRole: currentUser.papel 
+    });
+    
     try {
       setLoading(true);
-      const sucesso = await supabaseService.finalizarDiario(diarioId, userId);
+      const sucesso = await supabaseService.finalizarDiario(idNumerico, userIdNumerico);
+      
+      console.log('📡 Resposta da API:', sucesso);
       
       if (sucesso) {
         console.log('✅ Diário finalizado com sucesso!');
@@ -321,11 +401,17 @@ export function DiariosList() {
           description: 'O diário foi finalizado com sucesso e não pode mais ser editado.'
         });
       } else {
-        throw new Error('Falha ao finalizar diário.');
+        throw new Error('Falha na resposta do servidor ao finalizar diário.');
       }
     } catch (error) {
       console.error('❌ Erro ao finalizar diário:', error);
-      alert(error instanceof Error ? error.message : 'Erro desconhecido ao finalizar diário.');
+      
+      // Mostrar erro mais detalhado
+      if (error instanceof Error) {
+        alert(`Erro ao finalizar diário: ${error.message}`);
+      } else {
+        alert('Erro desconhecido ao finalizar diário. Verifique o console.');
+      }
     } finally {
       setLoading(false);
     }
@@ -366,12 +452,86 @@ export function DiariosList() {
     return turmas.find(t => t.id === id)?.nome || 'N/A';
   };
 
-  // ✅ CORREÇÃO: Usar novo método safe do service
+  // ✅ CORREÇÃO PROBLEMA 2: Função melhorada para buscar nome do professor com debug completo
   const getProfessorNome = (id?: number) => {
-    if (!id) return 'N/A';
+    if (!id) {
+      console.warn('getProfessorNome: ID não fornecido');
+      return 'N/A';
+    }
     
-    const usuario = todosUsuarios.find(u => u.id === id);
-    return usuario?.nome || 'N/A';
+    // Normalizar id para número
+    const idNormalizado = Number(id);
+    
+    if (isNaN(idNormalizado)) {
+      console.warn('getProfessorNome: ID inválido', id);
+      return 'N/A';
+    }
+    
+    // Log para debug - remover depois se funcionar
+    console.log('Buscando professor com ID:', idNormalizado);
+    console.log('Total de usuários:', todosUsuarios.length);
+    console.log('Total de professores:', professores.length);
+    
+    // Buscar em todosUsuarios primeiro (mais completo)
+    if (todosUsuarios && todosUsuarios.length > 0) {
+      // Tentar todas as possíveis variações de campos
+      const usuario = todosUsuarios.find(u => {
+        const ids = [
+          u.id,
+          u.ID,
+          (u as any).usuario_id,
+          (u as any).professor_id,
+          (u as any).userId,
+          (u as any).professorId
+        ].map(i => i ? Number(i) : null).filter(i => i !== null);
+        
+        const match = ids.some(i => i === idNormalizado);
+        if (match) {
+          console.log('✅ Professor encontrado em todosUsuarios:', u.nome);
+        }
+        return match;
+      });
+      
+      if (usuario?.nome) {
+        return usuario.nome;
+      }
+    }
+    
+    // Fallback para lista de professores
+    if (professores && professores.length > 0) {
+      const prof = professores.find(p => {
+        const ids = [
+          p.id,
+          p.ID,
+          (p as any).usuario_id,
+          (p as any).professor_id,
+          (p as any).userId,
+          (p as any).professorId
+        ].map(i => i ? Number(i) : null).filter(i => i !== null);
+        
+        const match = ids.some(i => i === idNormalizado);
+        if (match) {
+          console.log('✅ Professor encontrado em professores:', p.nome);
+        }
+        return match;
+      });
+      
+      if (prof?.nome) {
+        return prof.nome;
+      }
+    }
+    
+    // Se não encontrou, mostrar todos os IDs disponíveis para debug
+    console.warn('❌ Professor não encontrado para ID:', idNormalizado);
+    console.log('IDs disponíveis em todosUsuarios:', todosUsuarios.map(u => ({
+      nome: u.nome,
+      id: u.id,
+      ID: u.ID,
+      usuario_id: (u as any).usuario_id,
+      professor_id: (u as any).professor_id
+    })));
+    
+    return 'N/A';
   };
 
   const getStatusBadge = (status?: string) => {
@@ -399,14 +559,8 @@ export function DiariosList() {
 
   return (
     <div className="space-y-6">
-      {/* ✅ Z-INDEX FIX: Aplicado globalmente */}
-      <style>{`
-        [data-radix-popper-content-wrapper] {
-          z-index: 99999 !important;
-        }
-      `}</style>
-
       <Card>
+        {/* ✅ CORREÇÃO PROBLEMA 1: Título à esquerda e botão à direita na mesma linha */}
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
@@ -489,7 +643,7 @@ export function DiariosList() {
                         </SelectTrigger>
                         <SelectContent>
                           {professoresFiltrados.map((professor) => (
-                            <SelectItem key={professor.id} value={professor.id.toString()}>
+                            <SelectItem key={professor.id || professor.ID || (professor as any).professor_id} value={(professor.id || professor.ID || (professor as any).professor_id).toString()}>
                               {professor.nome}
                             </SelectItem>
                           ))}
@@ -575,6 +729,11 @@ export function DiariosList() {
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-md">
+                <style>{`
+                  [data-radix-popper-content-wrapper] {
+                    z-index: 99999 !important;
+                  }
+                `}</style>
                 <DialogHeader>
                   <DialogTitle>Filtrar Diários</DialogTitle>
                   <DialogDescription>
@@ -653,7 +812,7 @@ export function DiariosList() {
                       <SelectContent>
                         <SelectItem value="all">Todos os professores</SelectItem>
                         {professores.map((professor) => (
-                          <SelectItem key={professor.id} value={professor.id.toString()}>
+                          <SelectItem key={professor.id || professor.ID || (professor as any).professor_id} value={(professor.id || professor.ID || (professor as any).professor_id).toString()}>
                             {professor.nome}
                           </SelectItem>
                         ))}
@@ -762,6 +921,9 @@ export function DiariosList() {
                 const dataTermino = diario.dataTermino ? new Date(diario.dataTermino) : null;
                 const isExpirado = dataTermino && hoje > dataTermino;
 
+                // Debug: Log do professor_id do diário
+                console.log('Diário:', diario.nome, '| professor_id:', diario.professor_id, '| Tipo:', typeof diario.professor_id);
+
                 return (
                   <div key={diario.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
                     <div className="flex items-center gap-4">
@@ -792,19 +954,23 @@ export function DiariosList() {
                         Visualizar
                       </Button>
 
-                      {currentUser?.papel === 'COORDENADOR' && diario.status === 'ENTREGUE' && (
-                        <Button
-                          variant="default"
-                          size="sm"
-                          className="bg-green-600 hover:bg-green-700 flex items-center gap-2"
-                          onClick={() => {
-                            setSelectedDiario(diario);
-                            setIsFinalizarDialogOpen(true);
-                          }}
-                        >
-                          <CheckCircle className="h-4 w-4" />
-                          Finalizar
-                        </Button>
+                      {currentUser?.papel === 'COORDENADOR' && (
+                        <>
+                          {diario.status === 'ENTREGUE' && (
+                            <Button
+                              variant="default"
+                              size="sm"
+                              className="bg-green-600 hover:bg-green-700 flex items-center gap-2"
+                              onClick={() => {
+                                setSelectedDiario(diario);
+                                setIsFinalizarDialogOpen(true);
+                              }}
+                            >
+                              <CheckCircle className="h-4 w-4" />
+                              Finalizar
+                            </Button>
+                          )}
+                        </>
                       )}
                       
                       <Button
@@ -852,8 +1018,13 @@ export function DiariosList() {
         userRole={currentUser?.papel as any}
       />
 
-      <Dialog open={isFinalizarDialogOpen} onOpenChange={setIsFinalizarDialogOpen}>
+    <Dialog open={isFinalizarDialogOpen} onOpenChange={setIsFinalizarDialogOpen}>
         <DialogContent>
+          <style>{`
+            [data-radix-popper-content-wrapper] {
+              z-index: 99999 !important;
+            }
+          `}</style>
           <DialogHeader>
             <DialogTitle>Finalizar Diário</DialogTitle>
             <DialogDescription>
