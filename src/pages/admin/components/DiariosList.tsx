@@ -270,7 +270,13 @@ export function DiariosList() {
     
     try {
       setLoading(true);
-      const sucesso = await supabaseService.finalizarDiario(diarioId, currentUser.id);
+      // SOLUÇÃO PROBLEMA 3: Garantir que o ID seja um número válido
+      const idFinal = Number(diarioId);
+      if (isNaN(idFinal)) {
+        throw new Error('ID do diário inválido');
+      }
+
+      const sucesso = await supabaseService.finalizarDiario(idFinal, currentUser.id || currentUser.ID);
       
       if (sucesso) {
         await loadData();
@@ -328,14 +334,27 @@ export function DiariosList() {
     return turmas.find(t => t.id === id)?.nome || 'N/A';
   };
 
+  // SOLUÇÃO PROBLEMA 2: Melhorar função para buscar nome do professor
   const getProfessorNome = (id?: number) => {
     if (!id) return 'N/A';
-    // Busca em todos os usuários para garantir que encontre mesmo que o papel esteja diferente
+    
+    // Busca em todosUsuarios primeiro (que contém todos os usuários)
     const professor = todosUsuarios.find(u => {
       const uId = u.id || u.ID || (u as any).professor_id;
       return Number(uId) === Number(id);
     });
-    return professor?.nome || 'N/A';
+    
+    if (professor?.nome) {
+      return professor.nome;
+    }
+    
+    // Fallback para professores filtrados
+    const profFiltrado = professores.find(p => {
+      const pId = p.id || p.ID || (p as any).professor_id;
+      return Number(pId) === Number(id);
+    });
+    
+    return profFiltrado?.nome || 'N/A';
   };
 
   const getStatusBadge = (status?: string) => {
@@ -364,14 +383,15 @@ export function DiariosList() {
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-7">
-          <div className="space-y-1">
+        {/* SOLUÇÃO PROBLEMA 1: Alinhar título à esquerda e botão à direita */}
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-7 gap-4">
+          <div className="space-y-1 flex-1">
             <CardTitle>Diários de Classe</CardTitle>
             <CardDescription>Gerencie os diários de classe da instituição</CardDescription>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-teal-600 hover:bg-teal-700">
+              <Button className="bg-teal-600 hover:bg-teal-700 whitespace-nowrap">
                 <Plus className="h-4 w-4 mr-2" />
                 Novo Diário
               </Button>
