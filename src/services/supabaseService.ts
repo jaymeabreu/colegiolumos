@@ -1633,18 +1633,15 @@ class SupabaseService {
     return resultado !== null;
   }
 
-  // ✅ FUNÇÃO CORRIGIDA - finalizarDiario
   async finalizarDiario(diarioId: number, usuarioId: number): Promise<boolean> {
     try {
       console.log('🔵 finalizarDiario chamado com:', { diarioId, usuarioId });
       
-      // Validar usuário
       if (!usuarioId || isNaN(usuarioId) || usuarioId <= 0) {
         console.error('❌ ID do usuário inválido:', usuarioId);
         throw new Error('ID do usuário inválido');
       }
 
-      // Buscar usuário para validar se existe e se é coordenador
       const { data: usuario, error: usuarioError } = await supabase
         .from('usuarios')
         .select('id, papel')
@@ -1663,13 +1660,11 @@ class SupabaseService {
 
       console.log('✅ Usuário validado:', usuario);
 
-      // Validar se é coordenador
       if (usuario.papel !== 'COORDENADOR') {
         console.error('❌ Usuário não é coordenador:', usuario);
         throw new Error('Apenas coordenadores podem finalizar diários.');
       }
 
-      // Buscar o diário
       const diario = await this.getDiarioById(diarioId);
       if (!diario) {
         console.error('❌ Diário não encontrado:', diarioId);
@@ -1678,7 +1673,6 @@ class SupabaseService {
 
       console.log('📋 Diário encontrado:', diario);
 
-      // Validar status atual
       if (diario.status === 'FINALIZADO') {
         console.warn('⚠️ Diário já está finalizado');
         throw new Error('Este diário já foi finalizado.');
@@ -1689,10 +1683,8 @@ class SupabaseService {
         throw new Error('Apenas diários entregues podem ser finalizados.');
       }
 
-      // Atualizar histórico
       const historico_status = this.pushHistoricoStatus(diario, 'FINALIZADO');
       
-      // Adicionar informações de quem finalizou
       const historicoComUsuario = historico_status.map((h: any, index: number) => {
         if (index === historico_status.length - 1) {
           return {
@@ -1706,11 +1698,10 @@ class SupabaseService {
 
       console.log('📝 Atualizando diário para FINALIZADO...');
 
-      // Atualizar o diário
       const resultado = await this.updateDiario(diarioId, { 
         status: 'FINALIZADO', 
         historico_status: historicoComUsuario,
-        solicitacao_devolucao: null // Limpar qualquer solicitação de devolução
+        solicitacao_devolucao: null
       });
       
       if (!resultado) {
@@ -1723,7 +1714,6 @@ class SupabaseService {
     } catch (error) {
       console.error('❌ Erro em finalizarDiario:', error);
       
-      // Re-lançar erro com mensagem amigável
       if (error instanceof Error) {
         throw error;
       }
@@ -1894,6 +1884,52 @@ class SupabaseService {
         notas: []
       };
     }
+  }
+
+  // ==============================
+  // SAFE GETTERS (ANTI id = null)
+  // ==============================
+  async getProfessorNomeByIdSafe(professorId?: number | null): Promise<string | null> {
+    if (!professorId || isNaN(professorId)) return null;
+    const { data, error } = await supabase
+      .from('professores')
+      .select('nome')
+      .eq('id', professorId)
+      .maybeSingle();
+    if (error) {
+      console.error('Erro ao buscar professor:', error);
+      return null;
+    }
+    return data?.nome ?? null;
+  }
+
+  async getAlunoNomeByIdSafe(alunoId?: number | null): Promise<string | null> {
+    if (!alunoId || isNaN(alunoId)) return null;
+    const { data, error } = await supabase
+      .from('alunos')
+      .select('nome')
+      .eq('id', alunoId)
+      .maybeSingle();
+    if (error) {
+      console.error('Erro ao buscar aluno:', error);
+      return null;
+    }
+    return data?.nome ?? null;
+  }
+
+  async getAlunosByIdsSafe(ids?: number[]): Promise<Aluno[]> {
+    if (!ids || ids.length === 0) return [];
+    const idsValidos = ids.filter(id => id && !isNaN(id));
+    if (idsValidos.length === 0) return [];
+    const { data, error } = await supabase
+      .from('alunos')
+      .select('id, nome, turma_id')
+      .in('id', idsValidos);
+    if (error) {
+      console.error('Erro ao buscar alunos:', error);
+      return [];
+    }
+    return (data ?? []).map(withCamel) as Aluno[];
   }
 }
 
