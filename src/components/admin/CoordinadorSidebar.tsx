@@ -163,12 +163,15 @@ export function CoordinadorSidebar({ onTabChange }: CoordinadorSidebarProps) {
       {/* SIDEBAR */}
      <div 
         className={`
-          fixed left-0 top-0 h-[100dvh] w-full min-[881px]:w-64 bg-white dark:bg-gray-900 
-          border-r border-gray-200 dark:border-gray-800 flex flex-col overflow-hidden
-          transition-transform duration-300 ease-in-out
-          max-[880px]:-translate-x-full
-          ${mobileMenuOpen ? 'max-[880px]:translate-x-0' : ''}
-        `}
+         <div 
+  className={`
+    fixed left-0 top-0 h-[100dvh] w-full min-[881px]:w-64 bg-white dark:bg-gray-900 
+    border-r border-gray-200 dark:border-gray-800 flex flex-col overflow-hidden
+    transition-transform duration-300 ease-in-out z-50
+    max-[880px]:-translate-x-full
+    ${mobileMenuOpen ? 'max-[880px]:translate-x-0' : ''}
+  `}
+>
         style={{ zIndex: mobileMenuOpen ? 50 : 10 }}
       >
         {/* HEADER - LOGO E NOME DA ESCOLA */}
