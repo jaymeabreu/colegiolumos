@@ -257,12 +257,26 @@ export function DiariosList() {
     setIsViewModalOpen(true);
   }, []);
 
+  // 🔧 CORREÇÃO DEFINITIVA PARA FINALIZAR DIÁRIO
   const handleFinalizarDiario = useCallback(async () => {
-    if (!selectedDiario || !currentUser) return;
+    // Garantir que temos o diário e o ID dele
+    const diarioId = selectedDiario?.id || (selectedDiario as any)?.ID;
+    
+    if (!diarioId) {
+      console.error('ID do diário não encontrado:', selectedDiario);
+      alert('Erro: ID do diário não identificado.');
+      return;
+    }
+
+    if (!currentUser) {
+      alert('Erro: Usuário não identificado. Tente fazer login novamente.');
+      return;
+    }
     
     try {
       setLoading(true);
-      const sucesso = await supabaseService.finalizarDiario(selectedDiario.id, currentUser.id);
+      // Chama o serviço passando o ID correto e o ID do coordenador
+      const sucesso = await supabaseService.finalizarDiario(diarioId, currentUser.id);
       
       if (sucesso) {
         await loadData();
@@ -272,32 +286,31 @@ export function DiariosList() {
         setSuccessToast({
           open: true,
           message: 'Diário Finalizado!',
-          description: 'O diário foi finalizado com sucesso.'
+          description: 'O diário foi finalizado com sucesso e não pode mais ser editado.'
         });
+      } else {
+        throw new Error('Falha na resposta do servidor ao finalizar diário.');
       }
     } catch (error) {
       console.error('Erro ao finalizar diário:', error);
-      alert('Erro ao finalizar diário. Tente novamente.');
+      alert('Erro ao finalizar diário. Verifique o console para mais detalhes.');
     } finally {
       setLoading(false);
     }
   }, [selectedDiario, currentUser, loadData]);
 
-  const handleDevolucaoSuccess = useCallback(async () => {
-    await loadData();
-    setSelectedDiario(null);
+  const handleDevolucaoSuccess = useCallback(() => {
+    loadData();
+    setIsViewModalOpen(false);
     setSuccessToast({
       open: true,
-      message: 'Diário Enviado!',
-      description: 'O diário foi devolvido com sucesso para o professor.'
+      message: 'Diário Devolvido!',
+      description: 'O diário foi devolvido ao professor com sucesso.'
     });
   }, [loadData]);
 
-  const handleApplyFilters = useCallback(() => {
-    setIsFilterDialogOpen(false);
-  }, []);
-
-  const handleClearFilters = useCallback(() => {
+  const handleApplyFilters = () => setIsFilterDialogOpen(false);
+  const handleClearFilters = () => {
     setFilters({
       disciplina: '',
       turma: '',
@@ -306,104 +319,66 @@ export function DiariosList() {
       status: '',
       statusDiario: ''
     });
-  }, []);
-
-  const getActiveFiltersCount = useMemo(() => {
-    return Object.values(filters).filter(value => value !== '' && value !== 'all').length;
-  }, [filters]);
-
-  const getTurmaNome = useCallback((turmaId?: number) => {
-    if (!turmaId) return 'N/A';
-    return turmas.find(t => t.id === turmaId)?.nome || 'N/A';
-  }, [turmas]);
-
-  const getDisciplinaNome = useCallback((disciplinaId?: number) => {
-    if (!disciplinaId) return 'N/A';
-    return disciplinas.find(d => d.id === disciplinaId)?.nome || 'N/A';
-  }, [disciplinas]);
-
-  const getProfessorNome = useCallback((professorId?: number) => {
-    if (!professorId) return 'N/A';
-    // Busca por professor_id (campo correto na tabela usuarios)
-    const professor = professores.find(p => p.professor_id === professorId);
-    if (professor) return professor.nome;
-    // Se não encontrar, tenta por id como fallback
-    return professores.find(p => p.id === professorId)?.nome || 'N/A';
-  }, [professores]);
-
-  const getStatusDiario = (diario: Diario) => {
-    const hoje = new Date();
-    const dataInicio = diario.dataInicio ? new Date(diario.dataInicio) : null;
-    const dataTermino = diario.dataTermino ? new Date(diario.dataTermino) : null;
-
-    if (dataInicio && hoje < dataInicio) return { label: 'Futuro', variant: 'secondary' as const };
-    if (dataTermino && hoje > dataTermino) return { label: 'Finalizado', variant: 'outline' as const };
-    return { label: 'Ativo', variant: 'default' as const };
+    setIsFilterDialogOpen(false);
   };
 
-  const getStatusDiarioInfo = (status?: string) => {
-    switch (status) {
-      case 'ENTREGUE':
-        return { label: 'Pendente de Revisão', color: 'text-blue-600 bg-blue-50 border-blue-200', icon: Clock };
-      case 'DEVOLVIDO':
-        return { label: 'Devolvido', color: 'text-orange-600 bg-orange-50 border-orange-200', icon: RotateCcw };
-      case 'FINALIZADO':
-        return { label: 'Finalizado', color: 'text-green-600 bg-green-50 border-green-200', icon: CheckCircle };
+  const getActiveFiltersCount = useMemo(() => {
+    return Object.values(filters).filter(v => v && v !== 'all').length;
+  }, [filters]);
+
+  const getDisciplinaNome = (id?: number) => {
+    return disciplinas.find(d => d.id === id)?.nome || 'N/A';
+  };
+
+  const getTurmaNome = (id?: number) => {
+    return turmas.find(t => t.id === id)?.nome || 'N/A';
+  };
+
+  const getProfessorNome = (id?: number) => {
+    return professores.find(p => p.id === id)?.nome || 'N/A';
+  };
+
+  const getStatusBadge = (status?: string) => {
+    switch(status) {
       case 'PENDENTE':
+        return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">Em Aberto</Badge>;
+      case 'ENTREGUE':
+        return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Pendente de Revisão</Badge>;
+      case 'FINALIZADO':
+        return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Finalizado</Badge>;
+      case 'DEVOLVIDO':
+        return <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">Devolvido</Badge>;
       default:
-        return { label: 'Pendente', color: 'text-gray-600 bg-gray-50 border-gray-200', icon: Clock };
+        return <Badge variant="outline">{status}</Badge>;
     }
   };
 
-  const canManageDiario = (diario: Diario) => {
-    if (!currentUser) return { canEdit: false, canDelete: false, canView: true };
-    const isCoordenador = currentUser.papel === 'COORDENADOR' || currentUser.papel === 'ADMIN';
-    return {
-      canEdit: isCoordenador || (currentUser.papel === 'PROFESSOR' && diario.status !== 'FINALIZADO'),
-      canDelete: isCoordenador,
-      canView: true
-    };
-  };
-
-  // Filtrar diários com solicitação de devolução APENAS se for uma solicitação VÁLIDA e real
   const diasComSolicitacaoDevolucao = useMemo(() => {
     return diarios.filter(d => {
-      // Verificar se tem solicitacao_devolucao com dados preenchidos
       if (!d.solicitacao_devolucao) return false;
-      
-      // Verificar se é um objeto com propriedades preenchidas (motivo ou comentário)
       const temMotivo = d.solicitacao_devolucao.motivo || d.solicitacao_devolucao.comentario;
-      if (!temMotivo) return false;
-      
-      // Mostrar apenas se status for ENTREGUE (esperando a resposta do coordenador)
-      // NÃO mostrar se for DEVOLVIDO ou FINALIZADO (já foi processado)
-      return d.status === 'ENTREGUE';
+      return !!temMotivo && d.status === 'ENTREGUE';
     });
   }, [diarios]);
 
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '1rem' }}>
+        <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <CardTitle className="text-2xl font-bold">Diários de Classe</CardTitle>
+            <CardTitle>Diários de Classe</CardTitle>
             <CardDescription>Gerencie os diários de classe da instituição</CardDescription>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button onClick={() => { resetForm(); setIsDialogOpen(true); }}>
+              <Button className="bg-teal-600 hover:bg-teal-700">
                 <Plus className="h-4 w-4 mr-2" />
                 Novo Diário
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <style>{`
-                [data-radix-popper-content-wrapper] {
-                  z-index: 99999 !important;
-                }
-              `}</style>
+            <DialogContent className="sm:max-w-[500px]">
               <DialogHeader>
-                <DialogTitle>{editingDiario ? 'Editar Diário' : 'Novo Diário'}</DialogTitle>
+                <DialogTitle>{editingDiario ? 'Editar Diário' : 'Criar Novo Diário'}</DialogTitle>
                 <DialogDescription>
                   Preencha as informações abaixo para {editingDiario ? 'atualizar o' : 'criar um novo'} diário.
                 </DialogDescription>
@@ -416,81 +391,75 @@ export function DiariosList() {
                       id="nome"
                       value={formData.nome}
                       onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                      placeholder="Ex: Matemática - 1º Ano A - 2024"
+                      placeholder="Ex: Diário de Matemática - 1º Ano A"
                       required
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="grid gap-2">
                       <Label htmlFor="disciplina">Disciplina</Label>
-                      <Select 
-                        value={formData.disciplinaId} 
+                      <Select
+                        value={formData.disciplinaId}
                         onValueChange={(value) => setFormData({ ...formData, disciplinaId: value, professorId: '' })}
                       >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione a disciplina" />
+                        <SelectTrigger id="disciplina">
+                          <SelectValue placeholder="Selecione" />
                         </SelectTrigger>
                         <SelectContent>
-                          {disciplinas.map((d) => (
-                            <SelectItem key={d.id} value={d.id.toString()}>{d.nome}</SelectItem>
+                          {disciplinas.map((disciplina) => (
+                            <SelectItem key={disciplina.id} value={disciplina.id.toString()}>
+                              {disciplina.nome}
+                            </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="turma">Turma</Label>
-                      <Select 
-                        value={formData.turmaId} 
+                      <Select
+                        value={formData.turmaId}
                         onValueChange={(value) => setFormData({ ...formData, turmaId: value })}
                       >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione a turma" />
+                        <SelectTrigger id="turma">
+                          <SelectValue placeholder="Selecione" />
                         </SelectTrigger>
                         <SelectContent>
-                          {turmas.map((t) => (
-                            <SelectItem key={t.id} value={t.id.toString()}>{t.nome}</SelectItem>
+                          {turmas.map((turma) => (
+                            <SelectItem key={turma.id} value={turma.id.toString()}>
+                              {turma.nome}
+                            </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
-                    {/* 🔧 CORREÇÃO PRINCIPAL: Select de Professor usando professor_id */}
                     <div className="grid gap-2">
                       <Label htmlFor="professor">Professor</Label>
-                      <Select 
-                        value={formData.professorId} 
-                        onValueChange={(value) => {
-                          console.log('Professor selecionado:', value);
-                          setFormData(prev => ({ ...prev, professorId: value }));
-                        }}
+                      <Select
+                        value={formData.professorId}
+                        onValueChange={(value) => setFormData({ ...formData, professorId: value })}
                       >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione o professor" />
+                        <SelectTrigger id="professor">
+                          <SelectValue placeholder="Selecione" />
                         </SelectTrigger>
                         <SelectContent>
-                          {professoresFiltrados.map((p) => {
-                            const profId = p.professor_id ?? p.id;
-                            return (
-                              <SelectItem 
-                                key={profId} 
-                                value={String(profId)}
-                              >
-                                {p.nome}
-                              </SelectItem>
-                            );
-                          })}
+                          {professoresFiltrados.map((professor) => (
+                            <SelectItem key={professor.id} value={professor.id.toString()}>
+                              {professor.nome}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="bimestre">Bimestre</Label>
-                      <Select 
-                        value={formData.bimestre} 
+                      <Select
+                        value={formData.bimestre}
                         onValueChange={(value) => setFormData({ ...formData, bimestre: value })}
                       >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione o bimestre" />
+                        <SelectTrigger id="bimestre">
+                          <SelectValue placeholder="Selecione" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="1">1º Bimestre</SelectItem>
@@ -744,37 +713,33 @@ export function DiariosList() {
               </div>
             </div>
           )}
-          
-          {loading && (
-            <div className="text-center py-8 text-gray-500">
-              <p>Carregando...</p>
-            </div>
-          )}
 
-          {!loading && (
-            <div className="space-y-4">
+          {loading ? (
+            <div className="text-center py-8 text-gray-500">Carregando diários...</div>
+          ) : (
+            <div className="grid gap-4">
               {filteredDiarios.map((diario) => {
-                const status = getStatusDiario(diario);
-                const statusDiario = getStatusDiarioInfo(diario.status);
-                const StatusIcon = statusDiario.icon;
-                const permissions = canManageDiario(diario);
-                
+                const hoje = new Date();
+                const dataTermino = diario.dataTermino ? new Date(diario.dataTermino) : null;
+                const isExpirado = dataTermino && hoje > dataTermino;
+
                 return (
-                  <div key={diario.id} className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 p-4 border rounded-lg">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <h3 className="font-medium">{diario.nome || 'Sem nome'}</h3>
-                        {diario.bimestre && <Badge variant="outline">{diario.bimestre}º Bimestre</Badge>}
-                        <Badge variant={status.variant}>{status.label}</Badge>
-                        <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${statusDiario.color}`}>
-                          <StatusIcon className="h-3 w-3" />
-                          {statusDiario.label}
-                        </div>
+                  <div key={diario.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+                    <div className="flex items-center gap-4">
+                      <div className={`p-2 rounded-full ${diario.status === 'FINALIZADO' ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'}`}>
+                        <BookOpen className="h-5 w-5" />
                       </div>
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-gray-600">
-                        <span>{getDisciplinaNome(diario.disciplina_id)} - {getTurmaNome(diario.turma_id)}</span>
-                        <span>•</span>
-                        <span>Prof. {getProfessorNome(diario.professor_id)}</span>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-semibold text-gray-900">{diario.nome}</h4>
+                          {getStatusBadge(diario.status)}
+                          {isExpirado && diario.status !== 'FINALIZADO' && (
+                            <Badge variant="destructive" className="text-[10px]">Prazo Encerrado</Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-gray-500">
+                          {getDisciplinaNome(diario.disciplina_id)} - {getTurmaNome(diario.turma_id)} • Prof. {getProfessorNome(diario.professor_id)}
+                        </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -787,14 +752,14 @@ export function DiariosList() {
                         <Eye className="h-4 w-4" />
                         Visualizar
                       </Button>
-                      
-                      {permissions.canEdit && (
+
+                      {currentUser?.papel === 'COORDENADOR' && (
                         <>
-                          {diario.status === 'ENTREGUE' && (currentUser?.papel === 'COORDENADOR' || currentUser?.papel === 'ADMIN') && (
+                          {diario.status === 'ENTREGUE' && (
                             <Button
                               variant="default"
                               size="sm"
-                              className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2"
+                              className="bg-green-600 hover:bg-green-700 flex items-center gap-2"
                               onClick={() => {
                                 setSelectedDiario(diario);
                                 setIsFinalizarDialogOpen(true);
