@@ -178,7 +178,7 @@ export function DiarioViewModal({
     }
   };
 
-  const handleDevolverDiario = async () => {
+ const handleDevolverDiario = async () => {
     if (!diario) return;
     try {
       setDevolvendoDiario(true);
