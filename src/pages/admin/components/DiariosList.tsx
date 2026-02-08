@@ -857,7 +857,7 @@ export function DiariosList() {
 
      <Dialog open={isFinalizarDialogOpen} onOpenChange={setIsFinalizarDialogOpen}>
         <DialogContent>
-          <style>{`                   ← ADICIONA ISSO AQUI!
+          <style>{`
             [data-radix-popper-content-wrapper] {
               z-index: 99999 !important;
             }
