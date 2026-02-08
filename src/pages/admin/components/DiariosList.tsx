@@ -82,32 +82,27 @@ export function DiariosList() {
     loadData();
   }, [loadData]);
 
-  // 🔧 CORREÇÃO: useEffect que filtra professores por disciplina (SIMPLIFICADO)
+  // 🔧 CORREÇÃO: useEffect que filtra professores por disciplina
   useEffect(() => {
     const filtrarProfessores = async () => {
       if (!formData.disciplinaId) {
+        // Se não há disciplina selecionada, mostra todos os professores
         setProfessoresFiltrados(professores);
         return;
       }
 
       try {
-        const resultado = await supabaseService.getProfessoresByDisciplina(Number(formData.disciplinaId));
+        // Busca os IDs dos professores que lecionam esta disciplina
+        const professoresIds = await supabaseService.getProfessoresByDisciplina(Number(formData.disciplinaId));
         
-        let professoresIds: number[] = [];
-        if (Array.isArray(resultado)) {
-          professoresIds = resultado.map(item => {
-            if (typeof item === 'number') return item;
-            if (typeof item === 'object' && item.professor_id) return item.professor_id;
-            return parseInt(item);
-          }).filter(id => !isNaN(id));
-        }
-        
+        // Filtra os professores que têm professor_id na lista de IDs retornados
         const professoresDaDisciplina = professores.filter(p => {
-          return p.professor_id !== undefined && p.professor_id !== null && professoresIds.includes(p.professor_id);
+          const profId = p.professor_id ?? p.id;
+          return professoresIds.includes(profId);
         });
         
+        console.log('Professores filtrados:', professoresDaDisciplina);
         setProfessoresFiltrados(professoresDaDisciplina);
-        // NÃO reseta mais o professor aqui - o reset é feito no onValueChange da disciplina
       } catch (error) {
         console.error('Erro ao filtrar professores:', error);
         setProfessoresFiltrados(professores);
@@ -420,7 +415,11 @@ export function DiariosList() {
                       <Label htmlFor="disciplina">Disciplina</Label>
                       <Select 
                         value={formData.disciplinaId} 
-                        onValueChange={(value) => setFormData({ ...formData, disciplinaId: value, professorId: '' })}
+                        onValueChange={(value) => {
+                          console.log('Disciplina selecionada:', value);
+                          // 🔧 CORREÇÃO: Limpa o professor ao mudar a disciplina
+                          setFormData({ ...formData, disciplinaId: value, professorId: '' });
+                        }}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Selecione a disciplina" />
@@ -450,7 +449,6 @@ export function DiariosList() {
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
-                    {/* 🔧 CORREÇÃO PRINCIPAL: Select de Professor usando professor_id */}
                     <div className="grid gap-2">
                       <Label htmlFor="professor">Professor</Label>
                       <Select 
@@ -459,9 +457,16 @@ export function DiariosList() {
                           console.log('Professor selecionado:', value);
                           setFormData(prev => ({ ...prev, professorId: value }));
                         }}
+                        disabled={!formData.disciplinaId}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="Selecione o professor" />
+                          <SelectValue placeholder={
+                            !formData.disciplinaId 
+                              ? "Selecione uma disciplina primeiro" 
+                              : professoresFiltrados.length === 0
+                                ? "Nenhum professor disponível"
+                                : "Selecione o professor"
+                          } />
                         </SelectTrigger>
                         <SelectContent>
                           {professoresFiltrados.map((p) => {
@@ -477,6 +482,11 @@ export function DiariosList() {
                           })}
                         </SelectContent>
                       </Select>
+                      {formData.disciplinaId && professoresFiltrados.length === 0 && (
+                        <p className="text-xs text-orange-600">
+                          Nenhum professor vinculado a esta disciplina. Vincule professores em Professores → Disciplinas.
+                        </p>
+                      )}
                     </div>
                     <div className="grid gap-2">
                       <Label htmlFor="bimestre">Bimestre</Label>
@@ -633,11 +643,14 @@ export function DiariosList() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">Todos os professores</SelectItem>
-                        {professores.map((professor) => (
-                          <SelectItem key={professor.id} value={professor.id.toString()}>
-                            {professor.nome}
-                          </SelectItem>
-                        ))}
+                        {professores.map((professor) => {
+                          const profId = professor.professor_id ?? professor.id;
+                          return (
+                            <SelectItem key={profId} value={profId.toString()}>
+                              {professor.nome}
+                            </SelectItem>
+                          );
+                        })}
                       </SelectContent>
                     </Select>
                   </div>
