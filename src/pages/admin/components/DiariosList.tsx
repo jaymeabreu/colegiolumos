@@ -770,14 +770,11 @@ export function DiariosList() {
                 return (
                   <div key={diario.id} className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 p-4 border rounded-lg">
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <h3 className="font-medium">{diario.nome || 'Sem nome'}</h3>
-                        {diario.bimestre && <Badge variant="outline">{diario.bimestre}º Bimestre</Badge>}
-                        <Badge variant={status.variant}>{status.label}</Badge>
-                        <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${statusDiario.color}`}>
-                          <StatusIcon className="h-3 w-3" />
-                          {statusDiario.label}
-                        </div>
+                     <div className="flex items-center gap-2 mb-1 flex-wrap">
+  <h3 className="font-medium">{diario.nome || 'Sem nome'}</h3>
+  {diario.bimestre && <Badge variant="outline">{diario.bimestre}º Bimestre</Badge>}
+  <Badge variant={status.variant}>{status.label}</Badge>
+</div>
                       </div>
                       <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-gray-600">
                         <span>{getDisciplinaNome(diario.disciplina_id)} - {getTurmaNome(diario.turma_id)}</span>
