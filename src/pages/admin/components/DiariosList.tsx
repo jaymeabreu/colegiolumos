@@ -17,6 +17,7 @@ export function DiariosList() {
   const [turmas, setTurmas] = useState<Turma[]>([]);
   const [disciplinas, setDisciplinas] = useState<Disciplina[]>([]);
   const [professores, setProfessores] = useState<Usuario[]>([]);
+  const [todosUsuarios, setTodosUsuarios] = useState<Usuario[]>([]);
   const [professoresFiltrados, setProfessoresFiltrados] = useState<Usuario[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -64,6 +65,7 @@ export function DiariosList() {
       setDiarios(diariosData);
       setTurmas(turmasData);
       setDisciplinas(disciplinasData);
+      setTodosUsuarios(usuariosData);
       setProfessores(usuariosData.filter(u => u.papel === 'PROFESSOR'));
       
       const userData = localStorage.getItem('user');
@@ -101,7 +103,8 @@ export function DiariosList() {
         }
         
         const professoresDaDisciplina = professores.filter(p => {
-          return p.professor_id !== undefined && p.professor_id !== null && professoresIds.includes(p.professor_id);
+          const pId = p.id || p.ID || (p as any).professor_id;
+          return pId !== undefined && pId !== null && professoresIds.includes(Number(pId));
         });
         
         setProfessoresFiltrados(professoresDaDisciplina);
@@ -326,7 +329,13 @@ export function DiariosList() {
   };
 
   const getProfessorNome = (id?: number) => {
-    return professores.find(p => p.id === id)?.nome || 'N/A';
+    if (!id) return 'N/A';
+    // Busca em todos os usuários para garantir que encontre mesmo que o papel esteja diferente
+    const professor = todosUsuarios.find(u => {
+      const uId = u.id || u.ID || (u as any).professor_id;
+      return Number(uId) === Number(id);
+    });
+    return professor?.nome || 'N/A';
   };
 
   const getStatusBadge = (status?: string) => {
@@ -355,8 +364,8 @@ export function DiariosList() {
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-7">
+          <div className="space-y-1">
             <CardTitle>Diários de Classe</CardTitle>
             <CardDescription>Gerencie os diários de classe da instituição</CardDescription>
           </div>
@@ -436,7 +445,7 @@ export function DiariosList() {
                         </SelectTrigger>
                         <SelectContent>
                           {professoresFiltrados.map((professor) => (
-                            <SelectItem key={professor.id} value={professor.id.toString()}>
+                            <SelectItem key={professor.id || professor.ID || (professor as any).professor_id} value={(professor.id || professor.ID || (professor as any).professor_id).toString()}>
                               {professor.nome}
                             </SelectItem>
                           ))}
@@ -604,7 +613,7 @@ export function DiariosList() {
                       <SelectContent>
                         <SelectItem value="all">Todos os professores</SelectItem>
                         {professores.map((professor) => (
-                          <SelectItem key={professor.id} value={professor.id.toString()}>
+                          <SelectItem key={professor.id || professor.ID || (professor as any).professor_id} value={(professor.id || professor.ID || (professor as any).professor_id).toString()}>
                             {professor.nome}
                           </SelectItem>
                         ))}
