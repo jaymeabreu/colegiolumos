@@ -70,10 +70,28 @@ export function DisciplinasList() {
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validação do nome
+    if (!formData.nome || formData.nome.trim() === '') {
+      alert('Por favor, preencha o nome da disciplina!');
+      return;
+    }
+
+    // Validação da carga horária
+    if (!formData.cargaHoraria || formData.cargaHoraria.trim() === '') {
+      alert('Por favor, preencha a carga horária!');
+      return;
+    }
+
+    const cargaHorariaNum = Number(formData.cargaHoraria);
+    if (isNaN(cargaHorariaNum) || cargaHorariaNum <= 0) {
+      alert('A carga horária deve ser um número maior que zero!');
+      return;
+    }
+
     const data = {
-      nome: formData.nome,
-      codigo: formData.codigo || formData.nome.substring(0, 3).toUpperCase(),
-      carga_horaria: Number(formData.cargaHoraria)
+      nome: formData.nome.trim(),
+      codigo: formData.codigo.trim() || formData.nome.substring(0, 3).toUpperCase(),
+      carga_horaria: cargaHorariaNum
     };
 
     try {
@@ -143,7 +161,7 @@ export function DisciplinasList() {
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button onClick={resetForm}>
+              <Button onClick={resetForm} disabled={loading}>
                 <Plus className="h-4 w-4 mr-2" />
                 Nova Disciplina
               </Button>
@@ -160,13 +178,14 @@ export function DisciplinasList() {
               <form onSubmit={handleSubmit}>
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="nome">Nome da Disciplina</Label>
+                    <Label htmlFor="nome">Nome da Disciplina *</Label>
                     <Input
                       id="nome"
                       value={formData.nome}
                       onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
                       placeholder="Ex: Matemática"
                       required
+                      disabled={loading}
                     />
                   </div>
                   <div>
@@ -176,22 +195,25 @@ export function DisciplinasList() {
                       value={formData.codigo}
                       onChange={(e) => setFormData({ ...formData, codigo: e.target.value })}
                       placeholder="Ex: MAT (deixe vazio para gerar automaticamente)"
+                      disabled={loading}
                     />
                   </div>
                   <div>
-                    <Label htmlFor="cargaHoraria">Carga Horária (horas)</Label>
+                    <Label htmlFor="cargaHoraria">Carga Horária (horas) *</Label>
                     <Input
                       id="cargaHoraria"
                       type="number"
+                      min="1"
                       value={formData.cargaHoraria}
                       onChange={(e) => setFormData({ ...formData, cargaHoraria: e.target.value })}
                       placeholder="Ex: 200"
                       required
+                      disabled={loading}
                     />
                   </div>
                 </div>
                 <DialogFooter className="mt-6">
-                  <Button type="button" variant="outline" onClick={resetForm}>
+                  <Button type="button" variant="outline" onClick={resetForm} disabled={loading}>
                     Cancelar
                   </Button>
                   <Button type="submit" disabled={loading}>
@@ -209,6 +231,7 @@ export function DisciplinasList() {
             placeholder="Buscar disciplinas..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            disabled={loading}
           />
         </div>
         
@@ -241,6 +264,7 @@ export function DisciplinasList() {
                     size="none"
                     className="h-8 w-8 p-0 inline-flex items-center justify-center"
                     onClick={() => handleEdit(disciplina)}
+                    disabled={loading}
                   >
                     <Edit className="h-4 w-4" />
                   </Button>
@@ -249,6 +273,7 @@ export function DisciplinasList() {
                     size="none"
                     className="h-8 w-8 p-0 inline-flex items-center justify-center"
                     onClick={() => handleDelete(disciplina.id)}
+                    disabled={loading}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
