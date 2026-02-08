@@ -775,7 +775,7 @@ export function DiariosList() {
   {diario.bimestre && <Badge variant="outline">{diario.bimestre}º Bimestre</Badge>}
   <Badge variant={status.variant}>{status.label}</Badge>
 </div>
-                      </div>
+              
                       <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-gray-600">
                         <span>{getDisciplinaNome(diario.disciplina_id)} - {getTurmaNome(diario.turma_id)}</span>
                         <span>•</span>
