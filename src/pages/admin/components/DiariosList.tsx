@@ -28,7 +28,6 @@ export function DiariosList() {
   const [selectedDiario, setSelectedDiario] = useState<Diario | null>(null);
   const [loading, setLoading] = useState(false);
   
-  // CORREÇÃO: Inicializa o usuário diretamente do localStorage para evitar que comece como null
   const [currentUser, setCurrentUser] = useState<Usuario | null>(() => {
     const userData = localStorage.getItem('user');
     return userData ? JSON.parse(userData) : null;
@@ -162,13 +161,11 @@ export function DiariosList() {
 
   const handleFinalizarDiario = useCallback(async () => {
     const diarioId = selectedDiario?.id || (selectedDiario as any)?.ID;
-    
-    // Tenta pegar o usuário do estado ou direto do localStorage se o estado falhar
     const user = currentUser || JSON.parse(localStorage.getItem('user') || 'null');
     const userId = user?.id || user?.ID || user?.usuario_id;
 
     if (!diarioId || !userId) {
-      alert('Erro: Usuário ou Diário não identificado. Tente fazer login novamente.');
+      alert('Erro: Usuário ou Diário não identificado.');
       return;
     }
 
@@ -180,14 +177,10 @@ export function DiariosList() {
         setIsFinalizarDialogOpen(false);
         setIsViewModalOpen(false);
         setSelectedDiario(null);
-        setSuccessToast({
-          open: true,
-          message: 'Diário Finalizado!',
-          description: 'O diário foi finalizado com sucesso.'
-        });
+        setSuccessToast({ open: true, message: 'Finalizado!', description: 'O diário foi finalizado.' });
       }
     } catch (error: any) {
-      alert(error.message || 'Erro ao finalizar diário.');
+      alert(error.message || 'Erro ao finalizar.');
     } finally {
       setLoading(false);
     }
@@ -211,6 +204,13 @@ export function DiariosList() {
 
   return (
     <div className="space-y-6">
+      {/* CORREÇÃO DE Z-INDEX: Força os menus do Select a aparecerem na frente do Modal */}
+      <style>{`
+        [data-radix-popper-content-wrapper] {
+          z-index: 99999 !important;
+        }
+      `}</style>
+
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
