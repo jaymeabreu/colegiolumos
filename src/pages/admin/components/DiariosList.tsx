@@ -713,7 +713,7 @@ export function DiariosList() {
                         {diario.bimestre && <Badge variant="outline">{diario.bimestre}º Bimestre</Badge>}
                         <Badge variant={status.variant}>{status.label}</Badge>
                         {temSolicitacaoDevolucao && (
-                          <Badge className="bg-orange-50 text-orange-600 border-orange-100 hover:bg-orange-100 flex items-center gap-1 font-normal">
+                          <Badge className="bg-red-50 text-red-600 border-red-100 hover:bg-red-100 flex items-center gap-1 font-normal">
                             <RotateCcw className="h-3 w-3" />
                             Solicitação de Devolução
                           </Badge>
