@@ -857,6 +857,11 @@ export function DiariosList() {
 
       <Dialog open={isFinalizarDialogOpen} onOpenChange={setIsFinalizarDialogOpen}>
         <DialogContent>
+          <style>{`
+            [data-radix-popper-content-wrapper] {
+              z-index: 99999 !important;
+            }
+          `}</style>
           <DialogHeader>
             <DialogTitle>Finalizar Diário</DialogTitle>
             <DialogDescription>
