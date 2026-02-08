@@ -66,7 +66,6 @@ export function AvaliacoesTab({ diarioId, readOnly = false }: AvaliacoesTabProps
       
       const notasMap: { [alunoId: number]: string } = {};
       notasData.forEach(nota => {
-        // CORRIGIDO: usa 'valor' em vez de 'nota'
         notasMap[nota.aluno_id] = nota.valor.toString();
       });
       
@@ -134,7 +133,7 @@ export function AvaliacoesTab({ diarioId, readOnly = false }: AvaliacoesTabProps
           await supabaseService.saveNota({
             avaliacaoId: selectedAvaliacao.id,
             alunoId: aluno.id,
-            nota: parseFloat(notaValue)
+            valor: parseFloat(notaValue)
           });
         }
       }
@@ -144,7 +143,7 @@ export function AvaliacoesTab({ diarioId, readOnly = false }: AvaliacoesTabProps
       setSelectedAvaliacao(null);
       setNotas({});
     } catch (error) {
-      console.error('Erro ao salvar notas:', error);
+      console.error('❌ Erro ao salvar notas:', error);
       alert('Erro ao salvar notas');
     } finally {
       setLoadingNotas(false);
