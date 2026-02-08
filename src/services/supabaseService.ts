@@ -692,7 +692,6 @@ class SupabaseService {
     return (alunos ?? []).map(withCamel) as Aluno[];
   }
 
-  // ========== FUNÇÃO CREATEALUNO CORRIGIDA ==========
   async createAluno(aluno: any): Promise<Aluno> {
     try {
       // 1. GERA MATRÍCULA ÚNICA AUTOMATICAMENTE
@@ -750,7 +749,6 @@ class SupabaseService {
       throw error;
     }
   }
-  // ===================================================
 
   async updateAluno(id: number, updates: Partial<any>): Promise<Aluno | null> {
     const payload: any = {};
@@ -1576,16 +1574,29 @@ class SupabaseService {
     return (data ?? []).map(withCamel) as DiarioAluno[];
   }
 
+  // 🔧 CORREÇÃO CRÍTICA: Função getProfessoresByDisciplina
   async getProfessoresByDisciplina(disciplinaId: number): Promise<number[]> {
-    const { data, error } = await supabase
-      .from('professor_disciplinas')
-      .select('professor_id')
-      .eq('disciplina_id', disciplinaId);
+    try {
+      const { data, error } = await supabase
+        .from('professor_disciplinas')
+        .select('professor_id')
+        .eq('disciplina_id', disciplinaId);
 
-    if (error) throw error;
+      if (error) {
+        console.error('Erro ao buscar professores por disciplina:', error);
+        throw error;
+      }
 
-    const ids = (data ?? []).map((row: any) => row.professor_id).filter((id: any) => id !== null && id !== undefined);
-    return ids as number[];
+      // Retorna array de IDs de professores (não nulos)
+      const ids = (data ?? [])
+        .map((row: any) => row.professor_id)
+        .filter((id: any) => id !== null && id !== undefined && !isNaN(Number(id)));
+      
+      return ids as number[];
+    } catch (error) {
+      console.error('Erro em getProfessoresByDisciplina:', error);
+      return [];
+    }
   }
 
   private pushHistoricoStatus(diario: Diario, novoStatus: Diario['status'], motivo?: string) {
