@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Plus, Edit, Trash2, Users, Filter, CheckCircle, Clock, RotateCcw, XCircle, AlertCircle, Eye } from 'lucide-react';
+import { Plus, Edit, Trash2, Users, Filter, CheckCircle, Clock, RotateCcw, XCircle, AlertCircle, Eye, BookOpen } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button'; 
 import { Input } from '../../../components/ui/input';
@@ -72,7 +72,6 @@ export function DiariosList() {
       }
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
-      alert('Erro ao carregar dados. Verifique sua conexão.');
     } finally {
       setLoading(false);
     }
@@ -82,7 +81,6 @@ export function DiariosList() {
     loadData();
   }, [loadData]);
 
-  // 🔧 CORREÇÃO: useEffect que filtra professores por disciplina (SIMPLIFICADO)
   useEffect(() => {
     const filtrarProfessores = async () => {
       if (!formData.disciplinaId) {
@@ -107,7 +105,6 @@ export function DiariosList() {
         });
         
         setProfessoresFiltrados(professoresDaDisciplina);
-        // NÃO reseta mais o professor aqui - o reset é feito no onValueChange da disciplina
       } catch (error) {
         console.error('Erro ao filtrar professores:', error);
         setProfessoresFiltrados(professores);
@@ -118,7 +115,6 @@ export function DiariosList() {
   }, [formData.disciplinaId, professores]);
 
   const filteredDiarios = useMemo(() => {
-    // Helper: verificar se tem uma solicitação de devolução VÁLIDA
     const temSolicitacaoDevolucao = (diario: Diario) => {
       if (!diario.solicitacao_devolucao) return false;
       const temMotivo = diario.solicitacao_devolucao.motivo || diario.solicitacao_devolucao.comentario;
@@ -126,12 +122,10 @@ export function DiariosList() {
     };
 
     if (!searchTerm && !Object.values(filters).some(v => v && v !== 'all')) {
-      // Mostrar todos EXCETO os que estão com uma solicitação de devolução VÁLIDA no aviso
       return diarios.filter(d => !temSolicitacaoDevolucao(d));
     }
 
     return diarios.filter(diario => {
-      // Filtrar o que está no aviso (solicitacao_devolucao VÁLIDA)
       if (temSolicitacaoDevolucao(diario)) return false;
 
       if (searchTerm && diario.nome && !diario.nome.toLowerCase().includes(searchTerm.toLowerCase())) {
@@ -257,9 +251,7 @@ export function DiariosList() {
     setIsViewModalOpen(true);
   }, []);
 
-  // 🔧 CORREÇÃO DEFINITIVA PARA FINALIZAR DIÁRIO
   const handleFinalizarDiario = useCallback(async () => {
-    // Garantir que temos o diário e o ID dele
     const diarioId = selectedDiario?.id || (selectedDiario as any)?.ID;
     
     if (!diarioId) {
@@ -275,7 +267,6 @@ export function DiariosList() {
     
     try {
       setLoading(true);
-      // Chama o serviço passando o ID correto e o ID do coordenador
       const sucesso = await supabaseService.finalizarDiario(diarioId, currentUser.id);
       
       if (sucesso) {
@@ -670,7 +661,6 @@ export function DiariosList() {
             </Dialog>
           </div>
 
-          {/* Aviso APENAS aparece se houver diários com solicitação de devolução em status PENDENTE ou ENTREGUE */}
           {diasComSolicitacaoDevolucao.length > 0 && (
             <div className="mb-6 p-4 bg-orange-50 border-2 border-orange-200 rounded-lg">
               <div className="flex items-center gap-2 mb-3">
