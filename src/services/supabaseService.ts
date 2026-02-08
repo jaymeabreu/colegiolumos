@@ -1633,14 +1633,102 @@ class SupabaseService {
     return resultado !== null;
   }
 
-  async finalizarDiario(diarioId: number, usuarioId: number): Promise<boolean> {
-    const diario = await this.getDiarioById(diarioId);
-    if (!diario) return false;
+  aasync finalizarDiario(diarioId: number, usuarioId: number): Promise<boolean> {
+  try {
+    console.log('🔵 finalizarDiario chamado com:', { diarioId, usuarioId });
+    
+    // Validar usuário
+    if (!usuarioId || isNaN(usuarioId) || usuarioId <= 0) {
+      console.error('❌ ID do usuário inválido:', usuarioId);
+      throw new Error('ID do usuário inválido');
+    }
 
+    // Buscar usuário para validar se existe e se é coordenador
+    const { data: usuario, error: usuarioError } = await supabase
+      .from('usuarios')
+      .select('id, papel')
+      .eq('id', usuarioId)
+      .maybeSingle();
+
+    if (usuarioError) {
+      console.error('❌ Erro ao buscar usuário:', usuarioError);
+      throw new Error(`Erro ao validar usuário: ${usuarioError.message}`);
+    }
+
+    if (!usuario) {
+      console.error('❌ Usuário não encontrado com ID:', usuarioId);
+      throw new Error('Usuário não identificado. Tente fazer login novamente.');
+    }
+
+    console.log('✅ Usuário validado:', usuario);
+
+    // Validar se é coordenador
+    if (usuario.papel !== 'COORDENADOR') {
+      console.error('❌ Usuário não é coordenador:', usuario);
+      throw new Error('Apenas coordenadores podem finalizar diários.');
+    }
+
+    // Buscar o diário
+    const diario = await this.getDiarioById(diarioId);
+    if (!diario) {
+      console.error('❌ Diário não encontrado:', diarioId);
+      throw new Error('Diário não encontrado');
+    }
+
+    console.log('📋 Diário encontrado:', diario);
+
+    // Validar status atual
+    if (diario.status === 'FINALIZADO') {
+      console.warn('⚠️ Diário já está finalizado');
+      throw new Error('Este diário já foi finalizado.');
+    }
+
+    if (diario.status !== 'ENTREGUE') {
+      console.warn('⚠️ Diário não está no status ENTREGUE:', diario.status);
+      throw new Error('Apenas diários entregues podem ser finalizados.');
+    }
+
+    // Atualizar histórico
     const historico_status = this.pushHistoricoStatus(diario, 'FINALIZADO');
-    const resultado = await this.updateDiario(diarioId, { status: 'FINALIZADO', historico_status });
-    return resultado !== null;
+    
+    // Adicionar informações de quem finalizou
+    const historicoComUsuario = historico_status.map((h: any, index: number) => {
+      if (index === historico_status.length - 1) {
+        return {
+          ...h,
+          usuario_id: usuarioId,
+          usuario_nome: usuario.papel
+        };
+      }
+      return h;
+    });
+
+    console.log('📝 Atualizando diário para FINALIZADO...');
+
+    // Atualizar o diário
+    const resultado = await this.updateDiario(diarioId, { 
+      status: 'FINALIZADO', 
+      historico_status: historicoComUsuario,
+      solicitacao_devolucao: null // Limpar qualquer solicitação de devolução
+    });
+    
+    if (!resultado) {
+      console.error('❌ Falha ao atualizar diário');
+      throw new Error('Falha ao atualizar o diário');
+    }
+
+    console.log('✅ Diário finalizado com sucesso!');
+    return true;
+  } catch (error) {
+    console.error('❌ Erro em finalizarDiario:', error);
+    
+    // Re-lançar erro com mensagem amigável
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error('Erro desconhecido ao finalizar diário');
   }
+}
 
   async solicitarDevolucaoDiario(diarioId: number, motivo: string): Promise<Diario | null> {
     const diario = await this.getDiarioById(diarioId);
