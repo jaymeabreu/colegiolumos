@@ -855,9 +855,9 @@ export function DiariosList() {
         userRole={currentUser?.papel as any}
       />
 
-      <Dialog open={isFinalizarDialogOpen} onOpenChange={setIsFinalizarDialogOpen}>
+     <Dialog open={isFinalizarDialogOpen} onOpenChange={setIsFinalizarDialogOpen}>
         <DialogContent>
-          <style>{`
+          <style>{`                   ← ADICIONA ISSO AQUI!
             [data-radix-popper-content-wrapper] {
               z-index: 99999 !important;
             }
