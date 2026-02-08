@@ -318,6 +318,11 @@ export function OcorrenciasList() {
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-[95vw] lg:max-w-[800px] max-h-[95vh] overflow-y-auto">
+              <style>{`
+                [data-radix-popper-content-wrapper] {
+                  z-index: 99999 !important;
+                }
+              `}</style>
               <DialogHeader>
                 <DialogTitle>{editingOcorrencia ? 'Editar Ocorrência' : 'Nova Ocorrência'}</DialogTitle>
                 <DialogDescription>
@@ -478,6 +483,11 @@ export function OcorrenciasList() {
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-md">
+                <style>{`
+                  [data-radix-popper-content-wrapper] {
+                    z-index: 99999 !important;
+                  }
+                `}</style>
                 <DialogHeader>
                   <DialogTitle>Filtrar Ocorrências</DialogTitle>
                   <DialogDescription>
