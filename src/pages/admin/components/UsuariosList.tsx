@@ -154,6 +154,12 @@ export function UsuariosList() {
         return;
       }
 
+      // VALIDAÇÃO DO PAPEL
+      if (!formData.papel || formData.papel.trim() === '') {
+        alert('Por favor, selecione um papel para o usuário!');
+        return;
+      }
+
       try {
         setIsLoading(true);
         const data = {
@@ -342,7 +348,7 @@ export function UsuariosList() {
                 </div>
 
                 <div>
-                  <Label>Papel</Label>
+                  <Label>Papel *</Label>
                   <Select
                     value={formData.papel}
                     onValueChange={(value) =>
@@ -389,7 +395,7 @@ export function UsuariosList() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   <div>
                     <Label htmlFor="senha">
-                      {editingUsuario ? 'Nova senha (opcional)' : 'Senha'}
+                      {editingUsuario ? 'Nova senha (opcional)' : 'Senha *'}
                     </Label>
                     <Input
                       id="senha"
@@ -519,7 +525,6 @@ export function UsuariosList() {
                 }
               `}</style>
               <DialogHeader>
-                <DialogTitle>Filtrar Usuários</DialogTitle>
                 <DialogTitle>Filtrar Usuários</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
