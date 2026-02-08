@@ -338,23 +338,32 @@ export function DiariosList() {
   const getProfessorNome = (id?: number) => {
     if (!id) return 'N/A';
     
-    // Busca em todosUsuarios primeiro (que contém todos os usuários)
-    const professor = todosUsuarios.find(u => {
-      const uId = u.id || u.ID || (u as any).professor_id;
-      return Number(uId) === Number(id);
-    });
+    // Normalizar id para número
+    const idNormalizado = Number(id);
     
-    if (professor?.nome) {
-      return professor.nome;
+    // Busca em todosUsuarios primeiro
+    if (todosUsuarios && todosUsuarios.length > 0) {
+      const professor = todosUsuarios.find(u => {
+        const uId = Number(u.id || u.ID || (u as any).professor_id);
+        return uId === idNormalizado;
+      });
+      if (professor?.nome) {
+        return professor.nome;
+      }
     }
     
-    // Fallback para professores filtrados
-    const profFiltrado = professores.find(p => {
-      const pId = p.id || p.ID || (p as any).professor_id;
-      return Number(pId) === Number(id);
-    });
+    // Fallback para professores
+    if (professores && professores.length > 0) {
+      const profFiltrado = professores.find(p => {
+        const pId = Number(p.id || p.ID || (p as any).professor_id);
+        return pId === idNormalizado;
+      });
+      if (profFiltrado?.nome) {
+        return profFiltrado.nome;
+      }
+    }
     
-    return profFiltrado?.nome || 'N/A';
+    return 'N/A';
   };
 
   const getStatusBadge = (status?: string) => {
@@ -384,12 +393,13 @@ export function DiariosList() {
     <div className="space-y-6">
       <Card>
         {/* SOLUÇÃO PROBLEMA 1: Alinhar título à esquerda e botão à direita */}
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-7 gap-4">
-          <div className="space-y-1 flex-1">
-            <CardTitle>Diários de Classe</CardTitle>
-            <CardDescription>Gerencie os diários de classe da instituição</CardDescription>
-          </div>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <CardHeader className="pb-7">
+          <div className="flex flex-row items-center justify-between gap-4">
+            <div className="space-y-1">
+              <CardTitle>Diários de Classe</CardTitle>
+              <CardDescription>Gerencie os diários de classe da instituição</CardDescription>
+            </div>
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button className="bg-teal-600 hover:bg-teal-700 whitespace-nowrap">
                 <Plus className="h-4 w-4 mr-2" />
