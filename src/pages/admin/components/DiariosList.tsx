@@ -70,7 +70,11 @@ export function DiariosList() {
       
       const userData = localStorage.getItem('user');
       if (userData) {
-        setCurrentUser(JSON.parse(userData));
+        const parsedUser = JSON.parse(userData);
+        console.log('👤 currentUser carregado do localStorage:', parsedUser);
+        setCurrentUser(parsedUser);
+      } else {
+        console.warn('⚠️ Nenhum usuário encontrado no localStorage');
       }
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
@@ -285,50 +289,108 @@ export function DiariosList() {
 
   // ✅ CORREÇÃO PROBLEMA 3: Função melhorada para finalizar diário com validação completa
   const handleFinalizarDiario = useCallback(async () => {
+    console.log('🔵 Iniciando finalização do diário...');
+    console.log('📋 selectedDiario:', selectedDiario);
+    console.log('👤 currentUser:', currentUser);
+    
     if (!selectedDiario) {
       alert('Erro: Nenhum diário selecionado.');
       return;
     }
 
     if (!currentUser) {
+      console.error('❌ currentUser está null ou undefined');
+      console.log('🔍 Tentando recuperar do localStorage...');
+      
+      // Tentar recuperar do localStorage
+      const userDataStr = localStorage.getItem('user');
+      console.log('📦 localStorage user:', userDataStr);
+      
+      if (userDataStr) {
+        try {
+          const userData = JSON.parse(userDataStr);
+          console.log('✅ Usuário recuperado do localStorage:', userData);
+          setCurrentUser(userData);
+          
+          // Aguardar um pouco e tentar novamente
+          setTimeout(() => {
+            alert('Dados do usuário recuperados. Clique novamente em "Finalizar Diário".');
+          }, 100);
+          return;
+        } catch (e) {
+          console.error('❌ Erro ao parsear dados do localStorage:', e);
+        }
+      }
+      
       alert('Erro: Usuário não identificado. Tente fazer login novamente.');
       return;
     }
     
     // Extrair ID do diário de forma mais robusta
     const diarioId = selectedDiario.id || (selectedDiario as any).ID;
+    console.log('📋 ID do diário extraído:', diarioId);
     
     if (!diarioId) {
-      console.error('ID do diário não encontrado. Objeto completo:', selectedDiario);
+      console.error('❌ ID do diário não encontrado. Objeto completo:', selectedDiario);
       alert('Erro: ID do diário não identificado.');
       return;
     }
 
     // Converter para número e validar
     const idNumerico = Number(diarioId);
+    console.log('🔢 ID do diário numérico:', idNumerico);
+    
     if (isNaN(idNumerico) || idNumerico <= 0) {
-      console.error('ID do diário inválido:', diarioId);
+      console.error('❌ ID do diário inválido:', diarioId);
       alert('Erro: ID do diário inválido.');
       return;
     }
 
-    // Extrair ID do usuário
-    const userId = currentUser.id || currentUser.ID || (currentUser as any).usuario_id;
+    // Extrair ID do usuário - tentar TODAS as possíveis variações
+    const possiveisUserIds = [
+      currentUser.id,
+      currentUser.ID,
+      (currentUser as any).usuario_id,
+      (currentUser as any).userId,
+      (currentUser as any).user_id,
+      (currentUser as any).coordenador_id,
+      (currentUser as any).professor_id
+    ];
+    
+    console.log('🔍 Possíveis IDs do usuário:', possiveisUserIds);
+    
+    const userId = possiveisUserIds.find(id => id !== undefined && id !== null);
+    console.log('👤 ID do usuário selecionado:', userId);
+    
+    if (!userId) {
+      console.error('❌ Nenhum ID válido encontrado no currentUser:', currentUser);
+      alert('Erro: ID do usuário não encontrado. Verifique o console.');
+      return;
+    }
+    
     const userIdNumerico = Number(userId);
+    console.log('🔢 ID do usuário numérico:', userIdNumerico);
     
     if (isNaN(userIdNumerico) || userIdNumerico <= 0) {
-      console.error('ID do usuário inválido:', userId);
+      console.error('❌ ID do usuário inválido:', userId);
       alert('Erro: ID do usuário inválido.');
       return;
     }
 
-    console.log('Finalizando diário:', { diarioId: idNumerico, userId: userIdNumerico });
+    console.log('✅ Validação completa! Enviando para API:', { 
+      diarioId: idNumerico, 
+      userId: userIdNumerico,
+      userRole: currentUser.papel 
+    });
     
     try {
       setLoading(true);
       const sucesso = await supabaseService.finalizarDiario(idNumerico, userIdNumerico);
       
+      console.log('📡 Resposta da API:', sucesso);
+      
       if (sucesso) {
+        console.log('✅ Diário finalizado com sucesso!');
         await loadData();
         setIsFinalizarDialogOpen(false);
         setIsViewModalOpen(false);
@@ -342,8 +404,14 @@ export function DiariosList() {
         throw new Error('Falha na resposta do servidor ao finalizar diário.');
       }
     } catch (error) {
-      console.error('Erro ao finalizar diário:', error);
-      alert(`Erro ao finalizar diário: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+      console.error('❌ Erro ao finalizar diário:', error);
+      
+      // Mostrar erro mais detalhado
+      if (error instanceof Error) {
+        alert(`Erro ao finalizar diário: ${error.message}`);
+      } else {
+        alert('Erro desconhecido ao finalizar diário. Verifique o console.');
+      }
     } finally {
       setLoading(false);
     }
