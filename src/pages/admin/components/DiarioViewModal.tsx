@@ -126,9 +126,39 @@ export function DiarioViewModal({
       const aulasData = await supabaseService.getAulasByDiario(diario.id);
       setAulas(aulasData || []);
 
-      const turma = await supabaseService.getTurmaById(diario.turma_id || diario.turmaId || 0);
-      const disciplina = await supabaseService.getDisciplinaById(diario.disciplina_id || diario.disciplinaId || 0);
-      const professor = await supabaseService.getProfessorById(diario.professor_id || diario.professorId || 0);
+      // 🔧 CORREÇÃO CRÍTICA: Só busca se os IDs existirem e forem válidos
+      const turmaId = diario.turma_id || diario.turmaId;
+      const disciplinaId = diario.disciplina_id || diario.disciplinaId;
+      const professorId = diario.professor_id || diario.professorId;
+
+      let turma = null;
+      let disciplina = null;
+      let professor = null;
+
+      // Só busca se o ID for válido (não null, não undefined, não 0)
+      if (turmaId && turmaId > 0) {
+        try {
+          turma = await supabaseService.getTurmaById(turmaId);
+        } catch (error) {
+          console.error('Erro ao buscar turma:', error);
+        }
+      }
+
+      if (disciplinaId && disciplinaId > 0) {
+        try {
+          disciplina = await supabaseService.getDisciplinaById(disciplinaId);
+        } catch (error) {
+          console.error('Erro ao buscar disciplina:', error);
+        }
+      }
+
+      if (professorId && professorId > 0) {
+        try {
+          professor = await supabaseService.getProfessorById(professorId);
+        } catch (error) {
+          console.error('Erro ao buscar professor:', error);
+        }
+      }
 
       setIdentificacao({
         escola: 'Colégio Lumos',
@@ -153,7 +183,17 @@ export function DiarioViewModal({
     try {
       setDevolvendoDiario(true);
       setErroDevolver(null);
-      const resultado = await supabaseService.devolverDiario(diario.id, 1, motivoDevolucao || undefined);
+      
+      // Pega o usuário atual do localStorage
+      const userData = localStorage.getItem('user');
+      const currentUser = userData ? JSON.parse(userData) : { id: 1 };
+      
+      const resultado = await supabaseService.devolverDiario(
+        diario.id, 
+        currentUser.id, 
+        motivoDevolucao || undefined
+      );
+      
       if (resultado) {
         setIsDevolverOpen(false);
         onOpenChange(false);
@@ -162,6 +202,7 @@ export function DiarioViewModal({
         setErroDevolver('Erro ao devolver o diário. Tente novamente.');
       }
     } catch (err: any) {
+      console.error('Erro ao devolver diário:', err);
       setErroDevolver(err.message || 'Erro ao devolver o diário');
     } finally {
       setDevolvendoDiario(false);
@@ -175,7 +216,10 @@ export function DiarioViewModal({
       await supabaseService.updateDiario(diario.id, { status: 'ENTREGUE' });
       onOpenChange(false);
       alert('Diário desfinalizado com sucesso!');
+      // Recarrega a página para atualizar a lista
+      window.location.reload();
     } catch (error) {
+      console.error('Erro ao desfinalizar diário:', error);
       alert('Erro ao desfinalizar diário.');
     } finally {
       setDesfinalizado(false);
@@ -331,18 +375,53 @@ export function DiarioViewModal({
       <MarcarPresencaModal aula={selectedAula} alunos={alunosData} open={isMarcarPresencaOpen} onOpenChange={setIsMarcarPresencaOpen} loading={loading} onSave={() => carregarDados()} />
       
       {isDevolverOpen && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[70] backdrop-blur-sm">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[10000] backdrop-blur-sm">
           <div className="bg-white rounded-lg shadow-2xl w-full max-w-md mx-4 overflow-hidden border border-gray-200">
             <div className="bg-white p-6 border-b flex items-start justify-between">
-              <div className="flex-1"><h2 className="text-xl font-bold text-gray-900 mb-1">Devolver Diário</h2><p className="text-sm text-gray-600">Deseja devolver este diário?</p></div>
-              <button onClick={() => setIsDevolverOpen(false)} type="button" className="p-1 hover:bg-gray-100 rounded-full text-gray-400"><X className="h-5 w-5" /></button>
+              <div className="flex-1">
+                <h2 className="text-xl font-bold text-gray-900 mb-1">Devolver Diário</h2>
+                <p className="text-sm text-gray-600">Informe o motivo da devolução</p>
+              </div>
+              <button onClick={() => setIsDevolverOpen(false)} type="button" className="p-1 hover:bg-gray-100 rounded-full text-gray-400">
+                <X className="h-5 w-5" />
+              </button>
             </div>
             <div className="p-6 bg-white">
-              <textarea value={motivoDevolucao} onChange={(e) => setMotivoDevolucao(e.target.value.slice(0, 500))} placeholder="Motivo..." className="w-full px-3 py-2 border rounded-lg h-32 bg-white text-gray-900" />
+              {erroDevolver && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                  {erroDevolver}
+                </div>
+              )}
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Motivo da devolução
+              </label>
+              <textarea 
+                value={motivoDevolucao} 
+                onChange={(e) => setMotivoDevolucao(e.target.value.slice(0, 500))} 
+                placeholder="Descreva o motivo da devolução..." 
+                className="w-full px-3 py-2 border rounded-lg h-32 bg-white text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                maxLength={500}
+              />
+              <p className="text-xs text-gray-500 mt-1">{motivoDevolucao.length}/500 caracteres</p>
             </div>
             <div className="border-t bg-gray-50 px-6 py-4 flex gap-3 justify-end">
-              <Button type="button" variant="outline" onClick={() => setIsDevolverOpen(false)} className="px-6 bg-white">Cancelar</Button>
-              <Button type="button" className="bg-[#1e4e5f] hover:bg-[#153a47] text-white px-6" onClick={handleDevolverDiario} disabled={devolvendoDiario}>{devolvendoDiario ? 'Devolvendo...' : 'Devolver'}</Button>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setIsDevolverOpen(false)} 
+                className="px-6 bg-white"
+                disabled={devolvendoDiario}
+              >
+                Cancelar
+              </Button>
+              <Button 
+                type="button" 
+                className="bg-orange-600 hover:bg-orange-700 text-white px-6" 
+                onClick={handleDevolverDiario} 
+                disabled={devolvendoDiario || !motivoDevolucao.trim()}
+              >
+                {devolvendoDiario ? 'Devolvendo...' : 'Devolver'}
+              </Button>
             </div>
           </div>
         </div>
