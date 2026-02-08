@@ -254,12 +254,10 @@ export function DiariosList() {
     setIsViewModalOpen(true);
   }, []);
 
+  // ✅ CORREÇÃO PROBLEMA 3: Função melhorada para finalizar diário com validação completa
   const handleFinalizarDiario = useCallback(async () => {
-    const diarioId = selectedDiario?.id || (selectedDiario as any)?.ID;
-    
-    if (!diarioId) {
-      console.error('ID do diário não encontrado:', selectedDiario);
-      alert('Erro: ID do diário não identificado.');
+    if (!selectedDiario) {
+      alert('Erro: Nenhum diário selecionado.');
       return;
     }
 
@@ -268,15 +266,38 @@ export function DiariosList() {
       return;
     }
     
+    // Extrair ID do diário de forma mais robusta
+    const diarioId = selectedDiario.id || (selectedDiario as any).ID;
+    
+    if (!diarioId) {
+      console.error('ID do diário não encontrado. Objeto completo:', selectedDiario);
+      alert('Erro: ID do diário não identificado.');
+      return;
+    }
+
+    // Converter para número e validar
+    const idNumerico = Number(diarioId);
+    if (isNaN(idNumerico) || idNumerico <= 0) {
+      console.error('ID do diário inválido:', diarioId);
+      alert('Erro: ID do diário inválido.');
+      return;
+    }
+
+    // Extrair ID do usuário
+    const userId = currentUser.id || currentUser.ID || (currentUser as any).usuario_id;
+    const userIdNumerico = Number(userId);
+    
+    if (isNaN(userIdNumerico) || userIdNumerico <= 0) {
+      console.error('ID do usuário inválido:', userId);
+      alert('Erro: ID do usuário inválido.');
+      return;
+    }
+
+    console.log('Finalizando diário:', { diarioId: idNumerico, userId: userIdNumerico });
+    
     try {
       setLoading(true);
-      // SOLUÇÃO PROBLEMA 3: Garantir que o ID seja um número válido
-      const idFinal = Number(diarioId);
-      if (isNaN(idFinal)) {
-        throw new Error('ID do diário inválido');
-      }
-
-      const sucesso = await supabaseService.finalizarDiario(idFinal, currentUser.id || currentUser.ID);
+      const sucesso = await supabaseService.finalizarDiario(idNumerico, userIdNumerico);
       
       if (sucesso) {
         await loadData();
@@ -293,7 +314,7 @@ export function DiariosList() {
       }
     } catch (error) {
       console.error('Erro ao finalizar diário:', error);
-      alert('Erro ao finalizar diário. Verifique o console para mais detalhes.');
+      alert(`Erro ao finalizar diário: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
     } finally {
       setLoading(false);
     }
@@ -334,35 +355,46 @@ export function DiariosList() {
     return turmas.find(t => t.id === id)?.nome || 'N/A';
   };
 
-  // SOLUÇÃO PROBLEMA 2: Melhorar função para buscar nome do professor
+  // ✅ CORREÇÃO PROBLEMA 2: Função melhorada para buscar nome do professor
   const getProfessorNome = (id?: number) => {
-    if (!id) return 'N/A';
+    if (!id) {
+      console.warn('getProfessorNome: ID não fornecido');
+      return 'N/A';
+    }
     
     // Normalizar id para número
     const idNormalizado = Number(id);
     
-    // Busca em todosUsuarios primeiro
+    if (isNaN(idNormalizado)) {
+      console.warn('getProfessorNome: ID inválido', id);
+      return 'N/A';
+    }
+    
+    // Buscar em todosUsuarios primeiro (mais completo)
     if (todosUsuarios && todosUsuarios.length > 0) {
-      const professor = todosUsuarios.find(u => {
-        const uId = Number(u.id || u.ID || (u as any).professor_id);
+      const usuario = todosUsuarios.find(u => {
+        const uId = Number(u.id || u.ID || (u as any).usuario_id || (u as any).professor_id);
         return uId === idNormalizado;
       });
-      if (professor?.nome) {
-        return professor.nome;
+      
+      if (usuario?.nome) {
+        return usuario.nome;
       }
     }
     
-    // Fallback para professores
+    // Fallback para lista de professores
     if (professores && professores.length > 0) {
-      const profFiltrado = professores.find(p => {
-        const pId = Number(p.id || p.ID || (p as any).professor_id);
+      const prof = professores.find(p => {
+        const pId = Number(p.id || p.ID || (p as any).usuario_id || (p as any).professor_id);
         return pId === idNormalizado;
       });
-      if (profFiltrado?.nome) {
-        return profFiltrado.nome;
+      
+      if (prof?.nome) {
+        return prof.nome;
       }
     }
     
+    console.warn('getProfessorNome: Professor não encontrado para ID', idNormalizado);
     return 'N/A';
   };
 
@@ -392,20 +424,20 @@ export function DiariosList() {
   return (
     <div className="space-y-6">
       <Card>
-        {/* SOLUÇÃO PROBLEMA 1: Alinhar título à esquerda e botão à direita */}
-        <CardHeader className="pb-7">
-          <div className="flex flex-row items-center justify-between gap-4">
-            <div className="space-y-1">
+        {/* ✅ CORREÇÃO PROBLEMA 1: Título à esquerda e botão à direita na mesma linha */}
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
               <CardTitle>Diários de Classe</CardTitle>
               <CardDescription>Gerencie os diários de classe da instituição</CardDescription>
             </div>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-teal-600 hover:bg-teal-700 whitespace-nowrap">
-                <Plus className="h-4 w-4 mr-2" />
-                Novo Diário
-              </Button>
-            </DialogTrigger>
+              <DialogTrigger asChild>
+                <Button className="bg-teal-600 hover:bg-teal-700 whitespace-nowrap">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Novo Diário
+                </Button>
+              </DialogTrigger>
             <DialogContent className="sm:max-w-[500px]">
               <DialogHeader>
                 <DialogTitle>{editingDiario ? 'Editar Diário' : 'Criar Novo Diário'}</DialogTitle>
@@ -534,6 +566,7 @@ export function DiariosList() {
               </form>
             </DialogContent>
           </Dialog>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="flex gap-4 mb-4">
