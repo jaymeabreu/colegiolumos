@@ -83,6 +83,35 @@ export function DiariosList() {
     loadData();
   }, [loadData]);
 
+  // Debug: Log quando os dados forem carregados
+  useEffect(() => {
+    if (diarios.length > 0) {
+      console.log('📊 Diários carregados:', diarios.length);
+      console.log('👥 Total de usuários:', todosUsuarios.length);
+      console.log('👨‍🏫 Total de professores:', professores.length);
+      
+      // Mostrar um exemplo de diário
+      if (diarios[0]) {
+        console.log('📋 Exemplo de diário:', {
+          nome: diarios[0].nome,
+          professor_id: diarios[0].professor_id,
+          disciplina_id: diarios[0].disciplina_id,
+          turma_id: diarios[0].turma_id
+        });
+      }
+      
+      // Mostrar exemplos de usuários
+      if (todosUsuarios.length > 0) {
+        console.log('👤 Exemplos de usuários:', todosUsuarios.slice(0, 3).map(u => ({
+          nome: u.nome,
+          id: u.id,
+          ID: u.ID,
+          papel: u.papel
+        })));
+      }
+    }
+  }, [diarios, todosUsuarios, professores]);
+
   useEffect(() => {
     const filtrarProfessores = async () => {
       if (!formData.disciplinaId) {
@@ -355,7 +384,7 @@ export function DiariosList() {
     return turmas.find(t => t.id === id)?.nome || 'N/A';
   };
 
-  // ✅ CORREÇÃO PROBLEMA 2: Função melhorada para buscar nome do professor
+  // ✅ CORREÇÃO PROBLEMA 2: Função melhorada para buscar nome do professor com debug completo
   const getProfessorNome = (id?: number) => {
     if (!id) {
       console.warn('getProfessorNome: ID não fornecido');
@@ -370,11 +399,29 @@ export function DiariosList() {
       return 'N/A';
     }
     
+    // Log para debug - remover depois se funcionar
+    console.log('Buscando professor com ID:', idNormalizado);
+    console.log('Total de usuários:', todosUsuarios.length);
+    console.log('Total de professores:', professores.length);
+    
     // Buscar em todosUsuarios primeiro (mais completo)
     if (todosUsuarios && todosUsuarios.length > 0) {
+      // Tentar todas as possíveis variações de campos
       const usuario = todosUsuarios.find(u => {
-        const uId = Number(u.id || u.ID || (u as any).usuario_id || (u as any).professor_id);
-        return uId === idNormalizado;
+        const ids = [
+          u.id,
+          u.ID,
+          (u as any).usuario_id,
+          (u as any).professor_id,
+          (u as any).userId,
+          (u as any).professorId
+        ].map(i => i ? Number(i) : null).filter(i => i !== null);
+        
+        const match = ids.some(i => i === idNormalizado);
+        if (match) {
+          console.log('✅ Professor encontrado em todosUsuarios:', u.nome);
+        }
+        return match;
       });
       
       if (usuario?.nome) {
@@ -385,8 +432,20 @@ export function DiariosList() {
     // Fallback para lista de professores
     if (professores && professores.length > 0) {
       const prof = professores.find(p => {
-        const pId = Number(p.id || p.ID || (p as any).usuario_id || (p as any).professor_id);
-        return pId === idNormalizado;
+        const ids = [
+          p.id,
+          p.ID,
+          (p as any).usuario_id,
+          (p as any).professor_id,
+          (p as any).userId,
+          (p as any).professorId
+        ].map(i => i ? Number(i) : null).filter(i => i !== null);
+        
+        const match = ids.some(i => i === idNormalizado);
+        if (match) {
+          console.log('✅ Professor encontrado em professores:', p.nome);
+        }
+        return match;
       });
       
       if (prof?.nome) {
@@ -394,7 +453,16 @@ export function DiariosList() {
       }
     }
     
-    console.warn('getProfessorNome: Professor não encontrado para ID', idNormalizado);
+    // Se não encontrou, mostrar todos os IDs disponíveis para debug
+    console.warn('❌ Professor não encontrado para ID:', idNormalizado);
+    console.log('IDs disponíveis em todosUsuarios:', todosUsuarios.map(u => ({
+      nome: u.nome,
+      id: u.id,
+      ID: u.ID,
+      usuario_id: (u as any).usuario_id,
+      professor_id: (u as any).professor_id
+    })));
+    
     return 'N/A';
   };
 
@@ -784,6 +852,9 @@ export function DiariosList() {
                 const hoje = new Date();
                 const dataTermino = diario.dataTermino ? new Date(diario.dataTermino) : null;
                 const isExpirado = dataTermino && hoje > dataTermino;
+
+                // Debug: Log do professor_id do diário
+                console.log('Diário:', diario.nome, '| professor_id:', diario.professor_id, '| Tipo:', typeof diario.professor_id);
 
                 return (
                   <div key={diario.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
