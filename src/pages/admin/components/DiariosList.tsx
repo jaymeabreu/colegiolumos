@@ -68,7 +68,9 @@ export function DiariosList() {
       
       const userData = localStorage.getItem('user');
       if (userData) {
-        setCurrentUser(JSON.parse(userData));
+        const parsedUser = JSON.parse(userData);
+        console.log('Usuário carregado:', parsedUser);
+        setCurrentUser(parsedUser);
       }
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
@@ -108,12 +110,6 @@ export function DiariosList() {
   }, [formData.disciplinaId, professores]);
 
   const filteredDiarios = useMemo(() => {
-    const temSolicitacaoDevolucao = (diario: Diario) => {
-      if (!diario.solicitacao_devolucao) return false;
-      const temMotivo = diario.solicitacao_devolucao.motivo || diario.solicitacao_devolucao.comentario;
-      return !!temMotivo && diario.status === 'ENTREGUE';
-    };
-
     if (!searchTerm && !Object.values(filters).some(v => v && v !== 'all')) {
       return diarios;
     }
@@ -243,11 +239,26 @@ export function DiariosList() {
   }, []);
 
   const handleFinalizarDiario = useCallback(async () => {
-    if (!selectedDiario || !currentUser) return;
+    if (!selectedDiario) {
+      console.error('Nenhum diário selecionado para finalizar');
+      return;
+    }
+    
+    // Tenta pegar o ID do usuário de várias fontes possíveis para evitar id=null
+    const userId = currentUser?.id || 
+                   currentUser?.professor_id || 
+                   JSON.parse(localStorage.getItem('user') || '{}').id;
+
+    if (!userId) {
+      console.error('ID do usuário não encontrado');
+      alert('Erro: Usuário não identificado. Por favor, faça login novamente.');
+      return;
+    }
     
     try {
       setLoading(true);
-      const sucesso = await supabaseService.finalizarDiario(selectedDiario.id, currentUser.id);
+      console.log('Finalizando diário:', selectedDiario.id, 'por usuário:', userId);
+      const sucesso = await supabaseService.finalizarDiario(selectedDiario.id, userId);
       
       if (sucesso) {
         await loadData();
@@ -346,15 +357,6 @@ export function DiariosList() {
       canView: true
     };
   };
-
-  const diasComSolicitacaoDevolucao = useMemo(() => {
-    return diarios.filter(d => {
-      if (!d.solicitacao_devolucao) return false;
-      const temMotivo = d.solicitacao_devolucao.motivo || d.solicitacao_devolucao.comentario;
-      if (!temMotivo) return false;
-      return d.status === 'ENTREGUE';
-    });
-  }, [diarios]);
 
   return (
     <div className="space-y-6">
@@ -713,8 +715,11 @@ export function DiariosList() {
                         {temSolicitacaoDevolucao && (
                           <Badge className="bg-orange-50 text-orange-600 border-orange-100 hover:bg-orange-100 flex items-center gap-1 font-normal">
                             <RotateCcw className="h-3 w-3" />
-                            Devolvido
+                            Solicitação de Devolução
                           </Badge>
+                        )}
+                        {diario.status === 'FINALIZADO' && (
+                          <Badge className="bg-green-100 text-green-700 border-green-300">Finalizado</Badge>
                         )}
                       </div>
                       <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-gray-600">
