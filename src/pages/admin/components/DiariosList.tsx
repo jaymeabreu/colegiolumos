@@ -391,14 +391,19 @@ export function DiariosList() {
                 Novo Diário
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>{editingDiario ? 'Editar Diário' : 'Novo Diário'}</DialogTitle>
-                <DialogDescription>
-                  Preencha as informações abaixo para {editingDiario ? 'atualizar o' : 'criar um novo'} diário.
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleSubmit}>
+           <DialogContent className="max-w-2xl">
+  <style>{`
+    [data-radix-popper-content-wrapper] {
+      z-index: 99999 !important;
+    }
+  `}</style>
+  <DialogHeader>
+    <DialogTitle>{editingDiario ? 'Editar Diário' : 'Novo Diário'}</DialogTitle>
+    <DialogDescription>
+      Preencha as informações abaixo para {editingDiario ? 'atualizar o' : 'criar um novo'} diário.
+    </DialogDescription>
+  </DialogHeader>
+  <form onSubmit={handleSubmit}>
                 <div className="grid gap-4 py-4">
                   <div className="grid gap-2">
                     <Label htmlFor="nome">Nome do Diário</Label>
