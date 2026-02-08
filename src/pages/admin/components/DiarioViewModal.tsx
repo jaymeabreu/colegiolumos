@@ -178,7 +178,7 @@ export function DiarioViewModal({
     }
   };
 
- const handleDevolverDiario = async () => {
+  const handleDevolverDiario = async () => {
     if (!diario) return;
     try {
       setDevolvendoDiario(true);
@@ -236,8 +236,6 @@ export function DiarioViewModal({
 
   if (!diario || !open) return null;
 
-  // Usamos createPortal para renderizar o modal no final do <body>, 
-  // escapando de qualquer div com margin/padding/relative do pai.
   return createPortal(
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999] backdrop-blur-sm">
       <div className="bg-background rounded-xl w-full max-w-[1400px] mx-4 flex flex-col shadow-2xl overflow-hidden border h-[95vh]">
