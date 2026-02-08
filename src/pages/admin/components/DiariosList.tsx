@@ -568,7 +568,6 @@ export function DiariosList() {
                 `}</style>
                 <DialogHeader>
                   <DialogTitle>Filtrar Diários</DialogTitle>
-                  <DialogTitle>Filtrar Diários</DialogTitle>
                   <DialogDescription>
                     Use os filtros abaixo para refinar a lista de diários
                   </DialogDescription>
@@ -853,14 +852,14 @@ export function DiariosList() {
         userRole={currentUser?.papel as any}
       />
 
-      <Dialog open={isFinalizarDialogOpen} onOpenChange={setIsFinalizarDialogOpen}>
+    <Dialog open={isFinalizarDialogOpen} onOpenChange={setIsFinalizarDialogOpen}>
         <DialogContent>
+          <style>{`
+            [data-radix-popper-content-wrapper] {
+              z-index: 99999 !important;
+            }
+          `}</style>
           <DialogHeader>
-            <DialogTitle>Finalizar Diário</DialogTitle>
-            <DialogDescription>
-              Tem certeza que deseja finalizar este diário? Após a finalização, nem o professor nem o coordenador poderão mais editá-lo.
-            </DialogDescription>
-          </DialogHeader>
           <DialogFooter>
             <Button 
               type="button" 
