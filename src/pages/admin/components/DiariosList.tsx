@@ -82,20 +82,15 @@ export function DiariosList() {
     loadData();
   }, [loadData]);
 
-  // 🔧 CORREÇÃO: useEffect que filtra professores por disciplina
   useEffect(() => {
     const filtrarProfessores = async () => {
       if (!formData.disciplinaId) {
-        // Se não há disciplina selecionada, mostra todos os professores
         setProfessoresFiltrados(professores);
         return;
       }
 
       try {
-        // Busca os IDs dos professores que lecionam esta disciplina
         const professoresIds = await supabaseService.getProfessoresByDisciplina(Number(formData.disciplinaId));
-        
-        // Filtra os professores que têm professor_id na lista de IDs retornados
         const professoresDaDisciplina = professores.filter(p => {
           const profId = p.professor_id ?? p.id;
           return professoresIds.includes(profId);
@@ -113,7 +108,6 @@ export function DiariosList() {
   }, [formData.disciplinaId, professores]);
 
   const filteredDiarios = useMemo(() => {
-    // Helper: verificar se tem uma solicitação de devolução VÁLIDA
     const temSolicitacaoDevolucao = (diario: Diario) => {
       if (!diario.solicitacao_devolucao) return false;
       const temMotivo = diario.solicitacao_devolucao.motivo || diario.solicitacao_devolucao.comentario;
@@ -121,12 +115,10 @@ export function DiariosList() {
     };
 
     if (!searchTerm && !Object.values(filters).some(v => v && v !== 'all')) {
-      // Mostrar todos EXCETO os que estão com uma solicitação de devolução VÁLIDA no aviso
       return diarios.filter(d => !temSolicitacaoDevolucao(d));
     }
 
     return diarios.filter(diario => {
-      // Filtrar o que está no aviso (solicitacao_devolucao VÁLIDA)
       if (temSolicitacaoDevolucao(diario)) return false;
 
       if (searchTerm && diario.nome && !diario.nome.toLowerCase().includes(searchTerm.toLowerCase())) {
@@ -319,10 +311,8 @@ export function DiariosList() {
 
   const getProfessorNome = useCallback((professorId?: number) => {
     if (!professorId) return 'N/A';
-    // Busca por professor_id (campo correto na tabela usuarios)
     const professor = professores.find(p => p.professor_id === professorId);
     if (professor) return professor.nome;
-    // Se não encontrar, tenta por id como fallback
     return professores.find(p => p.id === professorId)?.nome || 'N/A';
   }, [professores]);
 
@@ -336,17 +326,16 @@ export function DiariosList() {
     return { label: 'Ativo', variant: 'default' as const };
   };
 
-  const getStatusDiarioInfo = (status?: string) => {
+  const getBadgeStatusDiario = (status?: string) => {
     switch (status) {
-      case 'ENTREGUE':
-        return { label: 'Pendente de Revisão', color: 'text-blue-600 bg-blue-50 border-blue-200', icon: Clock };
       case 'DEVOLVIDO':
-        return { label: 'Devolvido', color: 'text-orange-600 bg-orange-50 border-orange-200', icon: RotateCcw };
+        return { label: 'Devolvido', className: 'bg-orange-100 text-orange-700 border-orange-300' };
+      case 'ENTREGUE':
+        return { label: 'Aguardando Revisão', className: 'bg-blue-100 text-blue-700 border-blue-300' };
       case 'FINALIZADO':
-        return { label: 'Finalizado', color: 'text-green-600 bg-green-50 border-green-200', icon: CheckCircle };
-      case 'PENDENTE':
+        return { label: 'Finalizado', className: 'bg-green-100 text-green-700 border-green-300' };
       default:
-        return { label: 'Pendente', color: 'text-gray-600 bg-gray-50 border-gray-200', icon: Clock };
+        return null;
     }
   };
 
@@ -360,18 +349,11 @@ export function DiariosList() {
     };
   };
 
-  // Filtrar diários com solicitação de devolução APENAS se for uma solicitação VÁLIDA e real
   const diasComSolicitacaoDevolucao = useMemo(() => {
     return diarios.filter(d => {
-      // Verificar se tem solicitacao_devolucao com dados preenchidos
       if (!d.solicitacao_devolucao) return false;
-      
-      // Verificar se é um objeto com propriedades preenchidas (motivo ou comentário)
       const temMotivo = d.solicitacao_devolucao.motivo || d.solicitacao_devolucao.comentario;
       if (!temMotivo) return false;
-      
-      // Mostrar apenas se status for ENTREGUE (esperando a resposta do coordenador)
-      // NÃO mostrar se for DEVOLVIDO ou FINALIZADO (já foi processado)
       return d.status === 'ENTREGUE';
     });
   }, [diarios]);
@@ -391,19 +373,19 @@ export function DiariosList() {
                 Novo Diário
               </Button>
             </DialogTrigger>
-           <DialogContent className="max-w-2xl">
-  <style>{`
-    [data-radix-popper-content-wrapper] {
-      z-index: 99999 !important;
-    }
-  `}</style>
-  <DialogHeader>
-    <DialogTitle>{editingDiario ? 'Editar Diário' : 'Novo Diário'}</DialogTitle>
-    <DialogDescription>
-      Preencha as informações abaixo para {editingDiario ? 'atualizar o' : 'criar um novo'} diário.
-    </DialogDescription>
-  </DialogHeader>
-  <form onSubmit={handleSubmit}>
+            <DialogContent className="max-w-2xl">
+              <style>{`
+                [data-radix-popper-content-wrapper] {
+                  z-index: 99999 !important;
+                }
+              `}</style>
+              <DialogHeader>
+                <DialogTitle>{editingDiario ? 'Editar Diário' : 'Novo Diário'}</DialogTitle>
+                <DialogDescription>
+                  Preencha as informações abaixo para {editingDiario ? 'atualizar o' : 'criar um novo'} diário.
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleSubmit}>
                 <div className="grid gap-4 py-4">
                   <div className="grid gap-2">
                     <Label htmlFor="nome">Nome do Diário</Label>
@@ -422,7 +404,6 @@ export function DiariosList() {
                         value={formData.disciplinaId} 
                         onValueChange={(value) => {
                           console.log('Disciplina selecionada:', value);
-                          // 🔧 CORREÇÃO: Limpa o professor ao mudar a disciplina
                           setFormData({ ...formData, disciplinaId: value, professorId: '' });
                         }}
                       >
@@ -709,7 +690,6 @@ export function DiariosList() {
             </Dialog>
           </div>
 
-          {/* Aviso APENAS aparece se houver diários com solicitação de devolução em status PENDENTE ou ENTREGUE */}
           {diasComSolicitacaoDevolucao.length > 0 && (
             <div className="mb-6 p-4 bg-orange-50 border-2 border-orange-200 rounded-lg">
               <div className="flex items-center gap-2 mb-3">
@@ -763,19 +743,22 @@ export function DiariosList() {
             <div className="space-y-4">
               {filteredDiarios.map((diario) => {
                 const status = getStatusDiario(diario);
-                const statusDiario = getStatusDiarioInfo(diario.status);
-                const StatusIcon = statusDiario.icon;
+                const badgeStatus = getBadgeStatusDiario(diario.status);
                 const permissions = canManageDiario(diario);
                 
                 return (
                   <div key={diario.id} className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 p-4 border rounded-lg">
                     <div className="flex-1">
-                     <div className="flex items-center gap-2 mb-1 flex-wrap">
-  <h3 className="font-medium">{diario.nome || 'Sem nome'}</h3>
-  {diario.bimestre && <Badge variant="outline">{diario.bimestre}º Bimestre</Badge>}
-  <Badge variant={status.variant}>{status.label}</Badge>
-</div>
-              
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <h3 className="font-medium">{diario.nome || 'Sem nome'}</h3>
+                        {diario.bimestre && <Badge variant="outline">{diario.bimestre}º Bimestre</Badge>}
+                        <Badge variant={status.variant}>{status.label}</Badge>
+                        {badgeStatus && (
+                          <Badge className={badgeStatus.className}>
+                            {badgeStatus.label}
+                          </Badge>
+                        )}
+                      </div>
                       <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-gray-600">
                         <span>{getDisciplinaNome(diario.disciplina_id)} - {getTurmaNome(diario.turma_id)}</span>
                         <span>•</span>
@@ -857,7 +840,7 @@ export function DiariosList() {
         userRole={currentUser?.papel as any}
       />
 
-     <Dialog open={isFinalizarDialogOpen} onOpenChange={setIsFinalizarDialogOpen}>
+      <Dialog open={isFinalizarDialogOpen} onOpenChange={setIsFinalizarDialogOpen}>
         <DialogContent>
           <style>{`
             [data-radix-popper-content-wrapper] {
