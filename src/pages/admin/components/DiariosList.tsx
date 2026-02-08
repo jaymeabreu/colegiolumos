@@ -115,12 +115,10 @@ export function DiariosList() {
     };
 
     if (!searchTerm && !Object.values(filters).some(v => v && v !== 'all')) {
-      return diarios.filter(d => !temSolicitacaoDevolucao(d));
+      return diarios;
     }
 
     return diarios.filter(diario => {
-      if (temSolicitacaoDevolucao(diario)) return false;
-
       if (searchTerm && diario.nome && !diario.nome.toLowerCase().includes(searchTerm.toLowerCase())) {
         return false;
       }
@@ -296,7 +294,7 @@ export function DiariosList() {
   }, []);
 
   const getActiveFiltersCount = useMemo(() => {
-    return Object.values(filters).filter(value => value !== '' && value !== 'all').length;
+    return Object.values(filters).filter(v => v && v !== 'all').length;
   }, [filters]);
 
   const getTurmaNome = useCallback((turmaId?: number) => {
@@ -689,49 +687,6 @@ export function DiariosList() {
               </DialogContent>
             </Dialog>
           </div>
-
-          {diasComSolicitacaoDevolucao.length > 0 && (
-            <div className="mb-6 p-4 bg-orange-50 border-2 border-orange-200 rounded-lg">
-              <div className="flex items-center gap-2 mb-3">
-                <AlertCircle className="h-5 w-5 text-orange-600" />
-                <h4 className="font-semibold text-orange-900">
-                  {diasComSolicitacaoDevolucao.length} Diário(s) com Solicitação de Devolução
-                </h4>
-              </div>
-              <div className="space-y-3">
-                {diasComSolicitacaoDevolucao.map(diario => (
-                  <div key={diario.id} className="p-3 bg-white rounded border border-orange-100">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1">
-                        <p className="font-medium text-gray-900">{diario.nome}</p>
-                        <p className="text-sm text-gray-600 mb-2">
-                          {getDisciplinaNome(diario.disciplina_id)} - {getTurmaNome(diario.turma_id)} • Prof. {getProfessorNome(diario.professor_id)}
-                        </p>
-                        {diario.solicitacao_devolucao && (
-                          <div className="bg-orange-50 p-2 rounded border border-orange-100">
-                            <p className="text-xs font-semibold text-orange-800 mb-1">Motivo da Devolução:</p>
-                            <p className="text-sm text-orange-700">
-                              {diario.solicitacao_devolucao.motivo || diario.solicitacao_devolucao.comentario || 'Sem motivo especificado'}
-                            </p>
-                            <p className="text-xs text-orange-600 mt-1">
-                              Solicitado em: {new Date(diario.solicitacao_devolucao.at || diario.solicitacao_devolucao.dataSolicitacao).toLocaleDateString('pt-BR')}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                      <Button
-                        size="sm"
-                        onClick={() => handleViewDiario(diario)}
-                        className="whitespace-nowrap"
-                      >
-                        Revisar
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
           
           {loading && (
             <div className="text-center py-8 text-gray-500">
@@ -743,17 +698,25 @@ export function DiariosList() {
             <div className="space-y-4">
               {filteredDiarios.map((diario) => {
                 const status = getStatusDiario(diario);
-                const badgeStatus = getBadgeStatusDiario(diario.status);
                 const permissions = canManageDiario(diario);
+                const temSolicitacaoDevolucao = diario.solicitacao_devolucao && 
+                                               (diario.solicitacao_devolucao.motivo || diario.solicitacao_devolucao.comentario) && 
+                                               diario.status === 'ENTREGUE';
                 
                 return (
                   <div key={diario.id} className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 p-4 border rounded-lg">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
-  <h3 className="font-medium">{diario.nome || 'Sem nome'}</h3>
-  {diario.bimestre && <Badge variant="outline">{diario.bimestre}º Bimestre</Badge>}
-  <Badge variant={status.variant}>{status.label}</Badge>
-</div>
+                        <h3 className="font-medium">{diario.nome || 'Sem nome'}</h3>
+                        {diario.bimestre && <Badge variant="outline">{diario.bimestre}º Bimestre</Badge>}
+                        <Badge variant={status.variant}>{status.label}</Badge>
+                        {temSolicitacaoDevolucao && (
+                          <Badge className="bg-orange-50 text-orange-600 border-orange-100 hover:bg-orange-100 flex items-center gap-1 font-normal">
+                            <RotateCcw className="h-3 w-3" />
+                            Devolvido
+                          </Badge>
+                        )}
+                      </div>
                       <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-gray-600">
                         <span>{getDisciplinaNome(diario.disciplina_id)} - {getTurmaNome(diario.turma_id)}</span>
                         <span>•</span>
