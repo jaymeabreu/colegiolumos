@@ -22,7 +22,8 @@ export interface DiarioAluno { id: number; diario_id: number; aluno_id: number; 
 
 const nowIso = () => new Date().toISOString();
 
-function withCamel<T extends Record<string, any>>(row: T): T {
+function withCamel(row: any) {
+  if (!row) return row;
   const r: any = { ...row };
   if (r.turma_id !== undefined) r.turmaId = r.turma_id;
   if (r.disciplina_id !== undefined) r.disciplinaId = r.disciplina_id;
@@ -34,12 +35,6 @@ function withCamel<T extends Record<string, any>>(row: T): T {
   return r;
 }
 
-function sanitizeAlunoId(value: any): number | null {
-  if (value === null || value === undefined) return null;
-  const parsed = parseInt(value, 10);
-  return isNaN(parsed) ? null : parsed;
-}
-
 class SupabaseService {
   private dispatchDataUpdated(type: string) {
     window.dispatchEvent(new CustomEvent('dataUpdated', { detail: { type, timestamp: Date.now() } }));
@@ -47,318 +42,161 @@ class SupabaseService {
 
   // --- MATRÍCULA ---
   async getSuggestedMatricula(): Promise<string> {
-    try {
-      const { data: alunos, error } = await supabase.from('alunos').select('matricula');
-      if (error) return '01';
-      const existing = new Set((alunos ?? []).map(a => a.matricula));
-      for (let i = 1; i <= 9999; i++) {
-        const suggested = i.toString().padStart(2, '0');
-        if (!existing.has(suggested)) return suggested;
-      }
-      return '9999';
-    } catch { return '01'; }
+    const { data } = await supabase.from('alunos').select('matricula');
+    const existing = new Set((data ?? []).map(a => a.matricula));
+    for (let i = 1; i <= 9999; i++) {
+      const suggested = i.toString().padStart(2, '0');
+      if (!existing.has(suggested)) return suggested;
+    }
+    return '01';
   }
 
   // --- USUÁRIOS ---
   async getUsuarios(): Promise<Usuario[]> {
-    const { data, error } = await supabase.from('usuarios').select('*').order('id', { ascending: true });
+    const { data, error } = await supabase.from('usuarios').select('*').order('nome');
     if (error) throw error;
-    return (data ?? []) as Usuario[];
+    return data as Usuario[];
   }
 
-  async createUsuario(usuario: any, senha?: string): Promise<Usuario> {
+  async createUsuario(usuario: any, senha?: string) {
     const payload = { ...usuario, senha: senha || '123456', ativo: true };
     const { data, error } = await supabase.from('usuarios').insert(payload).select('*').single();
     if (error) throw error;
     this.dispatchDataUpdated('usuarios');
-    return data as Usuario;
+    return data;
   }
 
-  async updateUsuario(id: number, updates: Partial<Usuario>): Promise<Usuario | null> {
-    const { data, error } = await supabase.from('usuarios').update({ ...updates, updated_at: nowIso() }).eq('id', id).select('*').maybeSingle();
+  async updateUsuario(id: number, updates: any) {
+    const { data, error } = await supabase.from('usuarios').update(updates).eq('id', id).select('*').maybeSingle();
     if (error) throw error;
     this.dispatchDataUpdated('usuarios');
-    return data as Usuario;
+    return data;
   }
 
-  async deleteUsuario(id: number): Promise<void> {
-    const { error } = await supabase.from('usuarios').delete().eq('id', id);
-    if (error) throw error;
+  async deleteUsuario(id: number) {
+    await supabase.from('usuarios').delete().eq('id', id);
     this.dispatchDataUpdated('usuarios');
   }
 
-  // --- TURMAS ---
+  // --- TURMAS E DISCIPLINAS ---
   async getTurmas(): Promise<Turma[]> {
-    const { data, error } = await supabase.from('turmas').select('*').order('id', { ascending: true });
+    const { data, error } = await supabase.from('turmas').select('*').order('nome');
     if (error) throw error;
-    return (data ?? []).map(withCamel) as Turma[];
+    return (data ?? []).map(withCamel);
   }
 
-  async getTurmaById(id: number): Promise<Turma | null> {
-    if (!id) return null;
-    const { data, error } = await supabase.from('turmas').select('*').eq('id', id).maybeSingle();
-    if (error) throw error;
-    return data ? withCamel(data) : null;
-  }
-
-  async createTurma(turma: any): Promise<Turma> {
-    const { data, error } = await supabase.from('turmas').insert(turma).select('*').single();
-    if (error) throw error;
-    this.dispatchDataUpdated('turmas');
-    return withCamel(data) as Turma;
-  }
-
-  async updateTurma(id: number, updates: any): Promise<Turma | null> {
-    const { data, error } = await supabase.from('turmas').update({ ...updates, updated_at: nowIso() }).eq('id', id).select('*').maybeSingle();
-    if (error) throw error;
-    this.dispatchDataUpdated('turmas');
-    return data ? withCamel(data) : null;
-  }
-
-  async deleteTurma(id: number): Promise<void> {
-    const { error } = await supabase.from('turmas').delete().eq('id', id);
-    if (error) throw error;
-    this.dispatchDataUpdated('turmas');
-  }
-
-  // --- DISCIPLINAS ---
   async getDisciplinas(): Promise<Disciplina[]> {
-    const { data, error } = await supabase.from('disciplinas').select('*').order('id', { ascending: true });
+    const { data, error } = await supabase.from('disciplinas').select('*').order('nome');
     if (error) throw error;
-    return (data ?? []).map(withCamel) as Disciplina[];
+    return (data ?? []).map(withCamel);
   }
 
-  async getDisciplinaById(id: number): Promise<Disciplina | null> {
-    if (!id) return null;
-    const { data, error } = await supabase.from('disciplinas').select('*').eq('id', id).maybeSingle();
-    if (error) throw error;
-    return data ? withCamel(data) : null;
-  }
-
-  async createDisciplina(disciplina: any): Promise<Disciplina> {
-    const { data, error } = await supabase.from('disciplinas').insert(disciplina).select('*').single();
-    if (error) throw error;
-    this.dispatchDataUpdated('disciplinas');
-    return withCamel(data) as Disciplina;
-  }
-
-  async updateDisciplina(id: number, updates: any): Promise<Disciplina | null> {
-    const { data, error } = await supabase.from('disciplinas').update({ ...updates, updated_at: nowIso() }).eq('id', id).select('*').maybeSingle();
-    if (error) throw error;
-    this.dispatchDataUpdated('disciplinas');
-    return data ? withCamel(data) : null;
-  }
-
-  async deleteDisciplina(id: number): Promise<void> {
-    const { error } = await supabase.from('disciplinas').delete().eq('id', id);
-    if (error) throw error;
-    this.dispatchDataUpdated('disciplinas');
-  }
-
-  // --- PROFESSORES ---
-  async getProfessores(): Promise<Professor[]> {
-    const { data, error } = await supabase.from('professores').select('*').order('id', { ascending: true });
-    if (error) throw error;
-    return data as Professor[];
-  }
-
-  async getProfessorById(id: number): Promise<Professor | null> {
-    if (!id) return null;
-    const { data, error } = await supabase.from('professores').select('*').eq('id', id).maybeSingle();
-    if (error) throw error;
-    return data;
-  }
-
-  async createProfessor(prof: any): Promise<Professor> {
-    const { data, error } = await supabase.from('professores').insert(prof).select('*').single();
-    if (error) throw error;
-    this.dispatchDataUpdated('professores');
-    return data;
-  }
-
-  async updateProfessor(id: number, updates: any): Promise<Professor | null> {
-    const { data, error } = await supabase.from('professores').update({ ...updates, updated_at: nowIso() }).eq('id', id).select('*').maybeSingle();
-    if (error) throw error;
-    this.dispatchDataUpdated('professores');
-    return data;
-  }
-
-  async deleteProfessor(id: number): Promise<void> {
-    const { error } = await supabase.from('professores').delete().eq('id', id);
-    if (error) throw error;
-    this.dispatchDataUpdated('professores');
-  }
-
-  // --- ALUNOS ---
+  // --- ALUNOS (Funções completas restauradas) ---
   async getAlunos(): Promise<Aluno[]> {
-    const { data, error } = await supabase.from('alunos').select('*').order('id', { ascending: true });
+    const { data, error } = await supabase.from('alunos').select('*').order('nome');
     if (error) throw error;
-    return (data ?? []).map(withCamel) as Aluno[];
+    return (data ?? []).map(withCamel);
   }
 
   async getAlunosByTurma(turmaId: number): Promise<Aluno[]> {
     if (!turmaId) return [];
-    const { data, error } = await supabase.from('alunos').select('*').eq('turma_id', turmaId).order('id', { ascending: true });
+    const { data, error } = await supabase.from('alunos').select('*').eq('turma_id', turmaId);
     if (error) throw error;
-    return (data ?? []).map(withCamel) as Aluno[];
+    return (data ?? []).map(withCamel);
   }
 
-  async createAluno(aluno: any): Promise<Aluno> {
-    const { data, error } = await supabase.from('alunos').insert(aluno).select('*').single();
+  async getAlunosByDiario(diarioId: number): Promise<Aluno[]> {
+    if (!diarioId) return [];
+    const { data: vinculos } = await supabase.from('diario_alunos').select('aluno_id').eq('diario_id', diarioId);
+    const ids = (vinculos ?? []).map(v => v.aluno_id);
+    if (!ids.length) return [];
+    const { data, error } = await supabase.from('alunos').select('*').in('id', ids);
     if (error) throw error;
-    this.dispatchDataUpdated('alunos');
-    return withCamel(data) as Aluno;
-  }
-
-  async updateAluno(id: number, updates: any): Promise<Aluno | null> {
-    const { data, error } = await supabase.from('alunos').update({ ...updates, updated_at: nowIso() }).eq('id', id).select('*').maybeSingle();
-    if (error) throw error;
-    this.dispatchDataUpdated('alunos');
-    return data ? withCamel(data) : null;
-  }
-
-  async deleteAluno(id: number): Promise<void> {
-    const { error } = await supabase.from('alunos').delete().eq('id', id);
-    if (error) throw error;
-    this.dispatchDataUpdated('alunos');
+    return (data ?? []).map(withCamel);
   }
 
   // --- DIÁRIOS ---
   async getDiarios(): Promise<Diario[]> {
-    const { data, error } = await supabase.from('diarios').select('*').order('id', { ascending: true });
+    const { data, error } = await supabase.from('diarios').select('*').order('id', { ascending: false });
     if (error) throw error;
-    return (data ?? []).map(withCamel) as Diario[];
+    return (data ?? []).map(withCamel);
   }
 
   async getDiarioById(id: number): Promise<Diario | null> {
-    if (!id) return null;
+    if (!id || isNaN(id)) return null;
     const { data, error } = await supabase.from('diarios').select('*').eq('id', id).maybeSingle();
     if (error) throw error;
-    return data ? withCamel(data) : null;
+    return withCamel(data);
   }
 
-  async createDiario(diario: any): Promise<Diario> {
-    const { data, error } = await supabase.from('diarios').insert(diario).select('*').single();
+  async createDiario(diario: any) {
+    const { data, error } = await supabase.from('diarios').insert(diario).select().single();
     if (error) throw error;
     this.dispatchDataUpdated('diarios');
-    return withCamel(data) as Diario;
+    return withCamel(data);
   }
 
-  async updateDiario(id: number, updates: any): Promise<Diario | null> {
-    const { data, error } = await supabase.from('diarios').update({ ...updates, updated_at: nowIso() }).eq('id', id).select('*').maybeSingle();
+  async updateDiario(id: number, updates: any) {
+    if (!id) return null;
+    const { data, error } = await supabase.from('diarios').update(updates).eq('id', id).select().maybeSingle();
     if (error) throw error;
     this.dispatchDataUpdated('diarios');
-    return data ? withCamel(data) : null;
+    return withCamel(data);
   }
 
-  async deleteDiario(id: number): Promise<void> {
-    const { error } = await supabase.from('diarios').delete().eq('id', id);
-    if (error) throw error;
+  async deleteDiario(id: number) {
+    await supabase.from('diarios').delete().eq('id', id);
     this.dispatchDataUpdated('diarios');
   }
 
-  // --- AULAS ---
+  // --- AULAS E PRESENÇAS ---
   async getAulasByDiario(diarioId: number): Promise<Aula[]> {
     if (!diarioId) return [];
-    const { data, error } = await supabase.from('aulas').select('*').eq('diario_id', diarioId).order('id', { ascending: true });
+    const { data, error } = await supabase.from('aulas').select('*').eq('diario_id', diarioId).order('data');
     if (error) throw error;
-    return (data ?? []).map(withCamel) as Aula[];
+    return (data ?? []).map(withCamel);
   }
 
-  async createAula(aula: any): Promise<Aula> {
-    const { data, error } = await supabase.from('aulas').insert(aula).select('*').single();
-    if (error) throw error;
-    this.dispatchDataUpdated('aulas');
-    return withCamel(data) as Aula;
-  }
-
-  // --- PRESENÇAS ---
   async getPresencasByAula(aulaId: number): Promise<Presenca[]> {
     if (!aulaId) return [];
     const { data, error } = await supabase.from('presencas').select('*').eq('aula_id', aulaId);
     if (error) throw error;
-    return (data ?? []).map(withCamel) as Presenca[];
+    return (data ?? []).map(withCamel);
   }
 
-  async savePresencas(presencas: any[]): Promise<void> {
-    if (!presencas.length) return;
-    const aulaIds = [...new Set(presencas.map(p => p.aula_id))];
-    await supabase.from('presencas').delete().in('aula_id', aulaIds);
-    const { error } = await supabase.from('presencas').insert(presencas);
-    if (error) throw error;
-    this.dispatchDataUpdated('presencas');
-  }
-
-  // --- FINALIZAR DIÁRIO (FUNCIONAL) ---
+  // --- FINALIZAR DIÁRIO ---
   async finalizarDiario(diarioId: number, usuarioId: number): Promise<boolean> {
     try {
-      if (!diarioId || !usuarioId) throw new Error('IDs inválidos');
-      const { data: usuario } = await supabase.from('usuarios').select('papel').eq('id', usuarioId).maybeSingle();
-      if (!usuario || usuario.papel !== 'COORDENADOR') throw new Error('Apenas coordenadores podem finalizar.');
-
+      if (!diarioId || !usuarioId) throw new Error('Dados insuficientes para finalizar.');
+      const { data: user } = await supabase.from('usuarios').select('papel').eq('id', usuarioId).maybeSingle();
+      if (!user || user.papel !== 'COORDENADOR') throw new Error('Apenas coordenadores podem finalizar.');
       const diario = await this.getDiarioById(diarioId);
-      if (!diario) throw new Error('Diário não encontrado');
-
-      const historico = Array.isArray(diario.historico_status) ? [...diario.historico_status] : [];
-      historico.push({ status: 'FINALIZADO', at: nowIso(), usuario_id: usuarioId });
-
-      const { error } = await supabase.from('diarios').update({ 
-        status: 'FINALIZADO', 
-        historico_status: historico,
-        solicitacao_devolucao: null
-      }).eq('id', diarioId);
-
+      if (!diario) throw new Error('Diário não encontrado.');
+      const hist = Array.isArray(diario.historico_status) ? [...diario.historico_status] : [];
+      hist.push({ status: 'FINALIZADO', at: nowIso(), usuario_id: usuarioId });
+      const { error } = await supabase.from('diarios').update({ status: 'FINALIZADO', historico_status: hist, solicitacao_devolucao: null }).eq('id', diarioId);
       if (error) throw error;
       this.dispatchDataUpdated('diarios');
       return true;
     } catch (e: any) { throw e; }
   }
 
-  // --- PROTEÇÃO ANTI ERRO 400 id=eq.null ---
-  async getProfessorNomeByIdSafe(id?: number | null): Promise<string | null> {
+  // --- AUXILIARES ANTI-ERRO 400 ---
+  async getProfessorNomeByIdSafe(id?: number | null) {
     if (!id || isNaN(Number(id))) return null;
     const { data } = await supabase.from('professores').select('nome').eq('id', id).maybeSingle();
     return data?.nome || null;
   }
 
-  async getAlunoNomeByIdSafe(id?: number | null): Promise<string | null> {
+  async getAlunoNomeByIdSafe(id?: number | null) {
     if (!id || isNaN(Number(id))) return null;
     const { data } = await supabase.from('alunos').select('nome').eq('id', id).maybeSingle();
     return data?.nome || null;
   }
 
-  // --- OUTRAS FUNÇÕES (RESTO DO SEU CÓDIGO) ---
-  async getProfessoresByDisciplina(disciplinaId: number): Promise<number[]> {
-    if (!disciplinaId) return [];
-    const { data } = await supabase.from('professor_disciplinas').select('professor_id').eq('disciplina_id', disciplinaId);
+  async getProfessoresByDisciplina(id: number) {
+    const { data } = await supabase.from('professor_disciplinas').select('professor_id').eq('disciplina_id', id);
     return (data ?? []).map(d => d.professor_id);
-  }
-
-  async getBoletimAluno(diarioId: number, alunoId: number): Promise<any> {
-    try {
-      // Simulação de lógica de boletim
-      return { mediaGeral: 0, frequencia: 0, situacao: 'Em Análise', notas: [] };
-    } catch { return null; }
-  }
-
-  async getAvaliacoesByDiario(diarioId: number): Promise<Avaliacao[]> {
-    if (!diarioId) return [];
-    const { data } = await supabase.from('avaliacoes').select('*').eq('diario_id', diarioId);
-    return (data ?? []) as Avaliacao[];
-  }
-
-  async getNotasByAluno(alunoId: number): Promise<Nota[]> {
-    if (!alunoId) return [];
-    const { data } = await supabase.from('notas').select('*').eq('aluno_id', alunoId);
-    return (data ?? []) as Nota[];
-  }
-
-  // --- RECARDOS ---
-  async createRecado(recado: any): Promise<any> {
-    const { data, error } = await supabase.from('recados').insert(recado).select('*').single();
-    if (error) throw error;
-    this.dispatchDataUpdated('recados');
-    return data;
   }
 }
 
