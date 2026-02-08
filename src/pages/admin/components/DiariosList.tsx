@@ -397,6 +397,11 @@ export function DiariosList() {
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl">
+              <style>{`
+                [data-radix-popper-content-wrapper] {
+                  z-index: 99999 !important;
+                }
+              `}</style>
               <DialogHeader>
                 <DialogTitle>{editingDiario ? 'Editar Diário' : 'Novo Diário'}</DialogTitle>
                 <DialogDescription>
@@ -556,7 +561,13 @@ export function DiariosList() {
                 </Button>
               </DialogTrigger>
               <DialogContent className="max-w-md">
+                <style>{`
+                  [data-radix-popper-content-wrapper] {
+                    z-index: 99999 !important;
+                  }
+                `}</style>
                 <DialogHeader>
+                  <DialogTitle>Filtrar Diários</DialogTitle>
                   <DialogTitle>Filtrar Diários</DialogTitle>
                   <DialogDescription>
                     Use os filtros abaixo para refinar a lista de diários
