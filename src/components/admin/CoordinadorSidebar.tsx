@@ -155,7 +155,7 @@ export function CoordinadorSidebar({ onTabChange }: CoordinadorSidebarProps) {
       {/* OVERLAY - Apenas mobile */}
       {mobileMenuOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 max-[880px]:block hidden"
+          className="fixed inset-0 bg-black/50 z-[45] lg:hidden"
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
@@ -163,11 +163,11 @@ export function CoordinadorSidebar({ onTabChange }: CoordinadorSidebarProps) {
       {/* SIDEBAR */}
       <div 
         className={`
-          fixed left-0 top-0 h-[100dvh] w-full min-[881px]:w-64 bg-white dark:bg-gray-900 
+          fixed left-0 top-0 h-[100dvh] w-[280px] lg:w-64 bg-white dark:bg-gray-900 
           border-r border-gray-200 dark:border-gray-800 flex flex-col overflow-hidden
           transition-transform duration-300 ease-in-out z-50
-          max-[880px]:-translate-x-full
-          ${mobileMenuOpen ? 'max-[880px]:translate-x-0' : ''}
+          lg:translate-x-0
+          ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
         `}
       >
         {/* HEADER - LOGO E NOME DA ESCOLA */}
@@ -176,7 +176,7 @@ export function CoordinadorSidebar({ onTabChange }: CoordinadorSidebarProps) {
             {/* Botão X para fechar (MOBILE) */}
             <button
               onClick={() => setMobileMenuOpen(false)}
-              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded min-[881px]:hidden"
+              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded lg:hidden"
             >
               <X className="h-5 w-5 text-gray-700 dark:text-gray-300" />
             </button>
