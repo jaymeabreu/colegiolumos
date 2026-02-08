@@ -708,9 +708,7 @@ export function DiariosList() {
               {filteredDiarios.map((diario) => {
                 const status = getStatusDiario(diario);
                 const permissions = canManageDiario(diario);
-                const temSolicitacaoDevolucao = diario.solicitacao_devolucao && 
-                                               (diario.solicitacao_devolucao.motivo || diario.solicitacao_devolucao.comentario) && 
-                                               diario.status === 'ENTREGUE';
+                const temSolicitacaoDevolucao = diario.status === 'DEVOLVIDO';
                 
                 return (
                   <div key={diario.id} className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 p-4 border rounded-lg">
